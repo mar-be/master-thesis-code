@@ -2,29 +2,13 @@ import numpy as np
 from qiskit import(
   QuantumCircuit,
   execute,
-  IBMQ)
-from qiskit.visualization import plot_histogram
+  IBMQ
+  )
+from qiskit.converters import circuit_to_dag
+from aggregator import aggregate
+from partitioner import karger_algorithm
 
-def aggregate(list_of_circuits: list[QuantumCircuit]) -> QuantumCircuit:
-    num_qubits = 0
-    num_clbits = 0
-    for circ in list_of_circuits:
-        num_qubits += len(circ.qubits)
-        num_clbits += len(circ.clbits)
-    
-    agg_circuit = QuantumCircuit(num_qubits, num_clbits)
-
-    qubit_count = 0
-    clbit_count = 0
-
-    for circ in list_of_circuits:
-        qubits = range(qubit_count, qubit_count + len(circ.qubits))
-        clbits = range(clbit_count, clbit_count + len(circ.clbits))
-        agg_circuit.compose(circ, qubits=qubits, clbits=clbits, inplace=True)
-        qubit_count += len(circ.qubits)
-        clbit_count += len(circ.clbits)
-
-    return agg_circuit
+import networkx as nx
 
 
 # IBMQ.save_account('f5865210c4c93e8a0b5230c96a2cc402ad8c603c92641a1655b9f8c729ebf3ab4899db914dcd6aa8b75cd0849e34d5fc0f74adcd856d0d09da6aafc217d86bd4')
@@ -55,10 +39,26 @@ circuit_2.measure([0,1], [0,1])
 
 print(circuit)
 print(circuit_2)
+dag = circuit_to_dag(circuit)
+for node in dag.longest_path():
+    print(node.name)
+dag.draw()
+dag_nx = dag.to_networkx()
+print([node.name for node in dag_nx.nodes])
+print(dag_nx)
+
+cut = karger_algorithm(dag_nx, 2)
+for (u, v, w) in cut.edges:
+    print((u.name, u._node_id), (v.name, v._node_id))
+# mapping = {node:node.name + ":" + str(node._node_id) for node in dag_nx.nodes}
+# print(mapping)
+# dag_nx_relabeled = nx.relabel_nodes(dag_nx, mapping)
+
 
 agg_circuit = aggregate([circuit, circuit_2])
 
 print(agg_circuit)
+print(agg_circuit.num_connected_components())
 
 # Execute the circuit on the qasm simulator
 job = execute(agg_circuit, backend, shots=1000)
