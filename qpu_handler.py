@@ -48,4 +48,5 @@ if __name__ == "__main__":
     circuit.measure([0,1], [0,1])
     sb= bh.get_suitable_backends(circuit)
     print([b.name() for b in sb])
+    print([b.status().to_dict() for b in sb])
     print(least_busy(sb))
