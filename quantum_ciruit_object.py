@@ -1,43 +1,49 @@
 from qiskit import QuantumCircuit
-import uuid
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String
+from sqlalchemy.ext.declarative import declarative_base
 import sqlalchemy.types as types
-
-class QCircuit(types.TypeDecorator):
-    
-
-    def process_bind_param(self, value:QuantumCircuit, dialect):
-        return value.qasm()
-
-    def process_result_value(self, value:str, dialect):
-        return QuantumCircuit.from_qasm_str(value)
+from sqlalchemy import create_engine, Column
+from sqlalchemy.orm import sessionmaker
 
 
 # declarative base class
 Base = declarative_base()
+engine = create_engine('sqlite:///foo.db')
+session = sessionmaker(engine)()
+
 
 class QC_Object(Base):
 
     __tablename__ = 'qc_object'
 
-    id = Column(Integer, primary_key=True)
-    circuit = Column(QCircuit, nullable=False)
-
-
+    id = Column(types.Integer, primary_key=True)
+    _qasm = Column("qasm", types.String, nullable=False)
 
     def __init__(self,  circuit:QuantumCircuit) -> None:
-        self.id = uuid.uuid4()
         self.circuit = circuit
 
+    @property
+    def circuit(self):
+        if not hasattr(self, '_circuit') and self._qasm:
+            self._circuit = QuantumCircuit.from_qasm_str(self._qasm)
+        return self._circuit
+        
+
+    @circuit.setter
+    def circuit(self, value):
+        self._circuit = value
+        self._qasm = self._circuit.qasm()
+
     @classmethod
-    def from_qasm(cls, quasm:str):
-        circuit = QuantumCircuit.from_qasm_str(quasm)
+    def from_qasm(cls, qasm:str):
+        circuit = QuantumCircuit.from_qasm_str(qasm)
         return cls(circuit)
 
 
 
+        
+
 if __name__ == "__main__":
+    QC_Object.metadata.create_all(engine)
 
     # Create a Quantum Circuit acting on the q register
     circuit = QuantumCircuit(2, 2)
@@ -53,5 +59,12 @@ if __name__ == "__main__":
 
     qc_obj = QC_Object.from_qasm(circuit.qasm())
 
+    session.add(qc_obj)
+    session.commit()
+
     print(qc_obj.id)
     print(qc_obj.circuit.qasm())
+
+    query_obj = session.query(QC_Object).first()
+    qc = query_obj.circuit
+    print(qc.qasm())
