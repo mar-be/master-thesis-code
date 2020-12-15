@@ -4,6 +4,8 @@ from qiskit import(
   execute,
   IBMQ
   )
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import AncillaRegister, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from aggregator import aggregate
 from partitioner import karger_algorithm
@@ -15,9 +17,13 @@ import networkx as nx
 provider = IBMQ.load_account()
 backend = provider.get_backend('ibmq_qasm_simulator')
 
+qubit = QuantumRegister(2)
+qubit2 = QuantumRegister(1)
+clbit = ClassicalRegister(2)
+a_qubit = AncillaRegister(2)
 
 # Create a Quantum Circuit acting on the q register
-circuit = QuantumCircuit(2, 2)
+circuit = QuantumCircuit(qubit, qubit2, clbit, a_qubit)
 
 # Add a H gate on qubit 0
 circuit.h(0)
@@ -47,9 +53,9 @@ dag_nx = dag.to_networkx()
 print([node.name for node in dag_nx.nodes])
 print(dag_nx)
 
-cut = karger_algorithm(dag_nx, 2)
-for (u, v, w) in cut.edges:
-    print((u.name, u._node_id), (v.name, v._node_id))
+# cut = karger_algorithm(dag_nx, 2)
+# for (u, v, w) in cut.edges:
+#     print((u.name, u._node_id), (v.name, v._node_id))
 # mapping = {node:node.name + ":" + str(node._node_id) for node in dag_nx.nodes}
 # print(mapping)
 # dag_nx_relabeled = nx.relabel_nodes(dag_nx, mapping)
