@@ -1,3 +1,4 @@
+from qpu_connector.job_monitor import IBMQ_Job_Monitor
 import numpy as np
 from qiskit import(
   QuantumCircuit,
@@ -17,13 +18,9 @@ import networkx as nx
 provider = IBMQ.load_account()
 backend = provider.get_backend('ibmq_qasm_simulator')
 
-qubit = QuantumRegister(2)
-qubit2 = QuantumRegister(1)
-clbit = ClassicalRegister(2)
-a_qubit = AncillaRegister(2)
 
 # Create a Quantum Circuit acting on the q register
-circuit = QuantumCircuit(qubit, qubit2, clbit, a_qubit)
+circuit = QuantumCircuit(2, 2)
 
 # Add a H gate on qubit 0
 circuit.h(0)
@@ -45,13 +42,13 @@ circuit_2.measure([0,1], [0,1])
 
 print(circuit)
 print(circuit_2)
-dag = circuit_to_dag(circuit)
-for node in dag.longest_path():
-    print(node.name)
-dag.draw()
-dag_nx = dag.to_networkx()
-print([node.name for node in dag_nx.nodes])
-print(dag_nx)
+# dag = circuit_to_dag(circuit)
+# for node in dag.longest_path():
+#     print(node.name)
+# dag.draw()
+# dag_nx = dag.to_networkx()
+# print([node.name for node in dag_nx.nodes])
+# print(dag_nx)
 
 # cut = karger_algorithm(dag_nx, 2)
 # for (u, v, w) in cut.edges:
@@ -67,14 +64,22 @@ print(agg_circuit)
 print(agg_circuit.num_connected_components())
 
 # Execute the circuit on the qasm simulator
+job_1 = execute(circuit, backend, shots=1000)
+job_2 = execute(circuit_2, backend, shots=1000)
 job = execute(agg_circuit, backend, shots=1000)
 
-# Grab results from the job
-result = job.result()
+monitor = IBMQ_Job_Monitor(1)
 
-# Returns counts
-counts = result.get_counts(agg_circuit)
-print("\nTotal count for 00 and 11 are:",counts)
+monitor.add(job)
+monitor.add(job_1)
+monitor.add(job_2)
+
+# # Grab results from the job
+# result = job.result()
+
+# # Returns counts
+# counts = result.get_counts(agg_circuit)
+# print("\nTotal count for 00 and 11 are:",counts)
 
 # Draw the circuit
 circuit.draw()

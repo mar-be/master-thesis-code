@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Callable, Tuple, Optional
 from qiskit import IBMQ, QuantumCircuit
 from qiskit.providers.ibmq import least_busy
 from qiskit import IBMQ
-from qiskit.providers import Provider, Backend, backend
+from qiskit.providers import Provider, Backend
 
 
 class Backend_Handler():

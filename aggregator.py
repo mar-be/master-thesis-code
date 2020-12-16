@@ -18,7 +18,7 @@ def aggregate(list_of_circuits: list[QuantumCircuit]) -> QuantumCircuit:
                 registers.append(clbit.register)
         for reg in registers:
             reg_copy = copy.deepcopy(reg)
-            reg_copy.name = reg.name + "_" + str(index)
+            reg_copy.name =  f"circ{index}reg{reg.name}"
             agg_circuit.add_register(reg_copy)
     
     qubit_count = 0
