@@ -6,7 +6,7 @@ import time
 
 
 
-class IBMQ_Job_Monitor(threading.Thread):
+class Job_Monitor(threading.Thread):
 
     def __init__(self, wait:float) -> None:
         threading.Thread.__init__(self)

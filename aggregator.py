@@ -1,7 +1,9 @@
 import copy
+from typing import List, Any
 from qiskit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
-from quantum_ciruit_object import QC_Object, Modification, session
+from qiskit.result import Result
+from quantum_ciruit_object import Quantum_Job, Modification, session
 
 def aggregate(list_of_circuits: list[QuantumCircuit]) -> QuantumCircuit:
     num_qubits = 0
@@ -33,9 +35,9 @@ def aggregate(list_of_circuits: list[QuantumCircuit]) -> QuantumCircuit:
 
     return agg_circuit
 
-def aggregate_qc_obj(list_of_circuits: list[QC_Object]) -> QC_Object:
+def aggregate_qc_obj(list_of_circuits: list[Quantum_Job]) -> Quantum_Job:
     agg_circuit = aggregate([qc_obj.circuit for qc_obj in list_of_circuits])
-    agg_qc_obj = QC_Object(agg_circuit)
+    agg_qc_obj = Quantum_Job(agg_circuit)
     agg_mod = Modification()
     agg_mod.input_circuit.extend(list_of_circuits)
     agg_mod.output_circuit.append(agg_qc_obj)
@@ -44,16 +46,24 @@ def aggregate_qc_obj(list_of_circuits: list[QC_Object]) -> QC_Object:
     session.commit()
     return agg_qc_obj
 
+def results(result: Result, job: Quantum_Job) -> List[Result]:
+    results = []
+    for job_item in job.modification_input().input_circuit():
+        job_result = __calc_results(job_item, result.results)
+        results.append(Result(result.backend_name, result.backend_version, job_item.id, job_item.job, result.success, job_result, result.date, result.status, result.header))
+    return results
+
+def __calc_results(job_item:Quantum_Job, result:Any) -> Any:
+    pass
 
 if __name__ == "__main__":
     
     circ1 = random_circuit(10, 10, measure=True)
     circ2 = random_circuit(10, 10, measure=True)
     
-    qc_obj_1 = QC_Object(circ1)
-    qc_obj_2 = QC_Object(circ2)
+    qc_obj_1 = Quantum_Job(circ1)
+    qc_obj_2 = Quantum_Job(circ2)
 
     agg = aggregate_qc_obj([qc_obj_1, qc_obj_2])
 
-    print(len(agg.modification_output.input_circuit))
 

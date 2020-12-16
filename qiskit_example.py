@@ -1,4 +1,5 @@
-from qpu_connector.job_monitor import IBMQ_Job_Monitor
+from quantum_ciruit_object import Quantum_Job
+from qpu_connector.job_monitor import Job_Monitor
 import numpy as np
 from qiskit import(
   QuantumCircuit,
@@ -8,7 +9,7 @@ from qiskit import(
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import AncillaRegister, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from aggregator import aggregate
+from aggregator import aggregate, results
 from partitioner import karger_algorithm
 
 import networkx as nx
@@ -42,23 +43,9 @@ circuit_2.measure([0,1], [0,1])
 
 print(circuit)
 print(circuit_2)
-# dag = circuit_to_dag(circuit)
-# for node in dag.longest_path():
-#     print(node.name)
-# dag.draw()
-# dag_nx = dag.to_networkx()
-# print([node.name for node in dag_nx.nodes])
-# print(dag_nx)
-
-# cut = karger_algorithm(dag_nx, 2)
-# for (u, v, w) in cut.edges:
-#     print((u.name, u._node_id), (v.name, v._node_id))
-# mapping = {node:node.name + ":" + str(node._node_id) for node in dag_nx.nodes}
-# print(mapping)
-# dag_nx_relabeled = nx.relabel_nodes(dag_nx, mapping)
-
 
 agg_circuit = aggregate([circuit, circuit_2])
+
 
 print(agg_circuit)
 print(agg_circuit.num_connected_components())
@@ -68,7 +55,7 @@ job_1 = execute(circuit, backend, shots=1000)
 job_2 = execute(circuit_2, backend, shots=1000)
 job = execute(agg_circuit, backend, shots=1000)
 
-monitor = IBMQ_Job_Monitor(1)
+monitor = Job_Monitor(1)
 
 monitor.add(job)
 monitor.add(job_1)

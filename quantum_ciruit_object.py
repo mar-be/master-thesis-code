@@ -18,22 +18,24 @@ class Modification(Base):
     id = Column(types.Integer, primary_key=True)
     type = Column(types.String, nullable=False)
 
-    input_circuit = relationship("QC_Object", backref="modification_input", foreign_keys="QC_Object.input_modification_id")
-    output_circuit = relationship("QC_Object", backref="modification_output", foreign_keys="QC_Object.output_modification_id")
+    input_circuit = relationship("Quantum_Job", backref="modification_input", foreign_keys="Quantum_Job.input_modification_id")
+    output_circuit = relationship("Quantum_Job", backref="modification_output", foreign_keys="Quantum_Job.output_modification_id")
 
 
-class QC_Object(Base):
+class Quantum_Job(Base):
 
-    __tablename__ = 'qc_object'
+    __tablename__ = 'quantum_job'
 
     id = Column(types.Integer, primary_key=True)
     _qasm = Column("qasm", types.String, nullable=False)
     input_modification_id = Column(types.Integer, ForeignKey("qc_modification.id"))
     output_modification_id = Column(types.Integer, ForeignKey("qc_modification.id"))
+    job_id = Column(types.Integer)
     
 
     def __init__(self,  circuit:QuantumCircuit) -> None:
         self.circuit = circuit
+        self.job_id = None
 
     @property
     def circuit(self):
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     # Map the quantum measurement to the classical bits
     circuit.measure([0,1], [0,1])
 
-    qc_obj = QC_Object.from_qasm(circuit.qasm())
+    qc_obj = Quantum_Job.from_qasm(circuit.qasm())
 
     # Create a Quantum Circuit acting on the q register
     circuit_2 = QuantumCircuit(2, 2)
@@ -84,7 +86,7 @@ if __name__ == "__main__":
     circuit_2.measure([0,1], [0,1])
 
 
-    qc_obj_2 = QC_Object(circuit_2)
+    qc_obj_2 = Quantum_Job(circuit_2)
     mod = Modification()
     mod.input_circuit.append(qc_obj)
     mod.input_circuit.append(qc_obj_2)
@@ -100,6 +102,6 @@ if __name__ == "__main__":
     print(qc_obj.id)
     print(qc_obj.circuit.qasm())
 
-    query_obj = session.query(QC_Object).first()
+    query_obj = session.query(Quantum_Job).first()
     qc = query_obj.circuit
     print(qc.qasm())
