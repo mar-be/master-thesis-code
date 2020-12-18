@@ -1,10 +1,13 @@
 from typing import List
+from networkx.generators.classic import balanced_tree
 from qiskit import QuantumCircuit
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.schema import ForeignKey
 import sqlalchemy.types as types
-from sqlalchemy import create_engine, Column
+from sqlalchemy import create_engine, Column, Table
 from sqlalchemy.orm import backref, relationship, sessionmaker
+import enum
+import json
 
 
 # declarative base class
@@ -12,15 +15,24 @@ Base = declarative_base()
 engine = create_engine('sqlite:///foo.db')
 session = sessionmaker(engine)()
 
-class Modification(Base):
+modification_link = Table("modification_link", Base.metadata,
+    Column("input_id", types.Integer, ForeignKey("quantum_job.id"), primary_key=True),
+    Column("output_id", types.Integer, ForeignKey("quantum_job.id"), primary_key=True)
+)
 
-    __tablename__ = "qc_modification"
-    id = Column(types.Integer, primary_key=True)
-    type = Column(types.String, nullable=False)
+class Modification_Type(enum.Enum):
+    none = 0
+    aggregation = 1
+    partition = 2
 
-    input_circuit = relationship("Quantum_Job", backref="modification_input", foreign_keys="Quantum_Job.input_modification_id")
-    output_circuit = relationship("Quantum_Job", backref="modification_output", foreign_keys="Quantum_Job.output_modification_id")
+class Dict(types.TypeDecorator):
+    impl = types.String
 
+    def process_bind_param(self, value, dialect):
+        return json.dumps(value)
+
+    def process_result_value(self, value, dialect):
+        return json.loads(value)
 
 class Quantum_Job(Base):
 
@@ -28,14 +40,19 @@ class Quantum_Job(Base):
 
     id = Column(types.Integer, primary_key=True)
     _qasm = Column("qasm", types.String, nullable=False)
-    input_modification_id = Column(types.Integer, ForeignKey("qc_modification.id"))
-    output_modification_id = Column(types.Integer, ForeignKey("qc_modification.id"))
-    job_id = Column(types.Integer)
+    mod_type = Column(types.Enum(Modification_Type))
+    mod_info = Column(Dict())
+    qiskit_job_id = Column(types.String)
+
+
+    output_jobs = relationship("Quantum_Job", secondary="modification_link", primaryjoin="Quantum_Job.id==modification_link.c.input_id", secondaryjoin="Quantum_Job.id==modification_link.c.output_id", backref="input_jobs")
     
 
-    def __init__(self,  circuit:QuantumCircuit) -> None:
+    def __init__(self,  circuit:QuantumCircuit, mod_type:Modification_Type = Modification_Type.none) -> None:
         self.circuit = circuit
-        self.job_id = None
+        self.qiskit_job_id = None
+        self.mod_type = mod_type
+        self.mod_info = {}
 
     @property
     def circuit(self):
@@ -57,10 +74,9 @@ class Quantum_Job(Base):
 
     
 
-    
+Base.metadata.create_all(engine)
 
 if __name__ == "__main__":
-    Base.metadata.create_all(engine)
 
     # Create a Quantum Circuit acting on the q register
     circuit = QuantumCircuit(2, 2)
@@ -87,17 +103,14 @@ if __name__ == "__main__":
 
 
     qc_obj_2 = Quantum_Job(circuit_2)
-    mod = Modification()
-    mod.input_circuit.append(qc_obj)
-    mod.input_circuit.append(qc_obj_2)
-    mod.output_circuit.append(qc_obj_2)
-    mod.type = "test"
+    qc_obj_2.input_jobs.append(qc_obj)
 
     session.add(qc_obj)
     session.add(qc_obj_2)
 
     session.commit()
 
+    print(qc_obj.output_jobs)
 
     print(qc_obj.id)
     print(qc_obj.circuit.qasm())

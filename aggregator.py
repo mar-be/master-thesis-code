@@ -1,60 +1,72 @@
 import copy
-from typing import List, Any
+from typing import Dict, List, Any
 from qiskit import QuantumCircuit
+from qiskit.circuit import register
 from qiskit.circuit.random import random_circuit
 from qiskit.result import Result
-from quantum_ciruit_object import Quantum_Job, Modification, session
+from quantum_ciruit_object import Modification_Type, Quantum_Job, session
 
-def aggregate(list_of_circuits: list[QuantumCircuit]) -> QuantumCircuit:
-    num_qubits = 0
-    num_clbits = 0
-    num_ancillas = 0
+
+def aggregate_q_jobs(list_of_jobs: list[Quantum_Job]) -> Quantum_Job:
     agg_circuit = QuantumCircuit()
-    for index, circ in enumerate(list_of_circuits):
+    aggregate_info = {}
+    qreg_count = 0
+    creg_count = 0
+    qreg_order = {}
+    creg_order = {}
+    for index, job in enumerate(list_of_jobs):
+        circ = job.circuit
+        aggregate_info[job.id] = {}
         registers = []
-        for qubit in circ.qubits:
-            if not qubit.register in registers:
-                registers.append(qubit.register)
-        for clbit in circ.clbits:
-            if not clbit.register in registers:
-                registers.append(clbit.register)
+        for qreg in circ.qregs:
+            registers.append(qreg)
+            qreg_order[f"circ{index}reg{qreg.name}"] = qreg_count
+            qreg_count += 1
+        for creg in circ.cregs:
+            registers.append(creg)
+            creg_order[f"circ{index}reg{creg.name}"] = creg_count
+            creg_count += 1
+        register_mapping = {}
         for reg in registers:
             reg_copy = copy.deepcopy(reg)
             reg_copy.name =  f"circ{index}reg{reg.name}"
             agg_circuit.add_register(reg_copy)
+            register_mapping[reg_copy.name] = reg.name
+        aggregate_info[job.id]["reg_mapping"] = register_mapping
+        aggregate_info["reg_order"] = {"qreg":qreg_order, "creg":creg_order}
     
     qubit_count = 0
     clbit_count = 0
 
-    for circ in list_of_circuits:
+    for job in list_of_jobs:
+        circ = job.circuit
         qubits = range(qubit_count, qubit_count + len(circ.qubits))
         clbits = range(clbit_count, clbit_count + len(circ.clbits))
         agg_circuit.compose(circ, qubits=qubits, clbits=clbits, inplace=True)
         qubit_count += len(circ.qubits)
         clbit_count += len(circ.clbits)
-
-    return agg_circuit
-
-def aggregate_qc_obj(list_of_circuits: list[Quantum_Job]) -> Quantum_Job:
-    agg_circuit = aggregate([qc_obj.circuit for qc_obj in list_of_circuits])
-    agg_qc_obj = Quantum_Job(agg_circuit)
-    agg_mod = Modification()
-    agg_mod.input_circuit.extend(list_of_circuits)
-    agg_mod.output_circuit.append(agg_qc_obj)
-    agg_mod.type = "aggregation"
-    session.add(agg_mod)
+        aggregate_info[job.id]["qubits"] = {"start":qubits.start, "stop":qubits.stop}
+        aggregate_info[job.id]["clbits"] = {"start":clbits.start, "stop":clbits.stop}
+    agg_qc_obj = Quantum_Job(agg_circuit, Modification_Type.aggregation)
+    agg_qc_obj.input_jobs.extend(list_of_jobs)
+    agg_qc_obj.mod_info = aggregate_info
+    session.add(agg_qc_obj)
     session.commit()
     return agg_qc_obj
 
 def results(result: Result, job: Quantum_Job) -> List[Result]:
     results = []
-    for job_item in job.modification_input().input_circuit():
-        job_result = __calc_results(job_item, result.results)
-        results.append(Result(result.backend_name, result.backend_version, job_item.id, job_item.job, result.success, job_result, result.date, result.status, result.header))
+    agg_info = job.mod_info
+    for job_item in job.input_jobs:
+        job_result = __calc_results(job_item, agg_info, result)
+        results.append(Result(result.backend_name, result.backend_version, job_item.id, job_item.qiskit_job_id, result.success, job_result, result.date, result.status, result.header))
     return results
 
-def __calc_results(job_item:Quantum_Job, result:Any) -> Any:
-    pass
+def __calc_results(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
+    print(agg_info)
+    result_dict_copy = copy.deepcopy(result.to_dict())
+    # print(result_dict_copy)
+    return result
 
 if __name__ == "__main__":
     
@@ -64,6 +76,6 @@ if __name__ == "__main__":
     qc_obj_1 = Quantum_Job(circ1)
     qc_obj_2 = Quantum_Job(circ2)
 
-    agg = aggregate_qc_obj([qc_obj_1, qc_obj_2])
+    agg = aggregate_q_jobs([qc_obj_1, qc_obj_2])
 
 

@@ -1,4 +1,4 @@
-from quantum_ciruit_object import Quantum_Job
+from quantum_ciruit_object import Quantum_Job, session
 from qpu_connector.job_monitor import Job_Monitor
 import numpy as np
 from qiskit import(
@@ -9,7 +9,7 @@ from qiskit import(
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import AncillaRegister, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from aggregator import aggregate, results
+from aggregator import aggregate_q_jobs, results
 from partitioner import karger_algorithm
 
 import networkx as nx
@@ -44,24 +44,36 @@ circuit_2.measure([0,1], [0,1])
 print(circuit)
 print(circuit_2)
 
-agg_circuit = aggregate([circuit, circuit_2])
+q_job = Quantum_Job(circuit)
+q_job2 = Quantum_Job(circuit_2)
 
+session.add(q_job)
+session.add(q_job2)
+session.commit()
+
+agg_job = aggregate_q_jobs([q_job, q_job2])
+
+agg_circuit = agg_job.circuit
 
 print(agg_circuit)
-print(agg_circuit.num_connected_components())
+# print(agg_circuit.num_connected_components())
 
 # Execute the circuit on the qasm simulator
-job_1 = execute(circuit, backend, shots=1000)
-job_2 = execute(circuit_2, backend, shots=1000)
+# job_1 = execute(circuit, backend, shots=1000)
+# job_2 = execute(circuit_2, backend, shots=1000)
 job = execute(agg_circuit, backend, shots=1000)
 
-monitor = Job_Monitor(1)
+agg_job.qiskit_job_id = job.job_id()
 
-monitor.add(job)
-monitor.add(job_1)
-monitor.add(job_2)
+_ = results(job.result(), agg_job)
 
-# # Grab results from the job
+# monitor = Job_Monitor(1)
+
+# monitor.add(job)
+# monitor.add(job_1)
+# monitor.add(job_2)
+
+# Grab results from the job
 # result = job.result()
 
 # # Returns counts
