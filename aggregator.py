@@ -56,15 +56,15 @@ def aggregate_q_jobs(list_of_jobs: list[Quantum_Job]) -> Quantum_Job:
     session.commit()
     return agg_qc_obj
 
-def results(result: Result, job: Quantum_Job) -> List[Result]:
+def split_results(result: Result, job: Quantum_Job) -> List[Result]:
     results = []
     agg_info = job.mod_info
     for job_item in job.input_jobs:
-        job_result = __calc_results(job_item, agg_info, result)
+        job_result = __calc_result(job_item, agg_info, result)
         results.append(job_result)
     return results
 
-def __calc_results(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
+def __calc_result(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
     result_dict = result.to_dict()
     result_dict_copy = copy.deepcopy(result_dict)
     qubits_start = agg_info[str(job_item.id)]["qubits"]["start"]
