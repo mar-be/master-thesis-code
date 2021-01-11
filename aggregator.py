@@ -4,6 +4,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import register
 from qiskit.circuit.random import random_circuit
 from qiskit.result import Result
+from qiskit.result.counts import Counts
 from quantum_ciruit_object import Modification_Type, Quantum_Job, session
 
 
@@ -73,7 +74,6 @@ def __calc_result(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
     circ_size = agg_info["total_qubits"]
     reg_mapping = agg_info[str(job_item.id)]["reg_mapping"]
     data = result.data()["counts"]
-    print(data)
     counts = {}
     for qubit_state in range(0, 2**n_qubits):
         count = 0
@@ -86,9 +86,7 @@ def __calc_result(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
                 count += data[hex_state]
         if count > 0:
             counts[hex(qubit_state)] = count
-    print(counts)
-                
-    print(result_dict_copy)
+
     if len(result_dict["results"]) == 1:
         result_dict_copy["results"][0]["data"]["counts"] = counts
         header = result_dict["results"][0]["header"]
@@ -103,6 +101,7 @@ def __calc_result(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
 
     result_dict_copy["results"][0]["header"]["clbit_labels"] = clbit_labels
     result_dict_copy["results"][0]["header"]["creg_sizes"] = creg_sizes
+    result_dict_copy["results"][0]["header"]["memory_slots"] = n_qubits
 
     if len(qubit_labels) > 0:
         result_dict_copy["results"][0]["header"]["qubit_labels"] = qubit_labels
