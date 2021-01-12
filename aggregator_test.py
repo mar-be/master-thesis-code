@@ -1,16 +1,21 @@
 from itertools import count
 from qiskit import execute, IBMQ, QuantumCircuit, Aer
 from qiskit.result.result import Result
+from qiskit.providers.aer.extensions import *
 from aggregator import aggregate_q_jobs, split_results
 from quantum_ciruit_object import Quantum_Job, session
 from quantum_circuit_generator.generators import gen_BV
 import numpy as np
 
-def calc_chi_2(result, ground_truth: Result, statevector:bool=False):
+def calc_chi_2(result, ground_truth: Result, statevector_flag:bool=False):
     counts = result.get_counts()
     shots = sum(counts.values())
-    if statevector:
-        statevector = ground_truth.get_statevector()
+    if statevector_flag:
+        try:
+            # try to get statevector from snapshot with label 'final'
+            statevector = ground_truth.data()['snapshots']['statevector']['final'][0]
+        except Exception:
+            statevector = ground_truth.get_statevector()
         prob = [np.power(value.real, 2) + np.power(value.imag, 2) for value in statevector]
         counts = dict((int(key, 2), val/shots) for key, val in counts.items())
         chi_2 = 0
@@ -18,6 +23,8 @@ def calc_chi_2(result, ground_truth: Result, statevector:bool=False):
             if i in counts:
                 a = counts[i]
             else:
+                if b == 0:
+                    continue
                 a = 0
             chi_2 += np.power(a-b,2)/(a+b)
         return chi_2
@@ -38,35 +45,14 @@ def calc_chi_2(result, ground_truth: Result, statevector:bool=False):
             chi_2 += np.power(a-b,2)/(a+b)
         return chi_2
 
+def analyze(circ1, circ2, backend, statevector_backend):
 
-if __name__ == "__main__":
+    job_1_state = execute(circ_1, statevector_backend)
+    job_2_state = execute(circ_2, statevector_backend)
 
-    provider = IBMQ.load_account()
-
-    backend = provider.get_backend('ibmq_santiago')
-
-    backend_sim = provider.get_backend('ibmq_qasm_simulator')
-
-    backend_state = Aer.get_backend('statevector_simulator')
-
-
-    # circ_1 = gen_BV('a')
-    circ_2 = gen_BV('ab')
-
-    circ_1 = QuantumCircuit(2, 2)
-    circ_1.h(0)
-    circ_1.h(1)
-
-
-    job_1_state = execute(circ_1, backend_state)
-    job_2_state = execute(circ_2, backend_state)
-
-
-    # circ_1.measure_all()
+    circ_1.measure_all()
     circ_2.measure_all()
-    circ_1.measure([0,1], [0,1])
 
-    #q_job = Quantum_Job(circ_a)
     q_job_1 = Quantum_Job(circ_1)
     q_job_2 = Quantum_Job(circ_2)
 
@@ -79,8 +65,6 @@ if __name__ == "__main__":
     agg_circuit = agg_job.circuit
 
     print(agg_circuit)
-
-
     
     job_1 = execute(circ_1, backend, shots=8192)
     job_2 = execute(circ_2, backend, shots=8192)
@@ -117,4 +101,25 @@ if __name__ == "__main__":
     print(f"chi^2 of circ_1_agg: {chi_2_1_agg}")
     print(f"chi^2 of circ_2: {chi_2_2}")
     print(f"chi^2 of circ_2_agg: {chi_2_2_agg}")
+
+if __name__ == "__main__":
+
+    provider = IBMQ.load_account()
+
+    backend = provider.get_backend('ibmq_athens')
+
+    backend_sim = provider.get_backend('ibmq_qasm_simulator')
+
+    backend_state = Aer.get_backend('statevector_simulator')
+
+
+    circ_1 = QuantumCircuit(2)
+    circ_1.h(0)
+    circ_1.h(1)
+    
+    circ_2 = gen_BV('ab')
+    
+    
+    analyze(circ_1, circ_2, backend, backend_state)
+
 
