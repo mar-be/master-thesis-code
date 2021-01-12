@@ -46,6 +46,9 @@ def calc_chi_2(result, ground_truth: Result, statevector_flag:bool=False):
         return chi_2
 
 def analyze(circ1, circ2, backend, statevector_backend):
+    '''
+    circ1, circ2 are Qiskit QunatumCircuits without measurement
+    '''
 
     job_1_state = execute(circ_1, statevector_backend)
     job_2_state = execute(circ_2, statevector_backend)
@@ -90,17 +93,23 @@ def analyze(circ1, circ2, backend, statevector_backend):
     print(f"circ_2 count:{res_2.get_counts()}")
     print(f"circ_2_agg count:{res_2_agg.get_counts()}")
     print(f"circ_2_state count:{res_2_state.get_counts()}")
-    print(f"count:{job_agg.result().get_counts()}")
+    print(f"agg_circ count:{job_agg.result().get_counts()}")
 
     print("\n" + 20*"*" + "Chi^2" + 20*"*")
     chi_2_1 = calc_chi_2(res_1, res_1_state, True)
     chi_2_1_agg = calc_chi_2(res_1_agg, res_1_state, True)
     chi_2_2 = calc_chi_2(res_2, res_2_state, True)
     chi_2_2_agg = calc_chi_2(res_2_agg, res_2_state, True)
+    diff_1 = chi_2_1_agg - chi_2_1
+    diff_2 = chi_2_2_agg - chi_2_2
+    print("Metrics for circ_1:")
     print(f"chi^2 of circ_1: {chi_2_1}")
     print(f"chi^2 of circ_1_agg: {chi_2_1_agg}")
+    print(f"chi^2 difference for circ_1: {diff_1}")
+    print("\nMetrics for circ_2:")
     print(f"chi^2 of circ_2: {chi_2_2}")
     print(f"chi^2 of circ_2_agg: {chi_2_2_agg}")
+    print(f"chi^2 difference for circ_2: {diff_2}")
 
 if __name__ == "__main__":
 
