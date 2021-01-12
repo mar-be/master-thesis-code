@@ -75,17 +75,17 @@ def __calc_result(job_item:Quantum_Job, agg_info:Dict ,result:Result) -> Result:
     reg_mapping = agg_info[str(job_item.id)]["reg_mapping"]
     data = result.data()["counts"]
     counts = {}
-    for qubit_state in range(0, 2**n_qubits):
-        count = 0
-        for i in range(0, 2**(circ_size-n_qubits)):
-            left_padding = i % (2**qubits_start)
-            right_padding = i % (2**(circ_size-qubits_stop))
-            state = left_padding + (qubit_state << qubits_start) + (right_padding << qubits_stop)
-            hex_state = hex(state)
-            if hex_state in data:
-                count += data[hex_state]
-        if count > 0:
-            counts[hex(qubit_state)] = count
+    bit_mask = sum([2**i for i in range(n_qubits)])
+    for state in data:
+        state_int = int(state, 16)
+        state_int = state_int >> qubits_start
+        state_int = state_int & bit_mask
+        state_hex = hex(state_int)
+        count = data[state]
+        if state_hex in counts:
+            counts[state_hex] += count
+        else:
+            counts[state_hex] = count
 
     if len(result_dict["results"]) == 1:
         result_dict_copy["results"][0]["data"]["counts"] = counts
