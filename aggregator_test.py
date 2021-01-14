@@ -45,7 +45,7 @@ def calc_chi_2(result, ground_truth: Result, statevector_flag:bool=False):
             chi_2 += np.power(a-b,2)/(a+b)
         return chi_2
 
-def analyze(circ1, circ2, backend, statevector_backend):
+def analyze(circ_1, circ_2, backend, statevector_backend):
     '''
     circ1, circ2 are Qiskit QunatumCircuits without measurement
     '''
@@ -56,26 +56,17 @@ def analyze(circ1, circ2, backend, statevector_backend):
     circ_1.measure_all()
     circ_2.measure_all()
 
-    q_job_1 = Quantum_Job(circ_1)
-    q_job_2 = Quantum_Job(circ_2)
+    agg_circ, agg_info = aggregate_q_jobs([circ_1, circ_2])
 
-    session.add(q_job_1)
-    session.add(q_job_2)
-    session.commit()
 
-    agg_job = aggregate_q_jobs([q_job_1, q_job_2])
-
-    agg_circuit = agg_job.circuit
-
-    print(agg_circuit)
+    print(agg_circ)
     
     job_1 = execute(circ_1, backend, shots=8192)
     job_2 = execute(circ_2, backend, shots=8192)
-    job_agg = execute(agg_circuit, backend, shots=8192)
+    job_agg = execute(agg_circ, backend, shots=8192)
 
-    agg_job.qiskit_job_id = job_agg.job_id()
 
-    res_agg = split_results(job_agg.result(), agg_job)
+    res_agg = split_results(job_agg.result(), agg_info)
 
     res_1_agg = res_agg[0]
     res_2_agg = res_agg[1]
@@ -129,6 +120,6 @@ if __name__ == "__main__":
     circ_2 = gen_BV('ab')
     
     
-    analyze(circ_1, circ_2, backend, backend_state)
+    analyze(circ_1, circ_2, backend_sim, backend_state)
 
 
