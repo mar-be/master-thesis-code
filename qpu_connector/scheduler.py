@@ -19,26 +19,30 @@ class ScheduleItem():
         self.shots = min(shots, self.max_shots)
 
         if reps <= self.remaining_experiments:
-            shots_last_rep = shots - (reps - 1)*self.max_shots
-            shots = 0
+            remaining_shots = 0
         else:
             reps = self.remaining_experiments
-            shots_last_rep = self.max_shots
-            shots -= reps*self.max_shots
+            remaining_shots = shots - reps*self.max_shots
 
         self.remaining_experiments -= reps
-        self.experiments.append({"key":key, "circuit":circuit, "reps":reps, "shots_last_rep":shots_last_rep})
+        self.experiments.append({"key":key, "circuit":circuit, "reps":reps, "shots":shots-remaining_shots, "total_shots":shots})
         
-        return shots
+        return remaining_shots
 
     
 class Scheduler():
 
-    def __init__(self, circuits, backend, max_shots, max_experiments):
+    def __init__(self, circuits, backend, max_shots=None, max_experiments=None):
         self.circuits = circuits
         self.backend = backend
-        self.max_shots = max_shots
-        self.max_experiments = max_experiments
+        if max_shots != None:
+            self.max_shots = max_shots
+        else:
+            self.max_shots = backend.configuration().max_shots
+        if max_experiments != None:
+            self.max_experiments = max_experiments
+        else:
+            self.max_experiments = backend.configuration().max_experiments
         self.schedule = []
         self.jobs = []
         self._generate_schedule()
@@ -64,16 +68,34 @@ class Scheduler():
                 circ = circuit_item["circuit"]
                 reps = circuit_item["reps"]
                 circuits_to_execute.extend([circ]*reps)
-            job = execute(circuits_to_execute, self.backend, shots=item.shots)
+            job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
             self.jobs.append(job)
 
 
 
     def get_results(self):
-        for index, job in enumerate(self.jobs):
-            schedule_item = self.schedule[index]
-            res = job.result()
-            print(res.get_counts())
+        results = [job.result() for job in self.jobs]
+        assert(len(results)==len(self.schedule))
+        memory = {}
+        exp_number = 0
+        for index, schedule_item in enumerate(self.schedule):
+            result = results[index]
+            for exp in schedule_item.experiments:
+                key = exp["key"]
+                circ = exp["circuit"]
+                reps = exp["reps"]
+                shots = exp["shots"]
+                for exp_index in range(exp_number, exp_number+reps):
+                    mem = result.get_memory(exp_index)
+                    if key in memory:
+                        memory[key] += mem
+                    else:
+                        memory[key] = mem
+                memory[key] = memory[key][:shots]
+                exp_number += reps
+        
+        for key in memory:
+            print(len(memory[key]))
 
 
 if __name__ == "__main__":
@@ -89,7 +111,7 @@ if __name__ == "__main__":
 
     circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(30)}
 
-    scheduler = Scheduler(circs, backend_sim, 8192, 50)
+    scheduler = Scheduler(circs, backend_sim)
     scheduler.submit_jobs()
     scheduler.get_results()
 
