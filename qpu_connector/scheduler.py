@@ -1,5 +1,9 @@
 from qiskit import QuantumCircuit, execute, IBMQ
 import math
+import copy
+from qiskit.compiler import assemble
+
+from qiskit.result.models import ExperimentResultData
 
 class ScheduleItem():
 
@@ -59,7 +63,7 @@ class Scheduler():
             while remaining_shots > 0:
                 schedule_item = ScheduleItem(self.max_shots, self.max_experiments)
                 self.schedule.append(schedule_item)
-                remaining_shots = schedule_item.add_circuit(key, circuit, shots)
+                remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
 
     def submit_jobs(self):
         circuits_to_execute = []
@@ -69,6 +73,8 @@ class Scheduler():
                 reps = circuit_item["reps"]
                 circuits_to_execute.extend([circ]*reps)
             job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
+            # qobj = assemble(circuits_to_execute, backend=self.backend, shots=item.shots, memory=True)
+            # job = self.backend.run(qobj)
             self.jobs.append(job)
 
 
@@ -76,8 +82,10 @@ class Scheduler():
     def get_results(self):
         results = [job.result() for job in self.jobs]
         assert(len(results)==len(self.schedule))
-        memory = {}
+        result_data = {}
         exp_number = 0
+        previous_memory = []
+        previous_key = None
         for index, schedule_item in enumerate(self.schedule):
             result = results[index]
             for exp in schedule_item.experiments:
@@ -85,17 +93,26 @@ class Scheduler():
                 circ = exp["circuit"]
                 reps = exp["reps"]
                 shots = exp["shots"]
+                total_shots = exp["total_shots"]
+                memory = []
+                if len(previous_memory) > 0:
+                    assert(previous_key==key)
+                    memory.extend(previous_memory)
+                    shots += len(previous_memory)
+                    total_shots += len(previous_memory)
+                    previous_memory = []
                 for exp_index in range(exp_number, exp_number+reps):
                     mem = result.get_memory(exp_index)
-                    if key in memory:
-                        memory[key] += mem
-                    else:
-                        memory[key] = mem
-                memory[key] = memory[key][:shots]
+                    memory.extend(mem)
+                if shots < total_shots:
+                    previous_memory = copy.deepcopy(memory)
+                    previous_key = key
+                else:
+                    result_data[key] = ExperimentResultData(memory=memory[:total_shots])
                 exp_number += reps
         
-        for key in memory:
-            print(len(memory[key]))
+        for key in result_data:
+            print(result_data[key])
 
 
 if __name__ == "__main__":
