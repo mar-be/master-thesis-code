@@ -1,9 +1,21 @@
-from qiskit import QuantumCircuit, execute, IBMQ
 import math
 import copy
-from qiskit.compiler import assemble
 
+from collections import Counter
+
+from qiskit import QuantumCircuit, execute, IBMQ
+from qiskit.compiler import assemble
 from qiskit.result.models import ExperimentResultData
+from qiskit.result.postprocess import format_level_2_memory
+from qiskit.result.utils import marginal_counts
+
+
+
+def _add_dicts(d1, d2):
+    c = Counter(d1)
+    c.update(d2)
+    return dict(c)
+
 
 class ScheduleItem():
 
@@ -84,10 +96,12 @@ class Scheduler():
         assert(len(results)==len(self.schedule))
         result_data = {}
         exp_number = 0
-        previous_memory = []
+        previous_memory = None
+        previous_counts = None
         previous_key = None
         for index, schedule_item in enumerate(self.schedule):
             result = results[index]
+            max_shots = schedule_item.max_shots
             for exp in schedule_item.experiments:
                 key = exp["key"]
                 circ = exp["circuit"]
@@ -95,26 +109,39 @@ class Scheduler():
                 shots = exp["shots"]
                 total_shots = exp["total_shots"]
                 memory = []
-                if len(previous_memory) > 0:
+                counts = {}
+                if previous_memory:
                     assert(previous_key==key)
                     memory.extend(previous_memory)
+                    counts.update(previous_counts)
                     shots += len(previous_memory)
                     total_shots += len(previous_memory)
-                    previous_memory = []
+                    previous_memory = None
+                    previous_counts = None
+                    previous_key = None
+                elif reps == 1 and shots == total_shots:
+                    result_data[key] = result.data(circ)
+                    continue
+            
                 for exp_index in range(exp_number, exp_number+reps):
-                    mem = result.get_memory(exp_index)
+                    mem = result.data(exp_index)['memory']
                     memory.extend(mem)
+                    cnts = result.data(exp_index)['counts']
+                    counts = _add_dicts(counts, cnts)
+                    # TODO trim counts w.r.t. number of shots
+
                 if shots < total_shots:
                     previous_memory = copy.deepcopy(memory)
+                    previous_counts = copy.deepcopy(counts)
                     previous_key = key
                 else:
-                    result_data[key] = ExperimentResultData(memory=memory[:total_shots])
+                    result_data[key] = ExperimentResultData(counts=counts, memory=memory[:total_shots])
                 exp_number += reps
         
         for key in result_data:
             print(result_data[key])
 
-
+    
 if __name__ == "__main__":
 
     provider = IBMQ.load_account()
@@ -126,12 +153,8 @@ if __name__ == "__main__":
     from qiskit.circuit.random import random_circuit
 
 
-    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(30)}
+    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(1)}
 
     scheduler = Scheduler(circs, backend_sim)
     scheduler.submit_jobs()
     scheduler.get_results()
-
-    
-
-    
