@@ -7,6 +7,7 @@ from qiskit import QuantumCircuit, execute, IBMQ
 from qiskit.compiler import assemble
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.postprocess import format_level_2_memory
+from qiskit.result.result import Result
 from qiskit.result.utils import marginal_counts
 
 
@@ -18,6 +19,7 @@ def _add_dicts(d1, d2):
 
 
 class ScheduleItem():
+    '''A schedule item represents a job on a backend. It can contain multiple experiments.'''
 
     def __init__(self, max_shots: int, max_experiments: int):
         self.max_shots = max_shots
@@ -30,6 +32,16 @@ class ScheduleItem():
 
     
     def add_circuit(self, key, circuit:QuantumCircuit, shots:int) -> int:
+        """Add a circuit to the ScheduleItem.
+
+        Args:
+            key (Any): Identifier for the circuit
+            circuit (QuantumCircuit): The circuit, which should be executed
+            shots (int): The number of shots
+    
+        Returns:
+            int: remaining shots. If they are 0, all shots are executed
+        """
         self.n_circuits += 1
         reps = math.ceil(shots/self.max_shots)
         self.shots = min(shots, self.max_shots)
@@ -64,6 +76,7 @@ class Scheduler():
         self._generate_schedule()
 
     def _generate_schedule(self):
+        """Generate a schedule constisting of ScheduleItems"""
         if len(self.circuits) == 0:
             return
         schedule_item = ScheduleItem(self.max_shots, self.max_experiments)
@@ -78,6 +91,7 @@ class Scheduler():
                 remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
 
     def submit_jobs(self):
+        """Submit the circuits to the backend to execute them."""
         circuits_to_execute = []
         for item in self.schedule:
             for circuit_item in item.experiments:
@@ -85,23 +99,33 @@ class Scheduler():
                 reps = circuit_item["reps"]
                 circuits_to_execute.extend([circ]*reps)
             job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
-            # qobj = assemble(circuits_to_execute, backend=self.backend, shots=item.shots, memory=True)
-            # job = self.backend.run(qobj)
             self.jobs.append(job)
 
 
 
     def get_results(self):
-        results = [job.result() for job in self.jobs]
-        assert(len(results)==len(self.schedule))
-        result_data = {}
+        """Get the results for the submited jobs.
+
+        Returns: 
+            dict : A dictionary containing a mapping from keys to results
+        """
+        job_results = [job.result() for job in self.jobs]
+        assert(len(job_results)==len(self.schedule))
+        exp_results_dict = {}
         exp_number = 0
         previous_memory = None
         previous_counts = None
         previous_key = None
+        success = True
         for index, schedule_item in enumerate(self.schedule):
-            result = results[index]
+            job_result = job_results[index]
+            success = success and job_result.success
             max_shots = schedule_item.max_shots
+            
+            # get the Result as dict and delete the results 
+            result_dict = job_result.to_dict()
+            result_dict.pop("results")
+
             for exp in schedule_item.experiments:
                 key = exp["key"]
                 circ = exp["circuit"]
@@ -110,7 +134,10 @@ class Scheduler():
                 total_shots = exp["total_shots"]
                 memory = []
                 counts = {}
+                result_data = None
+
                 if previous_memory:
+                    # there is data from the previous job
                     assert(previous_key==key)
                     memory.extend(previous_memory)
                     counts.update(previous_counts)
@@ -119,27 +146,37 @@ class Scheduler():
                     previous_memory = None
                     previous_counts = None
                     previous_key = None
-                elif reps == 1 and shots == total_shots:
-                    result_data[key] = result.data(circ)
-                    continue
-            
-                for exp_index in range(exp_number, exp_number+reps):
-                    mem = result.data(exp_index)['memory']
-                    memory.extend(mem)
-                    cnts = result.data(exp_index)['counts']
-                    counts = _add_dicts(counts, cnts)
-                    # TODO trim counts w.r.t. number of shots
+                
+                # get ExperimentResult as dict
+                job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
 
-                if shots < total_shots:
-                    previous_memory = copy.deepcopy(memory)
-                    previous_counts = copy.deepcopy(counts)
-                    previous_key = key
-                else:
-                    result_data[key] = ExperimentResultData(counts=counts, memory=memory[:total_shots])
+                if not (shots == total_shots and reps == 1 and len(memory) == 0):
+                    # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
+                    for exp_index in range(exp_number, exp_number+reps):
+                        mem = job_result.data(exp_index)['memory']
+                        memory.extend(mem)
+                        cnts = job_result.data(exp_index)['counts']
+                        counts = _add_dicts(counts, cnts)
+                        # TODO trim counts w.r.t. number of shots
+                    
+                    if shots < total_shots:
+                        previous_memory = copy.deepcopy(memory)
+                        previous_counts = copy.deepcopy(counts)
+                        previous_key = key
+                        continue
+                    
+                    result_data = ExperimentResultData(counts=counts, memory=memory[:total_shots]).to_dict()
+
+                    job_exp_result_dict["data"] = result_data
+                    job_exp_result_dict["shots"] = total_shots
+
+                exp_results_dict[key] = copy.deepcopy(result_dict)
+                exp_results_dict[key]["results"] = [job_exp_result_dict]
                 exp_number += reps
-        
-        for key in result_data:
-            print(result_data[key])
+
+        return {key:Result.from_dict(value) for key, value in exp_results_dict.items()}
+
+
 
     
 if __name__ == "__main__":
@@ -153,8 +190,12 @@ if __name__ == "__main__":
     from qiskit.circuit.random import random_circuit
 
 
-    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(1)}
+    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(30)}
 
     scheduler = Scheduler(circs, backend_sim)
     scheduler.submit_jobs()
-    scheduler.get_results()
+    res = scheduler.get_results()
+    for i in range(len(circs)):
+        c = circs[i]["circuit"]
+        r = res[i]
+        print(i, r.get_counts(c))
