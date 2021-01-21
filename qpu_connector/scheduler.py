@@ -120,7 +120,7 @@ class Scheduler():
         for index, schedule_item in enumerate(self.schedule):
             job_result = job_results[index]
             success = success and job_result.success
-            max_shots = schedule_item.max_shots
+            item_shots = schedule_item.shots
             
             # get the Result as dict and delete the results 
             result_dict = job_result.to_dict()
@@ -156,8 +156,17 @@ class Scheduler():
                         mem = job_result.data(exp_index)['memory']
                         memory.extend(mem)
                         cnts = job_result.data(exp_index)['counts']
+                        
+                        if exp_index == exp_number+reps-1 and shots == total_shots:
+                            # last experiment for this circuit
+                            if len(memory) > total_shots:
+                                # trim memory and counts w.r.t. number of shots
+                                too_much = len(memory) - total_shots
+                                memory = memory[:total_shots]
+                                mem = mem[:-too_much]
+                                cnts = dict(Counter(mem))
+
                         counts = _add_dicts(counts, cnts)
-                        # TODO trim counts w.r.t. number of shots
                     
                     if shots < total_shots:
                         previous_memory = copy.deepcopy(memory)
@@ -165,7 +174,7 @@ class Scheduler():
                         previous_key = key
                         continue
                     
-                    result_data = ExperimentResultData(counts=counts, memory=memory[:total_shots]).to_dict()
+                    result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
 
                     job_exp_result_dict["data"] = result_data
                     job_exp_result_dict["shots"] = total_shots
