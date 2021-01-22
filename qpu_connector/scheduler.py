@@ -1,10 +1,16 @@
 import math
 import copy
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 
 from collections import Counter
+from time import sleep
+from typing import Tuple
 
-from qiskit import QuantumCircuit, execute, IBMQ
+from qiskit import QuantumCircuit, execute, IBMQ, assemble, transpile
 from qiskit.compiler import assemble
+from qiskit.providers.backend import Backend
+from qiskit.providers import Job
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.postprocess import format_level_2_memory
 from qiskit.result.result import Result
@@ -26,7 +32,6 @@ class ScheduleItem():
         self.shots = 0
         self.max_experiments = max_experiments
         self.experiments = []
-        self.n_experiments = 0
         self.remaining_experiments = max_experiments
         self.n_circuits = 0
 
@@ -42,9 +47,12 @@ class ScheduleItem():
         Returns:
             int: remaining shots. If they are 0, all shots are executed
         """
+        if self.remaining_experiments == 0:
+            return shots
+
         self.n_circuits += 1
         reps = math.ceil(shots/self.max_shots)
-        self.shots = min(shots, self.max_shots)
+        self.shots = max(self.shots, min(shots, self.max_shots))
 
         if reps <= self.remaining_experiments:
             remaining_shots = 0
@@ -57,12 +65,32 @@ class ScheduleItem():
         
         return remaining_shots
 
+class AtomicBackendControl():
+    def __init__(self, backend):
+        self._backend = backend
+        self._lock = Lock()
+        self._counter = 0
+        
+    def try_to_enter(self):
+        with self._lock:
+            limit = self._backend.job_limit()
+            print(f"Counter:{self._counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
+            if limit.active_jobs < limit.maximum_jobs:
+                if self._counter < limit.maximum_jobs:
+                    self._counter += 1
+                    return True
+            return False
+
+    def leave(self):
+        with self._lock:
+            self._counter -= 1
     
 class Scheduler():
 
     def __init__(self, circuits, backend, max_shots=None, max_experiments=None):
         self.circuits = circuits
         self.backend = backend
+        self._control = AtomicBackendControl(self.backend) 
         if max_shots != None:
             self.max_shots = max_shots
         else:
@@ -90,17 +118,34 @@ class Scheduler():
                 self.schedule.append(schedule_item)
                 remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
 
+
+    def _submit_future_function(self, item: ScheduleItem) -> Job:
+        print("Hallo")
+        circuits_to_execute = []
+        for circuit_item in item.experiments:
+            circ = circuit_item["circuit"]
+            reps = circuit_item["reps"]
+            circuits_to_execute.extend([circ]*reps)
+        # job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
+        qobj = assemble(transpile(circuits_to_execute, backend=self.backend), self.backend, shots=item.shots, memory=True)
+        while not self._control.try_to_enter():
+            sleep(1)
+        job = self.backend.run(qobj)
+        # use this to wait till the job is finished
+        job.result()
+        self._control.leave()
+        return job
+
     def submit_jobs(self):
         """Submit the circuits to the backend to execute them."""
-        circuits_to_execute = []
+        n_workers = min(len(self.schedule), self.backend.job_limit().maximum_jobs)
+        executor =  ThreadPoolExecutor(n_workers)
         for item in self.schedule:
-            for circuit_item in item.experiments:
-                circ = circuit_item["circuit"]
-                reps = circuit_item["reps"]
-                circuits_to_execute.extend([circ]*reps)
-            job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
-            self.jobs.append(job)
-
+            future = executor.submit(self._submit_future_function, item)
+            self.jobs.append(future)
+        print("finished")
+                
+    
 
 
     def get_results(self):
@@ -109,22 +154,20 @@ class Scheduler():
         Returns: 
             dict : A dictionary containing a mapping from keys to results
         """
-        job_results = [job.result() for job in self.jobs]
-        assert(len(job_results)==len(self.schedule))
-        exp_results_dict = {}
-        exp_number = 0
+        assert(len(self.jobs)==len(self.schedule))
         previous_memory = None
         previous_counts = None
         previous_key = None
-        success = True
+
+        results = {}
         for index, schedule_item in enumerate(self.schedule):
-            job_result = job_results[index]
-            success = success and job_result.success
-            item_shots = schedule_item.shots
-            
+            job = self.jobs[index].result()
+            job_result = job.result()
+            exp_number = 0
             # get the Result as dict and delete the results 
             result_dict = job_result.to_dict()
-            result_dict.pop("results")
+            
+            print(f"Item:{index}")
 
             for exp in schedule_item.experiments:
                 key = exp["key"]
@@ -135,6 +178,8 @@ class Scheduler():
                 memory = []
                 counts = {}
                 result_data = None
+
+                
 
                 if previous_memory:
                     # there is data from the previous job
@@ -176,14 +221,19 @@ class Scheduler():
                     
                     result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
 
+                    # overwrite the data and the shots
                     job_exp_result_dict["data"] = result_data
                     job_exp_result_dict["shots"] = total_shots
 
-                exp_results_dict[key] = copy.deepcopy(result_dict)
-                exp_results_dict[key]["results"] = [job_exp_result_dict]
+                # overwrite the results with the computed result
+                result_dict["results"] = [job_exp_result_dict]
+                results[key] = Result.from_dict(result_dict)
                 exp_number += reps
+                
 
-        return {key:Result.from_dict(value) for key, value in exp_results_dict.items()}
+        return results
+
+
 
 
 
@@ -199,9 +249,9 @@ if __name__ == "__main__":
     from qiskit.circuit.random import random_circuit
 
 
-    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(30)}
+    circs = {i:{"circuit":random_circuit(5, 5 , measure=True), "shots":10000} for i in range(100)}
 
-    scheduler = Scheduler(circs, backend_sim)
+    scheduler = Scheduler(circs, backend)
     scheduler.submit_jobs()
     res = scheduler.get_results()
     for i in range(len(circs)):
