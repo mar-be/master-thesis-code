@@ -5,16 +5,14 @@ from threading import Lock
 
 from collections import Counter
 from time import sleep
-from typing import Optional, Tuple
+from typing import Any, Optional
 
 from qiskit import QuantumCircuit, execute, IBMQ, assemble, transpile
 from qiskit.compiler import assemble
-from qiskit.providers.backend import Backend
+from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers import Job
 from qiskit.result.models import ExperimentResultData
-from qiskit.result.postprocess import format_level_2_memory
 from qiskit.result.result import Result
-from qiskit.result.utils import marginal_counts
 
 
 
@@ -91,7 +89,7 @@ class BackendControl():
     
 class Scheduler():
 
-    def __init__(self, circuits, backend, max_shots=None, max_experiments=None):
+    def __init__(self, circuits:dict, backend:BaseBackend, max_shots:Optional[int]=None, max_experiments:Optional[int]=None):
         self._circuits = circuits
         self._backend = backend
         self._control = BackendControl(self._backend) 
@@ -158,7 +156,7 @@ class Scheduler():
     
 
 
-    def get_results(self):
+    def get_results(self) -> dict[Any, Result]:
         """Get the results for the submited jobs.
 
         Returns: 
