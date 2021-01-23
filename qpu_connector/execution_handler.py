@@ -1,5 +1,5 @@
 from typing import List
-from qpu_connector.scheduler import Scheduler
+from qpu_connector.scheduler import ExecutionHandler
 from queue import Empty, Queue
 import threading
 import time
@@ -16,17 +16,13 @@ class Execution_Handler(threading.Thread):
         self._input = input
         self._output = output
         self._batch_timeout = batch_timeout
+        self._scheduler = ExecutionHandler(backend, output)
         threading.Thread.__init__(self)
 
     def run(self) -> None:
         while True:
             circuits = self._get_input()
-            print("Create Scheduler")
-            scheduler = Scheduler(circuits, self._backend)
-            scheduler.submit_jobs()
-            results = scheduler.get_results()
-            for key, result in results.items():
-                self._output.put(result)
+            self._scheduler.addCircuits(circuits)
 
 
     

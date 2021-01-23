@@ -1,8 +1,9 @@
 import math
 import copy
+import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock, Thread
-from queue import Queue
+from queue import Empty, Queue
 
 from collections import Counter
 from time import sleep
@@ -254,12 +255,14 @@ class Scheduler():
         return results
 
     
-class SchedulerQueue():
+class ExecutionHandler():
 
-    def __init__(self, backend:BaseBackend, results:Queue, max_shots:Optional[int]=None, max_experiments:Optional[int]=None):
+    def __init__(self, backend:BaseBackend, input, results:Queue, batch_timeout:int=30, max_shots:Optional[int]=None, max_experiments:Optional[int]=None):
         self._backend = backend
         self._control = BackendControl(self._backend) 
+        self._input = input
         self._results = results
+        self._batch_timeout = batch_timeout
         if max_shots != None:
             self._max_shots = max_shots
         else:
@@ -268,18 +271,38 @@ class SchedulerQueue():
             self._max_experiments = max_experiments
         else:
             self._max_experiments = backend.configuration().max_experiments
-        self._schedule = Queue(backend.job_limit().maximum_jobs)
-        self._jobs = Queue(backend.job_limit().maximum_jobs)
-        self.schedule_item_count = 0
+        self._max_jobs = backend.job_limit().maximum_jobs
+        self._schedule = Queue(self._max_jobs)
+        self._jobs = Queue(self._max_jobs)
+        self._schedule_item_count = 0
+        input_thread = Thread(target=self._get_input)
         submit_thread = Thread(target=self._submit_jobs)
         result_thread = Thread(target=self._get_results)
+        input_thread.start()
         submit_thread.start()
         result_thread.start()
 
 
+    def _get_input(self):
 
+        while True:
+            circuits = []
+            start_time = time.time()
+            experiments = 0
 
-    def addCircuits(self, circuits):
+            while time.time() - start_time < self._batch_timeout and experiments < self._max_experiments*self._max_jobs:
+                try:
+                    circuit = self._input.get(timeout=5)
+                except Empty:
+                    continue
+                shots = circuit["shots"]
+                reps = math.ceil(shots/self._max_shots)
+                experiments += reps
+                circuits.append(circuit)
+
+            self._addCircuits({i:circ for i, circ in enumerate(circuits)})
+
+    def _addCircuits(self, circuits):
         """Generate a schedule constisting of ScheduleItems"""
         if len(circuits) == 0:
             return
@@ -289,14 +312,14 @@ class SchedulerQueue():
             shots = item["shots"]
             remaining_shots = schedule_item.add_circuit(key, circuit, shots)
             while remaining_shots > 0:
-                print(f"Generated ScheduleItem {self.schedule_item_count}")
-                self._schedule.put((self.schedule_item_count, schedule_item))
-                self.schedule_item_count += 1
+                print(f"Generated ScheduleItem {self._schedule_item_count}")
+                self._schedule.put((self._schedule_item_count, schedule_item))
+                self._schedule_item_count += 1
                 schedule_item = ScheduleItem(self._max_shots, self._max_experiments)
                 remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
-        self._schedule.put((self.schedule_item_count, schedule_item))
-        print(f"Generated ScheduleItem {self.schedule_item_count}")
-        self.schedule_item_count += 1
+        self._schedule.put((self._schedule_item_count, schedule_item))
+        print(f"Generated ScheduleItem {self._schedule_item_count}")
+        self._schedule_item_count += 1
         print("Added all circuits")
         
 
