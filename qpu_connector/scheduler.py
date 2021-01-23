@@ -22,6 +22,76 @@ def _add_dicts(d1, d2):
     c.update(d2)
     return dict(c)
 
+def _process_job_result(job_result, schedule_item, index, previous_key, previous_memory, previous_counts):
+    results = {}
+    exp_number = 0
+    # get the Result as dict and delete the results 
+    result_dict = job_result.to_dict()
+    
+    print(f"Process result of job {index}")
+
+    for exp in schedule_item.experiments:
+        key = exp["key"]
+        circ = exp["circuit"]
+        reps = exp["reps"]
+        shots = exp["shots"]
+        total_shots = exp["total_shots"]
+        memory = []
+        counts = {}
+        result_data = None
+
+        
+
+        if previous_memory:
+            # there is data from the previous job
+            assert(previous_key==key)
+            memory.extend(previous_memory)
+            counts.update(previous_counts)
+            shots += len(previous_memory)
+            total_shots += len(previous_memory)
+            previous_memory = None
+            previous_counts = None
+            previous_key = None
+        
+        # get ExperimentResult as dict
+        job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
+
+        if not (shots == total_shots and reps == 1 and len(memory) == 0):
+            # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
+            for exp_index in range(exp_number, exp_number+reps):
+                mem = job_result.data(exp_index)['memory']
+                memory.extend(mem)
+                cnts = job_result.data(exp_index)['counts']
+                
+                if exp_index == exp_number+reps-1 and shots == total_shots:
+                    # last experiment for this circuit
+                    if len(memory) > total_shots:
+                        # trim memory and counts w.r.t. number of shots
+                        too_much = len(memory) - total_shots
+                        memory = memory[:total_shots]
+                        mem = mem[:-too_much]
+                        cnts = dict(Counter(mem))
+
+                counts = _add_dicts(counts, cnts)
+            
+            if shots < total_shots:
+                previous_memory = copy.deepcopy(memory)
+                previous_counts = copy.deepcopy(counts)
+                previous_key = key
+                continue
+            
+            result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
+
+            # overwrite the data and the shots
+            job_exp_result_dict["data"] = result_data
+            job_exp_result_dict["shots"] = total_shots
+
+        # overwrite the results with the computed result
+        result_dict["results"] = [job_exp_result_dict]
+        results[key] = Result.from_dict(result_dict)
+        exp_number += reps
+    return results, previous_key, previous_memory, previous_counts
+
 
 class ScheduleItem():
     '''A schedule item represents a job on a backend. It can contain multiple experiments.'''
@@ -165,81 +235,20 @@ class Scheduler():
         """
 
         assert(len(self._jobs)==len(self._schedule))
+        previous_key = None
         previous_memory = None
         previous_counts = None
-        previous_key = None
+        
 
         results = {}
         print("Wait for results")
         for index, schedule_item in enumerate(self._schedule):
             job = self._jobs[index].result()
             job_result = job.result()
-            exp_number = 0
-            # get the Result as dict and delete the results 
-            result_dict = job_result.to_dict()
+
+            result_for_item, previous_key, previous_memory, previous_counts = _process_job_result(job_result, schedule_item, index, previous_key, previous_memory, previous_counts)
+            results.update(result_for_item)
             
-            print(f"Process result of job {index}")
-
-            for exp in schedule_item.experiments:
-                key = exp["key"]
-                circ = exp["circuit"]
-                reps = exp["reps"]
-                shots = exp["shots"]
-                total_shots = exp["total_shots"]
-                memory = []
-                counts = {}
-                result_data = None
-
-                
-
-                if previous_memory:
-                    # there is data from the previous job
-                    assert(previous_key==key)
-                    memory.extend(previous_memory)
-                    counts.update(previous_counts)
-                    shots += len(previous_memory)
-                    total_shots += len(previous_memory)
-                    previous_memory = None
-                    previous_counts = None
-                    previous_key = None
-                
-                # get ExperimentResult as dict
-                job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
-
-                if not (shots == total_shots and reps == 1 and len(memory) == 0):
-                    # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
-                    for exp_index in range(exp_number, exp_number+reps):
-                        mem = job_result.data(exp_index)['memory']
-                        memory.extend(mem)
-                        cnts = job_result.data(exp_index)['counts']
-                        
-                        if exp_index == exp_number+reps-1 and shots == total_shots:
-                            # last experiment for this circuit
-                            if len(memory) > total_shots:
-                                # trim memory and counts w.r.t. number of shots
-                                too_much = len(memory) - total_shots
-                                memory = memory[:total_shots]
-                                mem = mem[:-too_much]
-                                cnts = dict(Counter(mem))
-
-                        counts = _add_dicts(counts, cnts)
-                    
-                    if shots < total_shots:
-                        previous_memory = copy.deepcopy(memory)
-                        previous_counts = copy.deepcopy(counts)
-                        previous_key = key
-                        continue
-                    
-                    result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
-
-                    # overwrite the data and the shots
-                    job_exp_result_dict["data"] = result_data
-                    job_exp_result_dict["shots"] = total_shots
-
-                # overwrite the results with the computed result
-                result_dict["results"] = [job_exp_result_dict]
-                results[key] = Result.from_dict(result_dict)
-                exp_number += reps
         
         print("All results are processed")
         return results
@@ -288,6 +297,7 @@ class SchedulerQueue():
         self._schedule.put((self.schedule_item_count, schedule_item))
         print(f"Generated ScheduleItem {self.schedule_item_count}")
         self.schedule_item_count += 1
+        print("Added all circuits")
         
 
 
@@ -339,72 +349,12 @@ class SchedulerQueue():
             index, schedule_item, future_job = self._jobs.get()
             job = future_job.result()
             job_result = job.result()
-            exp_number = 0
-            # get the Result as dict and delete the results 
-            result_dict = job_result.to_dict()
             
             print(f"Process result of job {index}")
 
-            for exp in schedule_item.experiments:
-                key = exp["key"]
-                circ = exp["circuit"]
-                reps = exp["reps"]
-                shots = exp["shots"]
-                total_shots = exp["total_shots"]
-                memory = []
-                counts = {}
-                result_data = None
-
-                
-
-                if previous_memory:
-                    # there is data from the previous job
-                    assert(previous_key==key)
-                    memory.extend(previous_memory)
-                    counts.update(previous_counts)
-                    shots += len(previous_memory)
-                    total_shots += len(previous_memory)
-                    previous_memory = None
-                    previous_counts = None
-                    previous_key = None
-                
-                # get ExperimentResult as dict
-                job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
-
-                if not (shots == total_shots and reps == 1 and len(memory) == 0):
-                    # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
-                    for exp_index in range(exp_number, exp_number+reps):
-                        mem = job_result.data(exp_index)['memory']
-                        memory.extend(mem)
-                        cnts = job_result.data(exp_index)['counts']
-                        
-                        if exp_index == exp_number+reps-1 and shots == total_shots:
-                            # last experiment for this circuit
-                            if len(memory) > total_shots:
-                                # trim memory and counts w.r.t. number of shots
-                                too_much = len(memory) - total_shots
-                                memory = memory[:total_shots]
-                                mem = mem[:-too_much]
-                                cnts = dict(Counter(mem))
-
-                        counts = _add_dicts(counts, cnts)
-                    
-                    if shots < total_shots:
-                        previous_memory = copy.deepcopy(memory)
-                        previous_counts = copy.deepcopy(counts)
-                        previous_key = key
-                        continue
-                    
-                    result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
-
-                    # overwrite the data and the shots
-                    job_exp_result_dict["data"] = result_data
-                    job_exp_result_dict["shots"] = total_shots
-
-                # overwrite the results with the computed result
-                result_dict["results"] = [job_exp_result_dict]
-                self._results.put(Result.from_dict(result_dict))
-                exp_number += reps
+            result_for_item, previous_key, previous_memory, previous_counts = _process_job_result(job_result, schedule_item, index, previous_key, previous_memory, previous_counts)
+            for key, result in result_for_item.items():
+                self._results.put(result)
         
 
 
