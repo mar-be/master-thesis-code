@@ -1,7 +1,8 @@
 import math
 import copy
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
+from threading import Lock, Thread
+from queue import Queue
 
 from collections import Counter
 from time import sleep
@@ -243,8 +244,168 @@ class Scheduler():
         print("All results are processed")
         return results
 
+    
+class SchedulerQueue():
+
+    def __init__(self, backend:BaseBackend, results:Queue, max_shots:Optional[int]=None, max_experiments:Optional[int]=None):
+        self._backend = backend
+        self._control = BackendControl(self._backend) 
+        self._results = results
+        if max_shots != None:
+            self._max_shots = max_shots
+        else:
+            self._max_shots = backend.configuration().max_shots
+        if max_experiments != None:
+            self._max_experiments = max_experiments
+        else:
+            self._max_experiments = backend.configuration().max_experiments
+        self._schedule = Queue(backend.job_limit().maximum_jobs)
+        self._jobs = Queue(backend.job_limit().maximum_jobs)
+        self.schedule_item_count = 0
+        submit_thread = Thread(target=self._submit_jobs)
+        result_thread = Thread(target=self._get_results)
+        submit_thread.start()
+        result_thread.start()
 
 
+
+
+    def addCircuits(self, circuits):
+        """Generate a schedule constisting of ScheduleItems"""
+        if len(circuits) == 0:
+            return
+        schedule_item = ScheduleItem(self._max_shots, self._max_experiments)
+        for key, item in circuits.items():
+            circuit = item["circuit"]
+            shots = item["shots"]
+            remaining_shots = schedule_item.add_circuit(key, circuit, shots)
+            while remaining_shots > 0:
+                print(f"Generated ScheduleItem {self.schedule_item_count}")
+                self._schedule.put((self.schedule_item_count, schedule_item))
+                self.schedule_item_count += 1
+                schedule_item = ScheduleItem(self._max_shots, self._max_experiments)
+                remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
+        self._schedule.put((self.schedule_item_count, schedule_item))
+        print(f"Generated ScheduleItem {self.schedule_item_count}")
+        self.schedule_item_count += 1
+        
+
+
+    def _submit_future_function(self, item: ScheduleItem, index:Optional[int]=None) -> Job:
+        circuits_to_execute = []
+        for circuit_item in item.experiments:
+            circ = circuit_item["circuit"]
+            reps = circuit_item["reps"]
+            circuits_to_execute.extend([circ]*reps)
+        # job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
+        qobj = assemble(transpile(circuits_to_execute, backend=self._backend), self._backend, shots=item.shots, memory=True)
+        while not self._control.try_to_enter():
+            sleep(1)
+        job = self._backend.run(qobj)
+        if index != None:
+            print(f"Job {index} is submitted to the backend")
+        # use this to wait till the job is finished
+        job.result()
+        self._control.leave()
+        if index != None:
+            print(f"Results for job {index} are available")
+        return job
+
+    def _submit_jobs(self):
+        """Submit the circuits to the backend to execute them."""
+        print("Start submitting jobs")
+        n_workers = self._backend.job_limit().maximum_jobs
+        executor =  ThreadPoolExecutor(n_workers)
+        while True:
+            index, item = self._schedule.get()
+            future_job = executor.submit(self._submit_future_function, item, index)
+            self._jobs.put((index, item, future_job))
+                
+    
+
+
+    def _get_results(self):
+        """Get the results for the submited jobs.
+
+        Returns: 
+            dict : A dictionary containing a mapping from keys to results
+        """
+
+        previous_memory = None
+        previous_counts = None
+        previous_key = None
+
+        while True:
+            index, schedule_item, future_job = self._jobs.get()
+            job = future_job.result()
+            job_result = job.result()
+            exp_number = 0
+            # get the Result as dict and delete the results 
+            result_dict = job_result.to_dict()
+            
+            print(f"Process result of job {index}")
+
+            for exp in schedule_item.experiments:
+                key = exp["key"]
+                circ = exp["circuit"]
+                reps = exp["reps"]
+                shots = exp["shots"]
+                total_shots = exp["total_shots"]
+                memory = []
+                counts = {}
+                result_data = None
+
+                
+
+                if previous_memory:
+                    # there is data from the previous job
+                    assert(previous_key==key)
+                    memory.extend(previous_memory)
+                    counts.update(previous_counts)
+                    shots += len(previous_memory)
+                    total_shots += len(previous_memory)
+                    previous_memory = None
+                    previous_counts = None
+                    previous_key = None
+                
+                # get ExperimentResult as dict
+                job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
+
+                if not (shots == total_shots and reps == 1 and len(memory) == 0):
+                    # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
+                    for exp_index in range(exp_number, exp_number+reps):
+                        mem = job_result.data(exp_index)['memory']
+                        memory.extend(mem)
+                        cnts = job_result.data(exp_index)['counts']
+                        
+                        if exp_index == exp_number+reps-1 and shots == total_shots:
+                            # last experiment for this circuit
+                            if len(memory) > total_shots:
+                                # trim memory and counts w.r.t. number of shots
+                                too_much = len(memory) - total_shots
+                                memory = memory[:total_shots]
+                                mem = mem[:-too_much]
+                                cnts = dict(Counter(mem))
+
+                        counts = _add_dicts(counts, cnts)
+                    
+                    if shots < total_shots:
+                        previous_memory = copy.deepcopy(memory)
+                        previous_counts = copy.deepcopy(counts)
+                        previous_key = key
+                        continue
+                    
+                    result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
+
+                    # overwrite the data and the shots
+                    job_exp_result_dict["data"] = result_data
+                    job_exp_result_dict["shots"] = total_shots
+
+                # overwrite the results with the computed result
+                result_dict["results"] = [job_exp_result_dict]
+                self._results.put(Result.from_dict(result_dict))
+                exp_number += reps
+        
 
 
     
