@@ -1,4 +1,4 @@
-from qpu_connector.scheduler import ExecutionHandler
+from execution_handler.scheduler import ExecutionHandler
 
 from queue import Queue
 
