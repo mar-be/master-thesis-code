@@ -1,4 +1,5 @@
 from execution_handler.scheduler import ExecutionHandler
+from quantum_job import QuantumJob
 
 from queue import Queue
 
@@ -22,11 +23,12 @@ if __name__ == "__main__":
 
     exec_handler = ExecutionHandler(backend_sim, input, output)
 
-    for i in range(900):
-        input.put({"circuit":random_circuit(5, 5 , measure=True), "shots":10000})
-
-    for i in range(900):
-        r = output.get()
-        print(i, r.get_counts())
+    for i in range(10):
+        input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000))
+ 
+    while True:
+        job = output.get()
+        r = job.result
+        print(job.id, r.success)
 
 

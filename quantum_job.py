@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict
 from qiskit import QuantumCircuit
 from uuid import uuid4
 from enum import Enum
@@ -23,8 +23,6 @@ if __name__ == "__main__":
     vJob = QuantumJob(None, test = "test")
 
     print(vJob.test)
-    vJob.set_attribute("a", "test")
-    print(vJob.a)
     vJob.hallo = 1234
     print(vJob.hallo)
     print(vJob.__dict__)

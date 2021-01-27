@@ -35,8 +35,8 @@ class Aggregator(Thread):
             if len(jobs_to_aggregate) < 2:
                 continue
             agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
-            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, agg_info = agg_info)
-            self._job_dict[agg_job.id] = copy.deepcopy(jobs_to_aggregate)
+            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation)
+            self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
             self._output.put(agg_job)
             jobs_to_aggregate = []
 
@@ -51,8 +51,13 @@ class AggregatorResults(Thread):
     def run(self) -> None:
         while True:
             agg_job = self._input.get()
-            results = split_results(agg_job.result, agg_job.agg_info)
-            initial_jobs = self._job_dict[agg_job.id]
+            try:
+                job_info = self._job_dict.pop(agg_job.id)
+            except KeyError as k_e:
+                # TODO exception handling
+                raise k_e
+            results = split_results(agg_job.result, job_info["agg_info"])
+            initial_jobs = job_info["jobs"]
             assert(len(results)==len(initial_jobs))
             for i, job in enumerate(initial_jobs):
                 job.result = results[i]

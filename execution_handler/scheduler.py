@@ -275,6 +275,7 @@ class ExecutionHandler():
         self._schedule = Queue(self._max_jobs)
         self._jobs = Queue(self._max_jobs)
         self._schedule_item_count = 0
+        self._quantum_job_table = {}
         input_thread = Thread(target=self._get_input)
         submit_thread = Thread(target=self._submit_jobs)
         result_thread = Thread(target=self._get_results)
@@ -286,21 +287,22 @@ class ExecutionHandler():
     def _get_input(self):
 
         while True:
-            circuits = []
+            quantum_jobs = []
             start_time = time.time()
             experiments = 0
 
             while time.time() - start_time < self._batch_timeout and experiments < self._max_experiments*self._max_jobs:
                 try:
-                    circuit = self._input.get(timeout=5)
+                    quantum_job = self._input.get(timeout=5)
                 except Empty:
                     continue
-                shots = circuit["shots"]
+                shots = quantum_job.shots
                 reps = math.ceil(shots/self._max_shots)
                 experiments += reps
-                circuits.append(circuit)
+                quantum_jobs.append(quantum_job)
+                self._quantum_job_table[quantum_job.id] = quantum_job
 
-            self._addCircuits({i:circ for i, circ in enumerate(circuits)})
+            self._addCircuits({job.id:{"circuit":job.circuit, "shots":job.shots} for job in quantum_jobs})
 
     def _addCircuits(self, circuits):
         """Generate a schedule constisting of ScheduleItems"""
@@ -373,11 +375,17 @@ class ExecutionHandler():
             job = future_job.result()
             job_result = job.result()
             
-            print(f"Process result of job {index}")
 
             result_for_item, previous_key, previous_memory, previous_counts = _process_job_result(job_result, schedule_item, index, previous_key, previous_memory, previous_counts)
             for key, result in result_for_item.items():
-                self._results.put(result)
+                try:
+                    job = self._quantum_job_table.pop(key)
+                    job.result = result
+                    self._results.put(job)
+                except KeyError as ke:
+                    # TODO Exception Handling
+                    raise ke
+                    
         
 
 
