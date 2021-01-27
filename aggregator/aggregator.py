@@ -35,7 +35,8 @@ class Aggregator(Thread):
             if len(jobs_to_aggregate) < 2:
                 continue
             agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
-            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation)
+            agg_shots = max([job.shots for job in jobs_to_aggregate])
+            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, shots = agg_shots)
             self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
             self._output.put(agg_job)
             jobs_to_aggregate = []
