@@ -1,14 +1,67 @@
 import copy
+
 from typing import Dict, List, Any, Tuple
-from qiskit import QuantumCircuit
-from qiskit.circuit import register
+from queue import Empty, Queue
+from threading import Thread
+
+from qiskit import QuantumCircuit, circuit
 from qiskit.circuit.random import random_circuit
 from qiskit.result import Result
-from qiskit.result.counts import Counts
-from quantum_ciruit_object import Modification_Type, Quantum_Job, session
+
+from quantum_job import QuantumJob, Modification_Type
 
 
-def aggregate_q_jobs(list_of_circuits: List[QuantumCircuit]) -> Tuple[QuantumCircuit, Dict[Any, Any]]:
+class Aggregator(Thread):
+
+    def __init__(self, input, output:Queue, job_dict:Dict, timeout: float) -> None:
+        self._input:Queue = input
+        self._output:Queue = output
+        self._job_dict:Dict = job_dict
+        self._timeout:float = timeout
+        Thread.__init__(self)
+
+    
+    def run(self) -> None:
+        jobs_to_aggregate = []
+        while True:
+            try:
+                q_job = self._input.get(timeout=self._timeout)
+                jobs_to_aggregate.append(q_job)
+            except Empty:
+                if len(jobs_to_aggregate) == 0:
+                    continue
+                elif len(jobs_to_aggregate) == 1:
+                    self._output.put(jobs_to_aggregate.pop())
+            if len(jobs_to_aggregate) < 2:
+                continue
+            agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
+            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, agg_info = agg_info)
+            self._job_dict[agg_job.id] = copy.deepcopy(jobs_to_aggregate)
+            self._output.put(agg_job)
+            jobs_to_aggregate = []
+
+class AggregatorResults(Thread):
+    
+    def __init__(self, input, output:Queue, job_dict:Dict):
+        self._input:Queue = input
+        self._output:Queue = output
+        self._job_dict:Dict = job_dict
+        Thread.__init__(self)
+
+    def run(self) -> None:
+        while True:
+            agg_job = self._input.get()
+            results = split_results(agg_job.result, agg_job.agg_info)
+            initial_jobs = self._job_dict[agg_job.id]
+            assert(len(results)==len(initial_jobs))
+            for i, job in enumerate(initial_jobs):
+                job.result = results[i]
+                self._output.put(job)
+            
+
+
+
+def aggregate(list_of_circuits: List[QuantumCircuit]) -> Tuple[QuantumCircuit, Dict[Any, Any]]:
     agg_circuit = QuantumCircuit()
     agg_info = {}
     qreg_count = 0
@@ -118,7 +171,7 @@ if __name__ == "__main__":
     circ1 = random_circuit(10, 10, measure=True)
     circ2 = random_circuit(10, 10, measure=True)
 
-    agg, agg_info = aggregate_q_jobs([circ1, circ2])
+    agg, agg_info = aggregate([circ1, circ2])
 
     print(agg)
 
