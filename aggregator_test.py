@@ -3,7 +3,6 @@ from qiskit import execute, IBMQ, QuantumCircuit, Aer
 from qiskit.result.result import Result
 from qiskit.providers.aer.extensions import *
 from aggregator.aggregator import aggregate, split_results
-from quantum_ciruit_object import Quantum_Job, session
 from quantum_circuit_generator.generators import gen_BV
 import numpy as np
 

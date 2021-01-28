@@ -7,7 +7,7 @@ from queue import Empty, Queue
 
 from collections import Counter
 from time import sleep
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from qiskit import QuantumCircuit, execute, IBMQ, assemble, transpile
 from qiskit.compiler import assemble
@@ -228,7 +228,7 @@ class Scheduler():
     
 
 
-    def get_results(self) -> dict[Any, Result]:
+    def get_results(self) -> Dict[Any, Result]:
         """Get the results for the submited jobs.
 
         Returns: 
