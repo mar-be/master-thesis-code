@@ -1,5 +1,6 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from qiskit import QuantumCircuit
+from qiskit.result import Result
 from uuid import uuid4
 from enum import Enum
 
@@ -14,7 +15,7 @@ class QuantumJob():
         self.id = uuid4().hex
         self.circuit = circuit
         self.type = type
-        self.result = None
+        self.result:Optional[Result] = None
         self.__dict__.update(kwargs)
 
     

@@ -1,6 +1,7 @@
 from queue import Queue
 from execution_handler.scheduler import ExecutionHandler
 from partitioner.partitioner import Partitioner
+from partitioner.partition_result_processing import PartitionResultProcessing
 from qiskit import IBMQ
 from quantum_job import QuantumJob
 from qiskit.circuit.random import random_circuit
@@ -23,13 +24,15 @@ if __name__ == "__main__":
 
     exec_handler = ExecutionHandler(backend_sim, output_part, output_exec)
 
+    part_res = PartitionResultProcessing(output_exec, part_job_dict)
+    part_res.start()
 
     
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
     
-    i = 0
-    while True:
-        job = output_exec.get()
-        r = job.result
-        print(i, job.id, r.success)
-        i += 1
+    # i = 0
+    # while True:
+    #     job = output_exec.get()
+    #     r = job.result
+    #     print(i, job.id, r.success)
+    #     i += 1

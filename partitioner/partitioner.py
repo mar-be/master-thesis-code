@@ -32,10 +32,8 @@ class Partitioner(Thread):
                 for sub_job in sub_jobs:
                     self._output.put(sub_job)
             except Exception as e:
+                print("Exception")
                 print(e)
-
-
-
 
     def _cut(self, circuit:QuantumCircuit):
         assert(check_valid(circuit=circuit))
@@ -55,5 +53,5 @@ class Partitioner(Thread):
             circ = circ_info["circuit"]
             shots = circ_info["shots"]
             qc=apply_measurement(circuit=circ,qubits=circ.qubits)
-            sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=shots, key=key))
+            sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=qJob.shots, key=key))
         return sub_jobs
