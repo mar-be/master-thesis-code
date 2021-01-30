@@ -47,11 +47,11 @@ class Partitioner(Thread):
 
     def _cut_job(self, qJob:QuantumJob):
         cut_solution, circ_dict, all_indexed_combinations = self._cut(qJob.circuit)
-        self._partition_dict[qJob.id] = {"cut_solution":cut_solution, "all_indexed_combinations":all_indexed_combinations}
         sub_jobs = []
         for key, circ_info in circ_dict.items():
             circ = circ_info["circuit"]
             shots = circ_info["shots"]
             qc=apply_measurement(circuit=circ,qubits=circ.qubits)
             sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=qJob.shots, key=key))
+        self._partition_dict[qJob.id] = {"cut_solution":cut_solution, "all_indexed_combinations":all_indexed_combinations, "job":qJob, "num_sub_jobs":len(sub_jobs)}
         return sub_jobs
