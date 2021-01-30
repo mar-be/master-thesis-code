@@ -2,3 +2,7 @@
 __pycache__
 foo.db
 cutqc_data
+cutqc/build
+cutqc/measure
+cutqc/merge
+cutqc/vertical_collapse
