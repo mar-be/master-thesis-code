@@ -33,6 +33,7 @@ if __name__ == "__main__":
     part_processing.start()
     
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
+    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
     
     i = 0
     while True:

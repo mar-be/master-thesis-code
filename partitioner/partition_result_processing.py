@@ -1,5 +1,6 @@
 import pickle
 import time
+import shutil
 from cutqc.distributor import distribute
 from cutqc.post_process import build, get_combinations
 import glob
@@ -108,6 +109,7 @@ class ResultProcessing(Thread):
             self._output.put(reconstructed_prob)
             self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)
+            self._clean_all_files(job)
 
     def _write_all_files(self, job, eval_mode):
 
@@ -128,6 +130,10 @@ class ResultProcessing(Thread):
 
         all_indexed_combinations = self._partition_dict[job.id]["all_indexed_combinations"]
         pickle.dump(all_indexed_combinations, open('%s/all_indexed_combinations.pckl'%(eval_folder),'wb'))
+
+    def _clean_all_files(self, job):
+        dirname = f'./cutqc_data/{job.id}'
+        shutil.rmtree(dirname)
 
     def _measure(self, job, eval_mode, num_threads):
         subprocess.run(['rm','./cutqc/measure'])
