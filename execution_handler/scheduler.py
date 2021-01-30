@@ -1,22 +1,22 @@
-import math
 import copy
+import math
 import time
-from concurrent.futures import ThreadPoolExecutor
-from threading import Lock, Thread
-from queue import Empty, Queue
-
+import logger
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from queue import Empty, Queue
+from threading import Lock, Thread
 from time import sleep
 from typing import Any, Dict, Optional
 
-from qiskit import QuantumCircuit, execute, IBMQ, assemble, transpile
+from qiskit import IBMQ, QuantumCircuit, assemble, execute, transpile
 from qiskit.compiler import assemble
-from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers import Job
+from qiskit.providers.basebackend import BaseBackend
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 
-
+log = logger.get_logger(__name__)
 
 def _add_dicts(d1, d2):
     c = Counter(d1)
@@ -29,7 +29,7 @@ def _process_job_result(job_result, schedule_item, index, previous_key, previous
     # get the Result as dict and delete the results 
     result_dict = job_result.to_dict()
     
-    print(f"Process result of job {index}")
+    log.info(f"Process result of job {index}")
 
     for exp in schedule_item.experiments:
         key = exp["key"]
@@ -138,17 +138,15 @@ class ScheduleItem():
 class BackendControl():
     """Control the access to the backend to regulate the number jobs, which are executed in parallel"""
 
-    def __init__(self, backend, verbose = False):
+    def __init__(self, backend):
         self._backend = backend
         self._lock = Lock()
         self._counter = 0
-        self._verbose = verbose
         
     def try_to_enter(self):
         with self._lock:
             limit = self._backend.job_limit()
-            if self._verbose:
-                print(f"Counter:{self._counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
+            log.debug(f"Counter:{self._counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
             if limit.active_jobs < limit.maximum_jobs:
                 if self._counter < limit.maximum_jobs:
                     self._counter += 1
@@ -191,7 +189,7 @@ class Scheduler():
                 schedule_item = ScheduleItem(self._max_shots, self._max_experiments)
                 self._schedule.append(schedule_item)
                 remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
-        print(f"Schedule has {len(self._schedule)} items")
+        log.info(f"Schedule has {len(self._schedule)} items")
 
 
     def _submit_future_function(self, item: ScheduleItem, index:Optional[int]=None) -> Job:
@@ -206,19 +204,19 @@ class Scheduler():
             sleep(1)
         job = self._backend.run(qobj)
         if index != None:
-            print(f"Job {index} is submitted to the backend")
+            log.info(f"Job {index} is submitted to the backend")
         # use this to wait till the job is finished
         job.result()
         self._control.leave()
         if index != None:
-            print(f"Results for job {index} are available")
+            log.info(f"Results for job {index} are available")
         return job
 
     def submit_jobs(self):
         """Submit the circuits to the backend to execute them."""
         if len(self._jobs) > 0:
             raise Exception("Jobs are allready submitted")
-        print("Start submitting jobs")
+        log.info("Start submitting jobs")
         n_workers = min(len(self._schedule), self._backend.job_limit().maximum_jobs)
         executor =  ThreadPoolExecutor(n_workers)
         for index, item in enumerate(self._schedule):
@@ -242,7 +240,7 @@ class Scheduler():
         
 
         results = {}
-        print("Wait for results")
+        log.info("Wait for results")
         for index, schedule_item in enumerate(self._schedule):
             job = self._jobs[index].result()
             job_result = job.result()
@@ -251,7 +249,7 @@ class Scheduler():
             results.update(result_for_item)
             
         
-        print("All results are processed")
+        log.info("All results are processed")
         return results
 
     
@@ -314,15 +312,15 @@ class ExecutionHandler():
             shots = item["shots"]
             remaining_shots = schedule_item.add_circuit(key, circuit, shots)
             while remaining_shots > 0:
-                print(f"Generated ScheduleItem {self._schedule_item_count}")
+                log.info(f"Generated ScheduleItem {self._schedule_item_count}")
                 self._schedule.put((self._schedule_item_count, schedule_item))
                 self._schedule_item_count += 1
                 schedule_item = ScheduleItem(self._max_shots, self._max_experiments)
                 remaining_shots = schedule_item.add_circuit(key, circuit, remaining_shots)
         self._schedule.put((self._schedule_item_count, schedule_item))
-        print(f"Generated ScheduleItem {self._schedule_item_count}")
+        log.info(f"Generated ScheduleItem {self._schedule_item_count}")
         self._schedule_item_count += 1
-        print("Added all circuits")
+        log.info("Added all circuits")
         
 
 
@@ -338,17 +336,17 @@ class ExecutionHandler():
             sleep(1)
         job = self._backend.run(qobj)
         if index != None:
-            print(f"Job {index} is submitted to the backend")
+            log.info(f"Job {index} is submitted to the backend")
         # use this to wait till the job is finished
         job.result()
         self._control.leave()
         if index != None:
-            print(f"Results for job {index} are available")
+            log.info(f"Results for job {index} are available")
         return job
 
     def _submit_jobs(self):
         """Submit the circuits to the backend to execute them."""
-        print("Start submitting jobs")
+        log.info("Start submitting jobs")
         n_workers = self._backend.job_limit().maximum_jobs
         executor =  ThreadPoolExecutor(n_workers)
         while True:
