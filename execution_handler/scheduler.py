@@ -14,10 +14,77 @@ from qiskit.providers.basebackend import BaseBackend
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 
+class ScheduleItem():
+    '''A schedule item represents a job on a backend. It can contain multiple experiments.'''
+
+    def __init__(self, max_shots: int, max_experiments: int):
+        self._log = logger.get_logger(type(self).__name__)
+        self.max_shots = max_shots
+        self.shots = 0
+        self.max_experiments = max_experiments
+        self.experiments = []
+        self.remaining_experiments = max_experiments
+        self.n_circuits = 0
+
+    
+    def add_circuit(self, key, circuit:QuantumCircuit, shots:int) -> int:
+        """Add a circuit to the ScheduleItem.
+
+        Args:
+            key (Any): Identifier for the circuit
+            circuit (QuantumCircuit): The circuit, which should be executed
+            shots (int): The number of shots
+    
+        Returns:
+            int: remaining shots. If they are 0, all shots are executed
+        """
+        if self.remaining_experiments == 0:
+            return shots
+
+        self.n_circuits += 1
+        reps = math.ceil(shots/self.max_shots)
+        self.shots = max(self.shots, min(shots, self.max_shots))
+
+        if reps <= self.remaining_experiments:
+            remaining_shots = 0
+        else:
+            reps = self.remaining_experiments
+            remaining_shots = shots - reps*self.max_shots
+
+        self.remaining_experiments -= reps
+        self.experiments.append({"key":key, "circuit":circuit, "reps":reps, "shots":shots-remaining_shots, "total_shots":shots})
+        
+        return remaining_shots
+
+class BackendControl():
+    """Control the access to the backend to regulate the number jobs, which are executed in parallel"""
+
+    def __init__(self, backend):
+        self._log = logger.get_logger(type(self).__name__)
+        self._backend = backend
+        self._lock = Lock()
+        self._counter = 0
+        
+    def try_to_enter(self):
+        with self._lock:
+            limit = self._backend.job_limit()
+            self._log.debug(f"Counter:{self._counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
+            if limit.active_jobs < limit.maximum_jobs:
+                if self._counter < limit.maximum_jobs:
+                    self._counter += 1
+                    return True
+            return False
+
+    def leave(self):
+        with self._lock:
+            self._counter -= 1
+
 class AbstractExecution():
 
-    def __init__(self) -> None:
+    def __init__(self, backend:BaseBackend) -> None:
         self._log = logger.get_logger(type(self).__name__)
+        self._backend = backend
+        self._control = BackendControl(self._backend) 
 
 
     def _add_dicts(self, d1, d2):
@@ -95,71 +162,28 @@ class AbstractExecution():
             exp_number += reps
         return results, previous_key, previous_memory, previous_counts
 
+    def _submit_future_function(self, item: ScheduleItem, index:Optional[int]=None) -> Job:
+        circuits_to_execute = []
+        for circuit_item in item.experiments:
+            circ = circuit_item["circuit"]
+            reps = circuit_item["reps"]
+            circuits_to_execute.extend([circ]*reps)
+        # job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
+        qobj = assemble(transpile(circuits_to_execute, backend=self._backend), self._backend, shots=item.shots, memory=True)
+        while not self._control.try_to_enter():
+            sleep(1)
+        job = self._backend.run(qobj)
+        if index != None:
+            self._log.info(f"Job {index} is submitted to the backend")
+        # use this to wait till the job is finished
+        job.result()
+        self._control.leave()
+        if index != None:
+            self._log.info(f"Results for job {index} are available")
+        return job
 
-class ScheduleItem():
-    '''A schedule item represents a job on a backend. It can contain multiple experiments.'''
 
-    def __init__(self, max_shots: int, max_experiments: int):
-        self._log = logger.get_logger(type(self).__name__)
-        self.max_shots = max_shots
-        self.shots = 0
-        self.max_experiments = max_experiments
-        self.experiments = []
-        self.remaining_experiments = max_experiments
-        self.n_circuits = 0
 
-    
-    def add_circuit(self, key, circuit:QuantumCircuit, shots:int) -> int:
-        """Add a circuit to the ScheduleItem.
-
-        Args:
-            key (Any): Identifier for the circuit
-            circuit (QuantumCircuit): The circuit, which should be executed
-            shots (int): The number of shots
-    
-        Returns:
-            int: remaining shots. If they are 0, all shots are executed
-        """
-        if self.remaining_experiments == 0:
-            return shots
-
-        self.n_circuits += 1
-        reps = math.ceil(shots/self.max_shots)
-        self.shots = max(self.shots, min(shots, self.max_shots))
-
-        if reps <= self.remaining_experiments:
-            remaining_shots = 0
-        else:
-            reps = self.remaining_experiments
-            remaining_shots = shots - reps*self.max_shots
-
-        self.remaining_experiments -= reps
-        self.experiments.append({"key":key, "circuit":circuit, "reps":reps, "shots":shots-remaining_shots, "total_shots":shots})
-        
-        return remaining_shots
-
-class BackendControl():
-    """Control the access to the backend to regulate the number jobs, which are executed in parallel"""
-
-    def __init__(self, backend):
-        self._log = logger.get_logger(type(self).__name__)
-        self._backend = backend
-        self._lock = Lock()
-        self._counter = 0
-        
-    def try_to_enter(self):
-        with self._lock:
-            limit = self._backend.job_limit()
-            self._log.debug(f"Counter:{self._counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
-            if limit.active_jobs < limit.maximum_jobs:
-                if self._counter < limit.maximum_jobs:
-                    self._counter += 1
-                    return True
-            return False
-
-    def leave(self):
-        with self._lock:
-            self._counter -= 1
     
 class Scheduler(AbstractExecution):
 
@@ -197,25 +221,6 @@ class Scheduler(AbstractExecution):
         self._log.info(f"Schedule has {len(self._schedule)} items")
 
 
-    def _submit_future_function(self, item: ScheduleItem, index:Optional[int]=None) -> Job:
-        circuits_to_execute = []
-        for circuit_item in item.experiments:
-            circ = circuit_item["circuit"]
-            reps = circuit_item["reps"]
-            circuits_to_execute.extend([circ]*reps)
-        # job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
-        qobj = assemble(transpile(circuits_to_execute, backend=self._backend), self._backend, shots=item.shots, memory=True)
-        while not self._control.try_to_enter():
-            sleep(1)
-        job = self._backend.run(qobj)
-        if index != None:
-            self._log.info(f"Job {index} is submitted to the backend")
-        # use this to wait till the job is finished
-        job.result()
-        self._control.leave()
-        if index != None:
-            self._log.info(f"Results for job {index} are available")
-        return job
 
     def submit_jobs(self):
         """Submit the circuits to the backend to execute them."""

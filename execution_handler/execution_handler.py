@@ -87,25 +87,7 @@ class ExecutionHandler(AbstractExecution):
         
 
 
-    def _submit_future_function(self, item: ScheduleItem, index:Optional[int]=None) -> Job:
-        circuits_to_execute = []
-        for circuit_item in item.experiments:
-            circ = circuit_item["circuit"]
-            reps = circuit_item["reps"]
-            circuits_to_execute.extend([circ]*reps)
-        # job = execute(circuits_to_execute, self.backend, shots=item.shots, memory=True)
-        qobj = assemble(transpile(circuits_to_execute, backend=self._backend), self._backend, shots=item.shots, memory=True)
-        while not self._control.try_to_enter():
-            sleep(1)
-        job = self._backend.run(qobj)
-        if index != None:
-            self._log.info(f"Job {index} is submitted to the backend")
-        # use this to wait till the job is finished
-        job.result()
-        self._control.leave()
-        if index != None:
-            self._log.info(f"Results for job {index} are available")
-        return job
+    
 
     def _submit_jobs(self):
         """Submit the circuits to the backend to execute them."""
