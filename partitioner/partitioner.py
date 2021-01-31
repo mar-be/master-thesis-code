@@ -11,10 +11,13 @@ from qiskit_helper_functions.non_ibmq_functions import apply_measurement
 
 from quantum_job import Modification_Type, QuantumJob
 
+import logger
+
 
 class Partitioner(Thread):
 
     def __init__(self, input:Queue, output:Queue, partition_dict:Dict, max_subcircuit_qubit:int, num_subcircuits:List[int], max_cuts:int, verbose:bool=False) -> None:
+        self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
         self.verbose = verbose
@@ -28,12 +31,13 @@ class Partitioner(Thread):
         while True:
             job = self._input.get()
             try:
+                self._log.info(f"Searching for cut for job {job.id}")
                 sub_jobs = self._cut_job(job)
+                self._log.info(f"Found cut for job {job.id}")
                 for sub_job in sub_jobs:
                     self._output.put(sub_job)
             except Exception as e:
-                print("Exception")
-                print(e)
+                self._log.exception(e)
 
     def _cut(self, circuit:QuantumCircuit):
         assert(check_valid(circuit=circuit))
