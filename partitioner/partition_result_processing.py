@@ -20,11 +20,12 @@ from quantum_job import QuantumJob
 
 import logger
 
-log = logger.get_logger(__name__)
+
 
 class ResultWriter(Thread):
 
     def __init__(self, input:Queue, completed_jobs:Queue, partition_dict:Dict, force_prob:bool=True) -> None:
+        self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._completed_jobs = completed_jobs
         self._partition_dict = partition_dict
@@ -33,12 +34,13 @@ class ResultWriter(Thread):
         Thread.__init__(self)
 
     def run(self) -> None:
-        log.info("Started ResultWriter")
+        self._log.info("Started ResultWriter")
         while True:
             job = self._input.get()
-            log.info(f"Got job with id {job.id}")
+            self._log.debug(f"Got job with id {job.id}")
             self._write(job)
             if self._results_complete(job):
+                self._log.info(f"All results are available for job {job.parent}")
                 self._completed_jobs.put(self._partition_dict[job.parent]["job"])
 
     def _results_complete(self, job):
@@ -89,6 +91,7 @@ class ResultWriter(Thread):
 class ResultProcessing(Thread):
 
     def __init__(self, input:Queue, output:Queue, partition_dict:Dict, verbose=False) -> None:
+        self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
         self._partition_dict = partition_dict
@@ -103,7 +106,7 @@ class ResultProcessing(Thread):
         recursion_depth = 1
         while True:
             job = self._input.get()
-            log.info(f"All results are available for job {job.id}")
+            self._log.info(f"Postprocess job {job.id}")
             self._measure(job, eval_mode, num_threads)
             self._organize(job, eval_mode, num_threads)
             self._vertical_collapse(job, early_termination, eval_mode)
@@ -157,7 +160,7 @@ class ResultProcessing(Thread):
                 process_eval_files = find_process_jobs(jobs=range(len(eval_files)),rank=rank,num_workers=num_threads)
                 process_eval_files = [str(x) for x in process_eval_files]
                 if rank==0 and self._verbose:
-                    log.debug('%s subcircuit %d : rank %d/%d needs to measure %d/%d instances'%(
+                    self._log.debug('%s subcircuit %d : rank %d/%d needs to measure %d/%d instances'%(
                         job.id,subcircuit_idx,rank,num_threads,len(process_eval_files),len(eval_files)))
                 p = subprocess.Popen(args=['./cutqc/measure', '%d'%rank, eval_folder, eval_mode,
                 '%d'%full_circuit.num_qubits,'%d'%subcircuit_idx, '%d'%len(process_eval_files), *process_eval_files])
@@ -201,7 +204,7 @@ class ResultProcessing(Thread):
                         [subcircuit_kron_terms_file.write('%d,%d '%(x[0],x[1])) for x in subcircuit_kron_term]
                     subcircuit_kron_terms_file.write('\n')
                 if rank==0:
-                    log.debug('%s subcircuit %d : rank %d/%d needs to vertical collapse %d/%d instances'%(
+                    self._log.debug('%s subcircuit %d : rank %d/%d needs to vertical collapse %d/%d instances'%(
                         job.id,subcircuit_idx,rank,num_threads,len(rank_subcircuit_kron_terms),len(kronecker_terms[subcircuit_idx])))
             subcircuit_kron_terms_file.close()
     
@@ -242,7 +245,7 @@ class ResultProcessing(Thread):
 
     
     def post_process(self,job,eval_mode,num_threads,early_termination,qubit_limit,recursion_depth):
-        log.info('-'*20 + 'Postprocess, job = %s'%job.id + '-'*20)
+        self._log.debug('Postprocess, job = %s'%job.id)
         subprocess.run(['rm','./cutqc/merge'])
         subprocess.run(['icc','-mkl','./cutqc/merge.c','-o','./cutqc/merge','-lm'])
         subprocess.run(['rm','./cutqc/build'])
@@ -271,18 +274,18 @@ class ResultProcessing(Thread):
         reconstructed_prob = None
         for recursion_layer in range(recursion_depth):
       
-            log.debug('*'*20 + '%s Recursion Layer %d'%(circuit_case,recursion_layer) + '*'*20)
+            self._log.debug('*'*20 + '%s Recursion Layer %d'%(circuit_case,recursion_layer) + '*'*20)
             recursion_qubit = qubit_limit
-            log.debug('__Distribute__')
+            self._log.debug('__Distribute__')
             distribute(circuit_name=circuit_name,max_subcircuit_qubit=max_subcircuit_qubit,
             eval_mode=eval_mode,early_termination=early_termination,num_threads=num_threads,qubit_limit=qubit_limit,
             recursion_layer=recursion_layer,recursion_qubit=recursion_qubit,verbose=self._verbose)
-            log.debug('__Merge__')
+            self._log.debug('__Merge__')
             terminated = self._merge(circuit_case=circuit_case,vertical_collapse_folder=vertical_collapse_folder,dest_folder=dest_folder,
             recursion_layer=recursion_layer,eval_mode=eval_mode)
             if terminated:
                 break
-            log.debug('__Build__')
+            self._log.debug('__Build__')
             reconstructed_prob = self._build(circuit_case=circuit_case,dest_folder=dest_folder,recursion_layer=recursion_layer,eval_mode=eval_mode)
         return reconstructed_prob
 
@@ -311,7 +314,7 @@ class ResultProcessing(Thread):
         assert lines[-2].split(' = ')[0]=='Total merge time' and lines[-1]=='DONE'
         elapsed = max(elapsed,float(lines[-2].split(' = ')[1]))
 
-        log.debug('%s _merge took %.3e seconds'%(circuit_case,elapsed))
+        self._log.debug('%s _merge took %.3e seconds'%(circuit_case,elapsed))
         # pickle.dump({'merge_time_%d'%recursion_layer:elapsed}, open('%s/summary.pckl'%(dest_folder),'ab'))
         return False
     
@@ -356,7 +359,7 @@ class ResultProcessing(Thread):
             else:
                 reconstructed_prob = rank_reconstructed_prob
         elapsed = np.array(elapsed)
-        log.debug('%s _build took %.3e seconds'%(circuit_case,np.mean(elapsed)))
+        self._log.debug('%s _build took %.3e seconds'%(circuit_case,np.mean(elapsed)))
         pickle.dump({'build_times_%d'%recursion_layer:np.array(elapsed),'build_time_%d'%recursion_layer:np.mean(elapsed)}, open('%s/summary.pckl'%(dest_folder),'ab'))
         max_states = sorted(range(len(reconstructed_prob)),key=lambda x:reconstructed_prob[x],reverse=True)
         pickle.dump({'zoomed_ctr':0,'max_states':max_states,'reconstructed_prob':reconstructed_prob},open('%s/build_output.pckl'%(dynamic_definition_folder),'wb'))

@@ -1,8 +1,25 @@
 import logging
+import sys
 
-log_level = logging.DEBUG
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+    def __init__(self, logger, log_level=logging.DEBUG):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
 
-def get_logger(name):
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())
+
+    def flush(self):
+        pass
+
+log_level = logging.INFO
+
+def get_logger(name:str) -> logging.Logger:
     log = logging.getLogger(name)
     log.setLevel(log_level)
     formatter = logging.Formatter(fmt="%(asctime)s %(levelname)s %(name)s: %(message)s", 
@@ -10,4 +27,7 @@ def get_logger(name):
     ch = logging.StreamHandler()
     ch.setFormatter(formatter)
     log.addHandler(ch)
+    sl = StreamToLogger(log)
+    sys.stdout = sl
+
     return log

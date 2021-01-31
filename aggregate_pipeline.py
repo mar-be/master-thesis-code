@@ -1,5 +1,5 @@
 from queue import Queue
-from execution_handler.scheduler import ExecutionHandler
+from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
 from qiskit import IBMQ
 from quantum_job import QuantumJob

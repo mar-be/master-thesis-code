@@ -11,17 +11,24 @@ from qiskit.result import Result
 from quantum_job import QuantumJob, Modification_Type
 
 
+import logger
+
+
+
 class Aggregator(Thread):
 
     def __init__(self, input, output:Queue, job_dict:Dict, timeout: float) -> None:
+        self._log = logger.get_logger(type(self).__name__)
         self._input:Queue = input
         self._output:Queue = output
         self._job_dict:Dict = job_dict
         self._timeout:float = timeout
         Thread.__init__(self)
+        self._log.info("Init Aggregator")
 
     
     def run(self) -> None:
+        self._log.info("Started Aggregator")
         jobs_to_aggregate = []
         while True:
             try:
@@ -44,12 +51,15 @@ class Aggregator(Thread):
 class AggregatorResults(Thread):
     
     def __init__(self, input, output:Queue, job_dict:Dict):
+        self._log = logger.get_logger(type(self).__name__)
         self._input:Queue = input
         self._output:Queue = output
         self._job_dict:Dict = job_dict
         Thread.__init__(self)
+        self._log.info("Init AggregatorResults")
 
     def run(self) -> None:
+        self._log.info("Started AggregatorResults")
         while True:
             agg_job = self._input.get()
             try:

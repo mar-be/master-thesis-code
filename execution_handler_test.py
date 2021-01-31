@@ -1,4 +1,4 @@
-from execution_handler.scheduler import ExecutionHandler
+from execution_handler.execution_handler import ExecutionHandler
 from quantum_job import QuantumJob
 
 from queue import Queue

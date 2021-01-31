@@ -1,5 +1,5 @@
 from queue import Queue
-from execution_handler.scheduler import ExecutionHandler
+from execution_handler.execution_handler import ExecutionHandler
 from partitioner.partitioner import Partitioner
 from partitioner.partition_result_processing import ResultWriter, ResultProcessing
 from qiskit import IBMQ
@@ -34,6 +34,7 @@ if __name__ == "__main__":
     
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
+
     
     i = 0
     while True:
