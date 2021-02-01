@@ -1,25 +1,25 @@
-import pickle
-import time
-import shutil
-from cutqc.distributor import distribute
-from cutqc.post_process import build, get_combinations
 import glob
 import os
-from os import write
-from qiskit_helper_functions.non_ibmq_functions import find_process_jobs
-from queue import Queue
+import pickle
+import shutil
 import subprocess
+import time
+from os import write
+from queue import Queue
 from threading import Thread
 from typing import Dict
 
+import logger
 import numpy as np
+from cutqc.distributor import distribute
 from cutqc.evaluator import mutate_measurement_basis
 from cutqc.helper_fun import get_dirname
+from cutqc.post_process import build, get_combinations
+from qiskit.result.models import ExperimentResult, ExperimentResultData
+from qiskit.result.result import Result
 from qiskit_helper_functions.conversions import dict_to_array
+from qiskit_helper_functions.non_ibmq_functions import find_process_jobs
 from quantum_job import QuantumJob
-
-import logger
-
 
 
 class ResultWriter(Thread):
@@ -43,14 +43,15 @@ class ResultWriter(Thread):
                 self._log.info(f"All results are available for job {job.parent}")
                 self._completed_jobs.put(self._partition_dict[job.parent]["job"])
 
-    def _results_complete(self, job):
+    def _results_complete(self, job:QuantumJob):
         parent_id = job.parent
         try: 
             self._result_count[parent_id] += 1
         except KeyError:
             self._result_count[parent_id] = 1
-        if self._partition_dict[job.parent]["num_sub_jobs"] == self._result_count[parent_id]:
+        if self._partition_dict[parent_id]["num_sub_jobs"] == self._result_count[parent_id]:
             self._result_count.pop(parent_id)
+            self._partition_dict[parent_id]["result_dict"] = job.result.to_dict()
             return True
         return False
         
@@ -60,11 +61,10 @@ class ResultWriter(Thread):
         counts = job.result.get_counts()
         return dict_to_array(counts, self._force_prob)
 
-    def _write(self, job):
+    def _write(self, job:QuantumJob):
         subcircuit_idx, inits, meas = job.key
         cut_solution = self._partition_dict[job.parent]["cut_solution"]
         all_indexed_combinations = self._partition_dict[job.parent]["all_indexed_combinations"]
-
         max_subcircuit_qubit = cut_solution['max_subcircuit_qubit']
         counter = cut_solution['counter']
 
@@ -87,6 +87,7 @@ class ResultWriter(Thread):
             eval_file.write('\n')
             [eval_file.write('%e '%x) for x in subcircuit_inst_prob] if type(subcircuit_inst_prob)==np.ndarray else eval_file.write('%e '%subcircuit_inst_prob)
             eval_file.close()
+
 
 class ResultProcessing(Thread):
 
@@ -112,7 +113,8 @@ class ResultProcessing(Thread):
             self._vertical_collapse(job, early_termination, eval_mode)
             self._write_all_files(job, eval_mode)
             reconstructed_prob = self.post_process(job, eval_mode, num_threads, early_termination, qubit_limit, recursion_depth)
-            self._output.put(reconstructed_prob)
+            job.result = self._createResult(job, reconstructed_prob)
+            self._output.put(job)
             self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)
             self._clean_all_files(job)
@@ -364,6 +366,13 @@ class ResultProcessing(Thread):
         max_states = sorted(range(len(reconstructed_prob)),key=lambda x:reconstructed_prob[x],reverse=True)
         pickle.dump({'zoomed_ctr':0,'max_states':max_states,'reconstructed_prob':reconstructed_prob},open('%s/build_output.pckl'%(dynamic_definition_folder),'wb'))
         return reconstructed_prob
+
+    def _createResult(self, job: QuantumJob, prob: np.ndarray) -> Result:
+        # result_dict = self._partition_dict[job.id]["result_dict"]
+        # exp_result_data = ExperimentResultData(unitary=prob)
+        # exp_result = ExperimentResult(job.shots, True, exp_result_data)
+        # return Result(result_dict["backend_name"], result_dict["backend_version"], job.id, job.id, True, exp_result)
+        return prob
 
     def verify(self, job, early_termination, num_threads, qubit_limit, eval_mode):
         circuit_name = job.id

@@ -5,6 +5,7 @@ from partitioner.partition_result_processing import ResultWriter, ResultProcessi
 from qiskit import IBMQ
 from quantum_job import QuantumJob
 from qiskit.circuit.random import random_circuit
+import logger
 
 if __name__ == "__main__":
     input = Queue()
@@ -35,9 +36,9 @@ if __name__ == "__main__":
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
     input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
 
-    
+    log = logger.get_logger("Pipeline")
     i = 0
     while True:
-        result = output.get()
-        print(i, result)
+        job = output.get()
+        log.info(f"{i} {job.id} {job.result}")
         i += 1
