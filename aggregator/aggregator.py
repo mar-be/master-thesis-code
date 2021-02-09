@@ -17,12 +17,12 @@ import logger
 
 class Aggregator(Thread):
 
-    def __init__(self, input, output:Queue, job_dict:Dict, timeout: float) -> None:
+    def __init__(self, input:Queue, output:Queue, job_dict:Dict, timeout: float) -> None:
         self._log = logger.get_logger(type(self).__name__)
-        self._input:Queue = input
-        self._output:Queue = output
-        self._job_dict:Dict = job_dict
-        self._timeout:float = timeout
+        self._input = input
+        self._output = output
+        self._job_dict = job_dict
+        self._timeout = timeout
         Thread.__init__(self)
         self._log.info("Init Aggregator")
 
@@ -50,11 +50,11 @@ class Aggregator(Thread):
 
 class AggregatorResults(Thread):
     
-    def __init__(self, input, output:Queue, job_dict:Dict):
+    def __init__(self, input:Queue, output:Queue, job_dict:Dict):
         self._log = logger.get_logger(type(self).__name__)
-        self._input:Queue = input
-        self._output:Queue = output
-        self._job_dict:Dict = job_dict
+        self._input = input
+        self._output = output
+        self._job_dict = job_dict
         Thread.__init__(self)
         self._log.info("Init AggregatorResults")
 

@@ -9,6 +9,7 @@ from quantum_job import QuantumJob
 from qiskit.circuit.random import random_circuit
 from evaluate.metrics import chi_2_diff
 from evaluate.util import sv_to_probability, counts_to_probability
+from analyzer.result_analyzer import ResultAnalyzer
 
 from logger import get_logger
 
@@ -19,6 +20,7 @@ if __name__ == "__main__":
     input_pipeline = Queue()
     input_exec = Queue()
     output_exec = Queue()
+    agg_results = Queue()
     output_pipline = Queue()
 
     provider = IBMQ.load_account()
@@ -48,30 +50,30 @@ if __name__ == "__main__":
     backend_sim = provider.get_backend('ibmq_qasm_simulator')
 
 
-    exec_handler = ExecutionHandler(backend_sim, input_exec, output_exec)
 
+    agg_job_dict = {}
 
-    log.info("Started the ExecutionHandler and added the circuits")
-    
+    aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
+    aggregator.start()
+
+    exec_handler = ExecutionHandler(backend_sim, input=input_exec, results=output_exec)
+
+    result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)
+    result_analyzer.start()
+
+    aggregator_results = AggregatorResults(input=agg_results, output=output_pipline, job_dict=agg_job_dict)
+    aggregator_results.start()
+
+    log.info("Started the Aggrgator pipeline")
 
     results = []
     agg_results = []
 
     for i in range(n_circuits):
-        job = output_exec.get()
+        job = output_pipline.get()
         results.append(job.result)
     
     log.info("All results for not aggregated circuits are available")
-
-    agg_job_dict = {}
-
-    aggregator = Aggregator(input_pipeline, input_exec, agg_job_dict, 10)
-    aggregator.start()
-
-    aggregator_results = AggregatorResults(output_exec, output_pipline, agg_job_dict)
-    aggregator_results.start()
-
-    log.info("Started the Aggrgator pipeline")
 
     for i in range(n_circuits):
         job = output_pipline.get()
