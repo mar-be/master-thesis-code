@@ -22,6 +22,8 @@ def json_serial(obj):
 
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
+    if isinstance(obj, complex):
+        return str(obj)
     raise TypeError ("Type %s not serializable" % type(obj))
 
 if __name__ == "__main__":
