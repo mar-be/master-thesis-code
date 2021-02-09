@@ -1,6 +1,10 @@
 from queue import Queue
+import pickle
+import json
+from datetime import datetime, date
 
 from qiskit.providers.aer import Aer, AerJob
+from qiskit.providers.models import backendproperties
 
 from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
@@ -12,6 +16,13 @@ from evaluate.util import sv_to_probability, counts_to_probability
 from analyzer.result_analyzer import ResultAnalyzer
 
 from logger import get_logger
+
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError ("Type %s not serializable" % type(obj))
 
 if __name__ == "__main__":
 
@@ -25,7 +36,8 @@ if __name__ == "__main__":
 
     provider = IBMQ.load_account()
 
-    # backend = provider.get_backend('ibmq_athens')
+    backend = provider.get_backend('ibmq_santiago')
+    # backend = provider.get_backend('ibmq_qasm_simulator')
 
     n_circuits = 100
     n_qubits = 2
@@ -45,18 +57,13 @@ if __name__ == "__main__":
         input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192))
 
 
-    
-
-    backend_sim = provider.get_backend('ibmq_qasm_simulator')
-
-
 
     agg_job_dict = {}
 
     aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
     aggregator.start()
 
-    exec_handler = ExecutionHandler(backend_sim, input=input_exec, results=output_exec)
+    exec_handler = ExecutionHandler(backend, input=input_exec, results=output_exec)
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)
     result_analyzer.start()
@@ -88,5 +95,23 @@ if __name__ == "__main__":
     res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
     agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]
 
+    data = []
     for i in range(n_circuits):
-        log.info(chi_2_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i]))
+        c2 = chi_2_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i])
+        log.info(c2)
+        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist(), "chi^2-diff":c2})
+
+    backend_dict = {"name":backend.name()}
+    if backend.configuration() != None:
+        backend_dict["config"] = backend.configuration().to_dict() 
+    
+    if backend.status() != None:
+        backend_dict["status"] = backend.status().to_dict()
+
+    if backend.properties() != None:
+        backend_dict["properties"] = backend.properties().to_dict()
+
+    now = datetime.now()
+    now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
+    with open(f'agg_data/{now_str}.json', 'w') as f:
+        json.dump({"backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
