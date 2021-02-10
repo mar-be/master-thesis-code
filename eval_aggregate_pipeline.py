@@ -11,7 +11,7 @@ from aggregator.aggregator import Aggregator, AggregatorResults
 from qiskit import IBMQ, execute
 from quantum_job import QuantumJob
 from qiskit.circuit.random import random_circuit
-from evaluate.metrics import metric_diff, chi_2, kullback_leibler_divergence
+from evaluate.metrics import metric_diff, chi_square, kullback_leibler_divergence
 from evaluate.util import sv_to_probability, counts_to_probability
 from analyzer.result_analyzer import ResultAnalyzer
 
@@ -38,7 +38,8 @@ if __name__ == "__main__":
 
     provider = IBMQ.load_account()
 
-    backend = provider.get_backend('ibmq_santiago')
+    backend = provider.get_backend('ibmq_athens')
+    # backend = provider.get_backend('ibmq_santiago')
     # backend = provider.get_backend('ibmq_qasm_simulator')
 
     n_circuits = 100
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
     aggregator.start()
 
-    exec_handler = ExecutionHandler(backend, input=input_exec, results=output_exec)
+    exec_handler = ExecutionHandler(backend, input=input_exec, results=output_exec, batch_timeout=5)
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)
     result_analyzer.start()
@@ -99,7 +100,7 @@ if __name__ == "__main__":
 
     data = []
     for i in range(n_circuits):
-        c2 = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], chi_2)
+        c2 = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], chi_square)
         kl_diff = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], kullback_leibler_divergence)
         log.info(c2)
         data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist(), "chi^2-diff":c2, "kl-diff":kl_diff})
