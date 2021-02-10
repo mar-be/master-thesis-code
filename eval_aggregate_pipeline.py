@@ -1,5 +1,7 @@
+from logging import raiseExceptions
+from quantum_circuit_generator.generators import gen_adder
 from queue import Queue
-import pickle
+import itertools
 import json
 from datetime import datetime, date
 
@@ -26,6 +28,19 @@ def json_serial(obj):
         return str(obj)
     raise TypeError ("Type %s not serializable" % type(obj))
 
+def random_circuits(n_qubits, n_circuits, depth=5):
+    return [random_circuit(n_qubits, depth, measure=False) for i in range(n_circuits)], n_circuits
+
+def adder_circuits(n_qubits):
+    # TODO wrong number of qubits
+    n_circuits = 2**n_qubits
+    max_number_to_add = 2**(n_qubits-1)
+    return [gen_adder(nbits=n_qubits, a=a, b=b) for a in range(max_number_to_add) for b in range(max_number_to_add)], n_circuits
+
+def get_all_permutations(input_list):
+    return list(itertools.chain(*itertools.permutations(input_list)))
+
+
 if __name__ == "__main__":
 
     log = get_logger("Evaluate")
@@ -38,21 +53,40 @@ if __name__ == "__main__":
 
     provider = IBMQ.load_account()
 
-    backend = provider.get_backend('ibmq_athens')
+    # backend = provider.get_backend('ibmq_athens')
     # backend = provider.get_backend('ibmq_santiago')
-    # backend = provider.get_backend('ibmq_qasm_simulator')
+    backend = provider.get_backend('ibmq_qasm_simulator')
 
-    n_circuits = 100
+    n_circuits = 4
     n_qubits = 2
+    circuit_type = "random"
+    permute = True
 
-    circuits = [random_circuit(n_qubits, 5, measure=False) for i in range(n_circuits)]
+    if circuit_type == "random":
+        circuits, n_circuits = random_circuits(n_qubits, n_circuits)
+    elif circuit_type == "adder":
+        circuits, n_circuits = adder_circuits(n_qubits)
+    else:
+        raise ValueError("Inappropiate circuit_type")
 
-    log.info(f"Generated {n_circuits} random circuits")
+    log.info(f"Generated {n_circuits} circuits")
 
     statevector_backend = Aer.get_backend('statevector_simulator')
-    sv_job:AerJob = execute(circuits, statevector_backend)
 
+    sv_job:AerJob = execute(circuits, statevector_backend)
+    sv_res = sv_job.result()
+    sv_results = [sv_res.get_statevector(circ) for circ in circuits]
+    sv_res_prob = [sv_to_probability(sv) for sv in sv_results]
     log.info("Executed the circuits with local statevector simulator")
+
+
+    if permute:
+        circuits = get_all_permutations(circuits)
+        sv_res_prob = get_all_permutations(sv_res_prob)
+        n_circuits = len(circuits)
+        log.info(f"Generated all permutations. Now there are {n_circuits} circuits")
+
+        
 
 
     for circ in circuits:
@@ -91,9 +125,6 @@ if __name__ == "__main__":
     
     log.info("All results for aggregated circuits are available")
 
-    sv_res = sv_job.result()
-    sv_results = [sv_res.get_statevector(circ) for circ in circuits]
-    sv_res_prob = [sv_to_probability(sv) for sv in sv_results]
 
     res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
     agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]

@@ -11,6 +11,7 @@ def chi_square(result_distribution:np.ndarray, expected_distribution:np.ndarray)
 def kullback_leibler_divergence(result_distribution:np.ndarray, expected_distribution:np.ndarray) -> float:
     # https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence
     assert(len(result_distribution)==len(expected_distribution))
+    # TODO fix NaN problem
     return stats.entropy(result_distribution, expected_distribution)
 
 def bhattacharyya_difference(dist_1:np.ndarray, dist_2:np.ndarray) -> float:
@@ -31,9 +32,12 @@ if __name__ == "__main__":
     b = np.array([0,1,0,0]) 
     c = np.array([1,1,1,1])/4 
 
+    print("chi_square")
     print(chi_square(a, b))
     print(chi_square(a, c))
+    print("kullback_leibler_divergence")
     print(kullback_leibler_divergence(a, b))
     print(kullback_leibler_divergence(a, c))
+    print("bhattacharyya_difference")
     print(bhattacharyya_difference(a, b))
     print(bhattacharyya_difference(a, c))
