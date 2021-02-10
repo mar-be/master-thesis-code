@@ -54,7 +54,7 @@ class ExecutionHandler(AbstractExecution):
 
             while time.time() - start_time < self._batch_timeout and experiments < self._max_experiments*self._max_jobs:
                 try:
-                    quantum_job = self._input.get(timeout=5)
+                    quantum_job = self._input.get(timeout=min(5, self._batch_timeout))
                 except Empty:
                     continue
                 shots = quantum_job.shots
@@ -63,7 +63,8 @@ class ExecutionHandler(AbstractExecution):
                 quantum_jobs.append(quantum_job)
                 self._quantum_job_table[quantum_job.id] = quantum_job
 
-            self._addCircuits({job.id:{"circuit":job.circuit, "shots":job.shots} for job in quantum_jobs})
+            if len(quantum_jobs) > 0:
+                self._addCircuits({job.id:{"circuit":job.circuit, "shots":job.shots} for job in quantum_jobs})
 
     def _addCircuits(self, circuits):
         """Generate a schedule constisting of ScheduleItems"""
