@@ -11,7 +11,7 @@ from aggregator.aggregator import Aggregator, AggregatorResults
 from qiskit import IBMQ, execute
 from quantum_job import QuantumJob
 from qiskit.circuit.random import random_circuit
-from evaluate.metrics import chi_2_diff
+from evaluate.metrics import metric_diff, chi_2, kullback_leibler_divergence
 from evaluate.util import sv_to_probability, counts_to_probability
 from analyzer.result_analyzer import ResultAnalyzer
 
@@ -99,9 +99,10 @@ if __name__ == "__main__":
 
     data = []
     for i in range(n_circuits):
-        c2 = chi_2_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i])
+        c2 = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], chi_2)
+        kl_diff = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], kullback_leibler_divergence)
         log.info(c2)
-        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist(), "chi^2-diff":c2})
+        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist(), "chi^2-diff":c2, "kl-diff":kl_diff})
 
     backend_dict = {"name":backend.name()}
     if backend.configuration() != None:
