@@ -11,7 +11,6 @@ def chi_square(result_distribution:np.ndarray, expected_distribution:np.ndarray)
 def kullback_leibler_divergence(result_distribution:np.ndarray, expected_distribution:np.ndarray) -> float:
     # https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence
     assert(len(result_distribution)==len(expected_distribution))
-    # TODO fix NaN problem
     return stats.entropy(result_distribution, expected_distribution)
 
 def bhattacharyya_difference(dist_1:np.ndarray, dist_2:np.ndarray) -> float:
@@ -26,6 +25,12 @@ def metric_diff(result_dist_1:np.ndarray, result_dist_2:np.ndarray, expected_dis
     m_1 = metric(result_dist_1, expected_dist)
     m_2 = metric(result_dist_2, expected_dist)
     return m_1 - m_2
+
+def same_max(result_dist:np.ndarray, expected_dist:np.ndarray) -> bool:
+    return np.argmax(result_dist) == np.argmax(expected_dist)
+
+def same_order(result_dist:np.ndarray, expected_dist:np.ndarray) -> bool:
+    return (np.argsort(result_dist) == np.argsort(expected_dist)).all()
 
 if __name__ == "__main__":
     a = np.array([0,0,1,0])
