@@ -32,10 +32,9 @@ def random_circuits(n_qubits, n_circuits, depth=5):
     return [random_circuit(n_qubits, depth, measure=False) for i in range(n_circuits)], n_circuits
 
 def adder_circuits(n_qubits):
-    # TODO wrong number of qubits
-    n_circuits = 2**n_qubits
-    max_number_to_add = 2**(n_qubits-1)
-    return [gen_adder(nbits=n_qubits, a=a, b=b) for a in range(max_number_to_add) for b in range(max_number_to_add)], n_circuits
+    nbits=int((n_qubits-2)/2)
+    n_circuits = 2**(n_qubits-2)
+    return [gen_adder(nbits=nbits, a=a, b=b) for a in range(2**nbits) for b in range(2**nbits)], n_circuits
 
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
@@ -58,9 +57,9 @@ if __name__ == "__main__":
     backend = provider.get_backend('ibmq_qasm_simulator')
 
     n_circuits = 4
-    n_qubits = 2
-    circuit_type = "random"
-    permute = True
+    n_qubits = 4
+    circuit_type = "adder"
+    permute = False
 
     if circuit_type == "random":
         circuits, n_circuits = random_circuits(n_qubits, n_circuits)
@@ -148,5 +147,5 @@ if __name__ == "__main__":
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    with open(f'agg_data/{now_str}.json', 'w') as f:
+    with open(f'agg_data/{backend.name()}_{now_str}.json', 'w') as f:
         json.dump({"backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
