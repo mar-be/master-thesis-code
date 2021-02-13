@@ -1,4 +1,6 @@
 from logging import raiseExceptions
+
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from quantum_circuit_generator.generators import gen_adder
 from queue import Queue
 import itertools
@@ -36,6 +38,15 @@ def adder_circuits(n_qubits):
     n_circuits = 2**(n_qubits-2)
     return [gen_adder(nbits=nbits, a=a, b=b) for a in range(2**nbits) for b in range(2**nbits)], n_circuits
 
+def growing_depth(n_qubits, n_circuits):
+    circuits = []
+    circ = QuantumCircuit(n_qubits)
+    for i in range(n_circuits):
+        circ = random_circuit(n_qubits, 1, measure=False).combine(circ)
+        circuits.append(circ)
+    return circuits, n_circuits
+
+
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
 
@@ -54,17 +65,21 @@ if __name__ == "__main__":
 
     # backend = provider.get_backend('ibmq_athens')
     # backend = provider.get_backend('ibmq_santiago')
+    # backend = provider.get_backend('ibmq_quito')
     backend = provider.get_backend('ibmq_qasm_simulator')
 
-    n_circuits = 4
-    n_qubits = 4
-    circuit_type = "adder"
+
+    n_circuits = 100
+    n_qubits = 2
+    circuit_type = "growing_depth"
     permute = False
 
     if circuit_type == "random":
         circuits, n_circuits = random_circuits(n_qubits, n_circuits)
     elif circuit_type == "adder":
         circuits, n_circuits = adder_circuits(n_qubits)
+    elif circuit_type == "growing_depth":
+        circuits, n_circuits = growing_depth(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
 
@@ -130,10 +145,7 @@ if __name__ == "__main__":
 
     data = []
     for i in range(n_circuits):
-        c2 = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], chi_square)
-        kl_diff = metric_diff(agg_res_prob[i], res_prob[i], sv_res_prob[i], kullback_leibler_divergence)
-        log.info(c2)
-        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist(), "chi^2-diff":c2, "kl-diff":kl_diff})
+        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist()})
 
     backend_dict = {"name":backend.name()}
     if backend.configuration() != None:
@@ -147,5 +159,7 @@ if __name__ == "__main__":
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    with open(f'agg_data/{backend.name()}_{now_str}.json', 'w') as f:
+    with open(f'agg_data/{circuit_type}_{backend.name()}_{now_str}.json', 'w') as f:
         json.dump({"backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
+
+    log.info("Wrote results to file.")
