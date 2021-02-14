@@ -1,7 +1,7 @@
 from logging import raiseExceptions
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from quantum_circuit_generator.generators import gen_adder
+from quantum_circuit_generator.generators import gen_adder, gen_hwea
 from queue import Queue
 import itertools
 import json
@@ -35,7 +35,7 @@ def random_circuits(n_qubits, n_circuits, depth=5):
 
 def adder_circuits(n_qubits):
     nbits=int((n_qubits-2)/2)
-    n_circuits = 2**(n_qubits-2)
+    n_circuits = 2**(2*nbits)
     return [gen_adder(nbits=nbits, a=a, b=b) for a in range(2**nbits) for b in range(2**nbits)], n_circuits
 
 def growing_depth(n_qubits, n_circuits):
@@ -45,6 +45,9 @@ def growing_depth(n_qubits, n_circuits):
         circ = random_circuit(n_qubits, 1, measure=False).combine(circ)
         circuits.append(circ)
     return circuits, n_circuits
+
+def hwea(n_qubits, n_circuits, depth=5):
+    return [gen_hwea(n_qubits, depth) for i in range(n_circuits)], n_circuits
 
 
 def get_all_permutations(input_list):
@@ -64,14 +67,16 @@ if __name__ == "__main__":
     provider = IBMQ.load_account()
 
     # backend = provider.get_backend('ibmq_athens')
-    # backend = provider.get_backend('ibmq_santiago')
+    backend = provider.get_backend('ibmq_santiago')
+    # backend = provider.get_backend('ibmq_16_melbourne')
     # backend = provider.get_backend('ibmq_quito')
-    backend = provider.get_backend('ibmq_qasm_simulator')
+    # backend = provider.get_backend('ibmq_qasm_simulator')
+    
 
 
     n_circuits = 100
     n_qubits = 2
-    circuit_type = "growing_depth"
+    circuit_type = "hwea"
     permute = False
 
     if circuit_type == "random":
@@ -80,6 +85,8 @@ if __name__ == "__main__":
         circuits, n_circuits = adder_circuits(n_qubits)
     elif circuit_type == "growing_depth":
         circuits, n_circuits = growing_depth(n_qubits, n_circuits)
+    elif circuit_type == "hwea":
+        circuits, n_circuits = hwea(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
 
@@ -160,6 +167,6 @@ if __name__ == "__main__":
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
     with open(f'agg_data/{circuit_type}_{backend.name()}_{now_str}.json', 'w') as f:
-        json.dump({"backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
+        json.dump({"backend":backend_dict, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "data":data}, f, indent=4, default=json_serial)
 
     log.info("Wrote results to file.")
