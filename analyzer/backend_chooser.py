@@ -1,3 +1,4 @@
+import time
 from typing import Any, Dict, List, Callable, Tuple, Optional
 from qiskit import IBMQ, QuantumCircuit
 from qiskit.providers.ibmq import least_busy
@@ -5,25 +6,51 @@ from qiskit import IBMQ
 from qiskit.providers import Provider, Backend, backend
 
 
+operational_filter = lambda x: x["operational"]
+no_simulator_filter = lambda x: not x["simulator"]
+
 class Backend_Chooser():
 
-    def __init__(self, provider: Provider) -> None:
-        self.provider = provider
+    def __init__(self, provider: Provider, update_interval: int = 60) -> None:
+        self._provider = provider
+        self._update_interval = update_interval
+        self._backends = {}
+        self._last_update = time.time()
+        self._update_backends()
 
-    def get_backends(self, filters:Optional[Callable[[Backend], bool]] = None) -> List[Backend]:
-        return self.provider.backends(filters=filters)
+    def _update_backends(self):
+        for b in self._provider.backends():
+            self._backends[b.name()] = {"backend":b, "n_qubits":b.configuration().n_qubits, "operational":b.status().operational, "simulator":b.configuration().simulator, "pending_jobs":b.status().pending_jobs}
+
+    def _check_update_backends(self):
+        now = time.time()
+        if self._last_update + self._update_interval < now:
+            self._update_backends()
+            self._last_update = now
+
+    def get_backends(self, filters:Optional[Callable[[Dict], bool]] = None) -> Dict:
+        self._check_update_backends()
+        if filters == None:
+            return self._backends
+        value_filters = lambda x: filters(x[1])
+        return dict(filter(value_filters, self._backends.items()))
     
-    def get_backend_names(self, filters:Optional[Callable[[Backend], bool]] = None) -> List[str]:
-        return [b.name() for b in self.get_backends(filters=filters)]
+    def get_backend_names(self, filters:Optional[Callable[[Dict], bool]] = None) -> List[str]:
+        return self.get_backends(filters).keys()
 
-    def get_name_backend_dict(self, filters:Optional[Callable[[Backend], bool]] = None) -> Dict[str, Backend]:
-        return {b.name():b for b in self.get_backends(filters=filters)}
-
-    def get_backends_with_qubits(self, filters:Optional[Callable[[Backend], bool]] = None) -> List[Tuple[Backend, int]]:
-        return [(b.name(), b.configuration().n_qubits) for b in self.get_backends(filters=filters)]
-
-    def get_least_busy(self, filters:Optional[Callable[[Backend], bool]] = None) -> str:
-        return least_busy(self.get_backends(filters=filters))
+    def get_least_busy(self, filters:Optional[Callable[[Backend], bool]] = None) -> Optional[Tuple[str, Dict]]:
+        if filters == None:
+            f = operational_filter
+        else:
+            f = lambda x: filters(x) and operational_filter(x)
+        filtered_backends = self.get_backends(filters=f)
+        if len(filtered_backends) == 0:
+            return None
+        least_busy = min(filtered_backends.items(), key=lambda x: x[1]["pending_jobs"])
+        return least_busy 
+        
+    def get_least_busy_qubits(self, n_qubit:int) -> Tuple[str, Dict]:
+        return self.get_least_busy(filters=lambda x: x["n_qubits"]>=n_qubit)
 
     def get_suitable_backends(self, circuit: QuantumCircuit, simulator: bool = False) -> List[Backend]:
         return self.get_backends(filters=lambda x: x.configuration().n_qubits >= circuit.num_qubits and x.configuration().simulator == simulator)

@@ -1,9 +1,9 @@
 from typing import Tuple
-from qiskit.providers import backend
+from qiskit.providers.backend import Backend
 from quantum_job import QuantumJob, Modification_Type
 from queue import Queue
 from threading import Thread
-from analyzer.backend_chooser import Backend_Chooser
+from analyzer.backend_chooser import Backend_Chooser, no_simulator_filter
 import logger
 
 class CircuitAnalyzer(Thread):
@@ -18,18 +18,22 @@ class CircuitAnalyzer(Thread):
         Thread.__init__(self)
         self._log.info("Init CircuitAnalyzer")
 
-    def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, backend.Backend]:
+    def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, Backend]:
         n_qubits = job.circuit.num_qubits
-        backend = self._backend_chooser.get_suitable_least_busy_backend(n_qubits)
-        if backend:
+        backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x["n_qubits"]>=n_qubits and no_simulator_filter(x))
+        if backend_record:
+            backend_name, backend_dict = backend_record
+            backend = backend_dict["backend"]
             if n_qubits <= backend.configuration().n_qubits/2:
                 return Modification_Type.aggregation, backend
             else:
                 return Modification_Type.none, backend
         # partition needed because there is no suitable backend 
-        while backend == None:
+        while backend_record == None:
             n_qubits -= 1
-            backend = self._backend_chooser.get_suitable_least_busy_backend(n_qubits)
+            backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x["n_qubits"]>=n_qubits and no_simulator_filter(x))
+        backend_name, backend_dict = backend_record
+        backend = backend_dict["backend"]
         return Modification_Type.partition, backend
 
 
