@@ -1,7 +1,7 @@
 from logging import raiseExceptions
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from quantum_circuit_generator.generators import gen_adder, gen_hwea
+from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd
 from queue import Queue
 import itertools
 import json
@@ -49,6 +49,9 @@ def growing_depth(n_qubits, n_circuits):
 def hwea(n_qubits, n_circuits, depth=5):
     return [gen_hwea(n_qubits, depth) for i in range(n_circuits)], n_circuits
 
+def uccsd(n_qubits, n_circuits):
+    return [gen_uccsd(n_qubits) for i in range(n_circuits)], n_circuits
+
 
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
@@ -67,16 +70,16 @@ if __name__ == "__main__":
     provider = IBMQ.load_account()
 
     # backend = provider.get_backend('ibmq_athens')
-    backend = provider.get_backend('ibmq_santiago')
-    # backend = provider.get_backend('ibmq_16_melbourne')
+    # backend = provider.get_backend('ibmq_santiago')
+    backend = provider.get_backend('ibmq_16_melbourne')
     # backend = provider.get_backend('ibmq_quito')
     # backend = provider.get_backend('ibmq_qasm_simulator')
     
 
 
-    n_circuits = 100
-    n_qubits = 2
-    circuit_type = "hwea"
+    n_circuits = 250
+    n_qubits = 6
+    circuit_type = "uccsd"
     permute = False
 
     if circuit_type == "random":
@@ -87,6 +90,8 @@ if __name__ == "__main__":
         circuits, n_circuits = growing_depth(n_qubits, n_circuits)
     elif circuit_type == "hwea":
         circuits, n_circuits = hwea(n_qubits, n_circuits)
+    elif circuit_type == "uccsd":
+        circuits, n_circuits = uccsd(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
 

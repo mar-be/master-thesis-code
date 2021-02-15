@@ -11,12 +11,12 @@ def line_plot(values, agg_values, name):
     plt.show()
 
 def histogram(values, name):
-    plt.hist(values, density=True, log=True)
+    plt.hist(values, histtype="step")
     plt.title(name)
     plt.show()
 
 if __name__ == "__main__":
-    file_name = "./agg_data/growing_depth_ibmq_santiago_2021-02-14-15-36-57.json"
+    file_name = "./agg_data/random_ibmq_16_melbourne_2021-02-15-10-04-10.json"
     # read file
     with open(file_name, 'r') as myfile:
         data=myfile.read()
