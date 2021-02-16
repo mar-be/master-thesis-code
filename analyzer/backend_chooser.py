@@ -52,18 +52,6 @@ class Backend_Chooser():
     def get_least_busy_qubits(self, n_qubit:int) -> Tuple[str, Dict]:
         return self.get_least_busy(filters=lambda x: x["n_qubits"]>=n_qubit)
 
-    def get_suitable_backends(self, circuit: QuantumCircuit, simulator: bool = False) -> List[Backend]:
-        return self.get_backends(filters=lambda x: x.configuration().n_qubits >= circuit.num_qubits and x.configuration().simulator == simulator)
-
-    def get_suitable_least_busy_backend(self, n_qubits: int, allow_simulator: bool = False):
-        if allow_simulator:
-            filter = lambda x: x.configuration().n_qubits >= n_qubits and x.status().operational
-        else:
-            filter = lambda x: x.configuration().n_qubits >= n_qubits and x.status().operational and x.configuration().simulator == False
-        suitable_backends = self.get_name_backend_dict(filters=filter)
-        if len(suitable_backends) == 0:
-            return None 
-        return least_busy(suitable_backends.values())
 
 
 
