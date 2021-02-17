@@ -25,13 +25,13 @@ if __name__ == "__main__":
     exec_handler = ExecutionHandler(provider, input, output, 5)
     exec_handler.start()
 
-    for i in range(10):
-        if i % 3 == 0:
-            input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))
-        elif i % 3 == 1:
-            input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_santiago"))
-        else:
-            input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_qasm_simulator"))
+    for i in range(300):
+        input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))
+        # if i % 2 == 0:
+        #     input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))
+        # else:
+        #     input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_santiago"))
+        
     
     i = 0
     while True:

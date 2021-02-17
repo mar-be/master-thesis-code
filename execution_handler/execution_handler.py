@@ -4,7 +4,7 @@ import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Queue
-from threading import Thread
+from threading import Lock, Thread
 from typing import Callable, Dict, List, Optional, Tuple
 from qiskit import qobj
 from qiskit.providers.ibmq.accountprovider import AccountProvider
@@ -21,9 +21,40 @@ from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.provider import Provider
 from quantum_job import QuantumJob
 
-from execution_handler.scheduler import (AbstractExecution, BackendControl,
+from execution_handler.scheduler import (AbstractExecution,
                                          ScheduleItem)
 
+
+class BackendControl():
+    """Control the access to the backends to regulate the number of queued jobs"""
+
+    def __init__(self,):
+        self._log = logger.get_logger(type(self).__name__)
+        self._locks = {}
+        self._counters = {}
+        
+    def try_to_enter(self, backend_name, backend):
+        try:
+            lock = self._locks[backend_name]
+            counter = self._counters[backend_name]
+        except KeyError:
+            lock = Lock()
+            counter = 0
+            self._locks[backend_name] = lock
+            self._counters[backend_name] = counter
+
+        with lock:
+            limit = backend.job_limit()
+            self._log.debug(f"Backend: {backend_name} Counter:{counter} Active_Jobs:{limit.active_jobs} Maximum_jobs:{limit.maximum_jobs}")
+            if limit.active_jobs < limit.maximum_jobs:
+                if counter < limit.maximum_jobs:
+                    self._counters[backend_name] += 1
+                    return True
+            return False
+
+    def leave(self, backend_name):
+        with self._locks[backend_name]:
+            self._counters[backend_name] -= 1
 
 class ExecutionSorter(Thread):
 
@@ -46,7 +77,7 @@ class ExecutionSorter(Thread):
                 self._backend_queue_table[backend] = backend_queue
                 self._new_backend.put((backend, backend_queue))
                 self._log.debug(f"Created new queue for backend {backend}")
-            self._log.debug(f"Sorted job {job.id} for backend {backend}")
+            # self._log.debug(f"Sorted job {job.id} for backend {backend}")
             self._backend_queue_table[backend].put(job)
           
                 
@@ -179,6 +210,12 @@ class Assembler(AbstractBackendInteractor):
 
 class Submitter(AbstractBackendInteractor):
 
+    def __init__(self, input: Queue, output: Queue, provider: Provider, backend_control:BackendControl, defer_interval=60):
+        self._backend_control = backend_control
+        self._defer_interval = defer_interval
+        self._internal_jobs_queue = []
+        super().__init__(input, output, provider)
+
     def _submit(self, backend_name, qobj:Qobj) -> Job:
         backend = self._get_backend(backend_name)
         return backend.run(qobj)
@@ -188,19 +225,32 @@ class Submitter(AbstractBackendInteractor):
         batch: Batch
         qobj: Qobj
         while True:
-            batch, qobj = self._input.get()
-            job = self._submit(batch.backend_name, qobj)
-            self._log.info(f"Submitted batch {batch.batch_number} to {batch.backend_name}")
-            self._output.put((batch, job))
+            try:
+                self._internal_jobs_queue.append(self._input.get(timeout=self._defer_interval))
+            except Empty:
+                pass
+            deferred_jobs = []
+            for batch, qobj in self._internal_jobs_queue:
+                backend_name = batch.backend_name
+                backend = self._get_backend(backend_name)
+                if self._backend_control.try_to_enter(backend_name, backend):
+                    job = self._submit(batch.backend_name, qobj)
+                    self._log.info(f"Submitted batch {batch.batch_number} to {batch.backend_name}")
+                    self._output.put((batch, job))
+                else:
+                    self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job")
+                    deferred_jobs.append((batch, job))
+            self._internal_jobs_queue = deferred_jobs
 
             
 class Retriever(Thread):
 
-    def __init__(self, input: Queue, output: Queue, wait_time:float):
+    def __init__(self, input: Queue, output: Queue, wait_time:float, backend_control:BackendControl):
         self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
         self._wait_time = wait_time
+        self._backend_control = backend_control
         self._jobs = []   
         Thread.__init__(self)
         self._log.info("Init")    
@@ -220,6 +270,7 @@ class Retriever(Thread):
             for batch, job in self._jobs:
                 if job.in_final_state():
                     final_state_jobs.append((batch, job))
+                    self._backend_control.leave(batch.backend_name)
             for job_tuple in final_state_jobs:
                 self._jobs.remove(job_tuple)
                 self._output.put(job_tuple)
@@ -350,7 +401,7 @@ class ResultProcessor(AbstractBackendInteractor):
 
 class ExecutionHandler():
     
-    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 30) -> None:
+    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 30, retrieve_time:int = 30) -> None:
         new_backends = Queue()
         batcher_assembler = Queue()
         assembler_submitter = Queue()
@@ -359,11 +410,12 @@ class ExecutionHandler():
         quantum_job_table = {}
         get_max_batch_size = lambda backend_name: provider.get_backend(backend_name).configuration().max_experiments
         get_max_shots = lambda backend_name: provider.get_backend(backend_name).configuration().max_shots
+        backend_control = BackendControl()
         self._execution_sorter = ExecutionSorter(input, new_backends)
         self._batcher = Batcher(batcher_assembler, new_backends, get_max_batch_size, get_max_shots, quantum_job_table, batch_timeout)
         self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, provider=provider)
-        self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, provider=provider)
-        self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=5)
+        self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, provider=provider, backend_control=backend_control)
+        self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
         self._processor = ResultProcessor(input=retriever_processor, output=output, provider=provider, quantum_job_table=quantum_job_table)
     
     def start(self):
