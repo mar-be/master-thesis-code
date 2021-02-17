@@ -105,13 +105,13 @@ class Batcher(Thread):
                 
                 if time.time() - self._queue_timers[backend_name] > self._batch_timeout or  backend_queue.qsize() >= self._backend_max_batch_size[backend_name]:
                     # Timeout occured or enough items for a wole batch -> try to get a batch
-                    batch = []
+                    add_to_batch = []
                     for _ in range(self._backend_max_batch_size[backend_name]):
                         try:
-                            batch.append(backend_queue.get(block=False))
+                            add_to_batch.append(backend_queue.get(block=False))
                         except Empty:
                             break
-                    self._output.put((backend_name, batch))
+                    self._create_batches(backend_name, add_to_batch)
                     if backend_queue.empty():
                         # delete timer because the queue is empty
                         self._queue_timers[backend_name].pop()
