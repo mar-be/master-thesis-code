@@ -194,11 +194,43 @@ class Submitter(AbstractBackendInteractor):
             self._output.put((batch, job))
 
             
+class Retriever(Thread):
+
+    def __init__(self, input: Queue, output: Queue, wait_time:float):
+        self._log = logger.get_logger(type(self).__name__)
+        self._input = input
+        self._output = output
+        self._wait_time = wait_time
+        self._jobs = []   
+        Thread.__init__(self)
+        self._log.info("Init")    
+
+
+    def run(self):
+        self._log.info("Started")
+        batch: Batch
+        job: Job
+        while True:
+            i = 0
+            while not self._input.empty() and i < 5:
+                job_tuple = self._input.get()
+                self._jobs.append(job_tuple)
+                i += 1
+            final_state_jobs = []
+            for batch, job in self._jobs:
+                if job.in_final_state():
+                    final_state_jobs.append((batch, job))
+            for job_tuple in final_state_jobs:
+                self._jobs.remove(job_tuple)
+                self._output.put(job_tuple)
+            time.sleep(self._wait_time)
+
+
 
 
     
 
-class Retriever(AbstractBackendInteractor):
+class ResultProcessor(AbstractBackendInteractor):
 
     def __init__(self, input: Queue, output: Queue, provider: Provider, quantum_job_table:Dict):
         super().__init__(input, output, provider)
@@ -323,6 +355,7 @@ class ExecutionHandler():
         batcher_assembler = Queue()
         assembler_submitter = Queue()
         submitter_retrieber = Queue()
+        retriever_processor = Queue()
         quantum_job_table = {}
         get_max_batch_size = lambda backend_name: provider.get_backend(backend_name).configuration().max_experiments
         get_max_shots = lambda backend_name: provider.get_backend(backend_name).configuration().max_shots
@@ -330,7 +363,8 @@ class ExecutionHandler():
         self._batcher = Batcher(batcher_assembler, new_backends, get_max_batch_size, get_max_shots, quantum_job_table, batch_timeout)
         self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, provider=provider)
         self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, provider=provider)
-        self._retriever = Retriever(input=submitter_retrieber, output=output, provider=provider, quantum_job_table=quantum_job_table)
+        self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=5)
+        self._processor = ResultProcessor(input=retriever_processor, output=output, provider=provider, quantum_job_table=quantum_job_table)
     
     def start(self):
         self._execution_sorter.start()
@@ -338,6 +372,7 @@ class ExecutionHandler():
         self._assembler.start()
         self._submitter.start()
         self._retriever.start()
+        self._processor.start()
 
 class ExecutionHandlerOld(AbstractExecution):
 
