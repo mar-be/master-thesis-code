@@ -1,8 +1,9 @@
 from collections import Counter
+from concurrent.futures import Future
 import copy
 import math
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from queue import Empty, Queue
 from threading import Lock, Thread
 from typing import Callable, Dict, List, Optional, Tuple
@@ -16,7 +17,7 @@ from qiskit.result.result import Result
 
 import logger
 from qiskit import assemble, transpile
-from qiskit.providers import Backend, backend
+from qiskit.providers import Backend
 from qiskit.providers.basebackend import BaseBackend
 from qiskit.providers.provider import Provider
 from quantum_job import QuantumJob
@@ -187,6 +188,11 @@ class AbstractBackendInteractor(Thread):
 
 class Assembler(AbstractBackendInteractor):
 
+    def __init__(self, input: Queue, output: Queue, provider: Provider):
+        super().__init__(input, output, provider)
+        n_workers = 4
+        self._executor =  ThreadPoolExecutor(n_workers)
+
     def _assemble(self, batch:Batch) -> Qobj:
         backend_name = batch.backend_name
         backend = self._get_backend(backend_name)
@@ -195,15 +201,17 @@ class Assembler(AbstractBackendInteractor):
             circ = circuit_item["circuit"]
             reps = circuit_item["reps"]
             circuits_to_execute.extend([circ]*reps)
-        return assemble(transpile(circuits_to_execute, backend=backend), backend, shots=batch.shots, memory=True)
+        qobj =  assemble(transpile(circuits_to_execute, backend=backend), backend, shots=batch.shots, memory=True)
+        self._log.info(f"Assembled Qobj for batch {batch.batch_number}")
+        return qobj
 
     def run(self) -> None:
         self._log.info("Started")
         while True:
             batch:Batch = self._input.get()
             self._log.info(f"Got batch {batch.batch_number} for backend {batch.backend_name}")
-            qobj = self._assemble(batch)
-            self._output.put((batch, qobj))
+            future_qobj = self._executor.submit(self._assemble, batch)
+            self._output.put((batch, future_qobj))
            
 
 
@@ -231,6 +239,13 @@ class Submitter(AbstractBackendInteractor):
                 pass
             deferred_jobs = []
             for batch, qobj in self._internal_jobs_queue:
+                if isinstance(qobj, Future):
+                    if qobj.done():
+                        qobj = qobj.result()
+                    else:
+                        self._log.debug(f"Qobj is not yet available -> defer job for batch {batch.batch_number}")
+                        deferred_jobs.append((batch, qobj))
+                        continue
                 backend_name = batch.backend_name
                 backend = self._get_backend(backend_name)
                 if self._backend_control.try_to_enter(backend_name, backend):
@@ -238,8 +253,8 @@ class Submitter(AbstractBackendInteractor):
                     self._log.info(f"Submitted batch {batch.batch_number} to {batch.backend_name}")
                     self._output.put((batch, job))
                 else:
-                    self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job")
-                    deferred_jobs.append((batch, job))
+                    self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
+                    deferred_jobs.append((batch, qobj))
             self._internal_jobs_queue = deferred_jobs
 
             
