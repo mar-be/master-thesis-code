@@ -3,17 +3,163 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Queue
 from threading import Thread
-from time import sleep
-from typing import Optional
+from typing import Callable, List, Optional, Tuple
+
+from qiskit.providers.provider import Provider
+
+from quantum_job import QuantumJob
 
 import logger
-from qiskit import assemble, execute, transpile
-from qiskit.compiler import assemble
-from qiskit.providers import Job
 from qiskit.providers.basebackend import BaseBackend
+from qiskit.providers import Backend, backend
 
 from execution_handler.scheduler import (BackendControl, ScheduleItem,
                                          AbstractExecution)
+
+
+class ExecutionSorter(Thread):
+
+    def __init__(self, input:Queue, new_backend:Queue):
+        self._log = logger.get_logger(type(self).__name__)
+        self._input = input
+        self._new_backend = new_backend
+        self._backend_queue_table = {}
+        Thread.__init__(self)
+        self._log.info("Init")
+
+    
+    def run(self) -> None:
+        self._log.info("Started")
+        while True:
+            job:QuantumJob = self._input.get()
+            backend = job.backend_info["name"]
+            if backend in self._backend_table.keys():
+                self._backend_queue_table[backend].put(job)
+            else:
+                backend_queue = Queue()
+                backend_queue.put(job)
+                self._backend_queue_table[backend] = backend_queue
+                self._new_backend.put((backend, backend_queue))
+                
+
+class Batch(ScheduleItem):
+    
+    def __init__(self, backen_name:str, max_shots: int, max_experiments: int):
+        self.backend_name = backen_name
+        super().__init__(max_shots, max_experiments)
+
+class Batcher(Thread):
+
+    def __init__(self, output: Queue, new_backend:Queue, get_max_batch_size:Callable[[str], int], get_max_shots:Callable[[str], int], batch_timeout:int=30) -> None:
+        self._output = output
+        self._new_backend = new_backend
+        self._batch_timeout = batch_timeout
+        self._backend_queue_table = {}
+        self._get_max_batch_size = get_max_batch_size
+        self._backend_max_batch_size = {}
+        self._get_max_shots = get_max_shots
+        self._backend_max_shots = {}
+        self._queue_timers = {}
+        self._batch_count = 0
+        Thread.__init__(self)
+        self._log.info("Init")
+
+    def _create_batches(self, backend_name:str, circuits:List[QuantumJob]):
+        """Generate a list of batches"""
+        if len(circuits) == 0:
+            return
+        batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name])
+        for job in circuits:
+            key = job.id
+            circuit = job.circuit
+            shots = job.shots
+            remaining_shots = batch.add_circuit(key, circuit, shots)
+            while remaining_shots > 0:
+                self._log.info(f"Generated Batch {self._batch_count} for backend {backend_name}")
+                self._output.append((self._batch_count, batch))
+                self._batch_count += 1
+                batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name])
+                remaining_shots = batch.add_circuit(key, circuit, remaining_shots)
+        self._output.append((self._batch_count, batch))
+        self._log.info(f"Generated Batch {self._batch_count} for backend {backend_name}")
+        self._batch_count += 1
+        self._log.info(f"Added all circuits to batches for backend {backend_name}")
+
+    def run(self) -> None:
+        self._log.info("Started")
+        while True:
+            while not self._new_backend.empty:
+                backend_name, backend_queue = self._new_backend.get()
+                self._backend_queue_table[backend_name] = backend_queue
+                self._backend_max_batch_size[backend_name] = self._get_max_batch_size(backend_name)
+                self._backend_max_shots[backend_name] = self._get_max_shots(backend_name)
+
+            for backend_name, backend_queue in self._backend_queue_table.items():
+                if backend_queue.empty():
+                    # nothimg to do since queue is empty
+                    continue
+
+                if not backend_name in self._queue_timers.keys():
+                    # No timer is started but queue is not empty. Thus, start a timer.
+                    self._queue_timers[backend_name] = time.time()
+                
+                if time.time() - self._queue_timers[backend_name] > self._batch_timeout or  backend_queue.qsize() >= self._backend_max_batch_size[backend_name]:
+                    # Timeout occured or enough items for a wole batch -> try to get a batch
+                    batch = []
+                    for _ in range(self._backend_max_batch_size[backend_name]):
+                        try:
+                            batch.append(backend_queue.get(block=False))
+                        except Empty:
+                            break
+                    self._output.put((backend_name, batch))
+                    if backend_queue.empty():
+                        # delete timer because the queue is empty
+                        self._queue_timers[backend_name].pop()
+                    else:
+                        # start a new timer
+                        self._queue_timers[backend_name] = time.time()
+           
+class AbstractBackendInteractor(Thread):
+
+    def __init__(self, input:Queue, output:Queue, provider:Provider):
+            self._log = logger.get_logger(type(self).__name__)
+            self._input = input
+            self._output = output
+            self._provider = provider
+            self._backend_table = {}
+            Thread.__init__(self)
+            self._log.info("Init")
+
+    def _get_backend(self, backend_name:str) -> Backend:
+            try:
+                return self._backend_table[backend_name]
+            except KeyError:
+                backend = self._provider.get_backend(backend_name)
+                self._backend_table[backend_name] = backend
+                return backend
+
+
+class Submitter(AbstractBackendInteractor):
+
+        
+    def run(self) -> None:
+        self._log.info("Started")
+        while True:
+            backend_name, batch = self._input.get()
+            backend = self._get_backend(backend_name)
+
+    
+
+
+    
+
+class Retriever(AbstractBackendInteractor):
+
+    def run(self) -> None:
+        self._log.info("Started")
+        while True:
+            self._input.get()
+
 
 class ExecutionHandler(AbstractExecution):
 
