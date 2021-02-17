@@ -1,20 +1,27 @@
+from collections import Counter
+import copy
 import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Empty, Queue
 from threading import Thread
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
+from qiskit import qobj
+from qiskit.providers.job import Job
 
-from qiskit.providers.provider import Provider
-
-from quantum_job import QuantumJob
+from qiskit.qobj import Qobj
+from qiskit.result.models import ExperimentResultData
+from qiskit.result.result import Result
 
 import logger
-from qiskit.providers.basebackend import BaseBackend
+from qiskit import assemble, transpile
 from qiskit.providers import Backend, backend
+from qiskit.providers.basebackend import BaseBackend
+from qiskit.providers.provider import Provider
+from quantum_job import QuantumJob
 
-from execution_handler.scheduler import (BackendControl, ScheduleItem,
-                                         AbstractExecution)
+from execution_handler.scheduler import (AbstractExecution, BackendControl,
+                                         ScheduleItem)
 
 
 class ExecutionSorter(Thread):
@@ -44,16 +51,18 @@ class ExecutionSorter(Thread):
 
 class Batch(ScheduleItem):
     
-    def __init__(self, backen_name:str, max_shots: int, max_experiments: int):
+    def __init__(self, backen_name:str, max_shots: int, max_experiments: int, batch_number:int):
         self.backend_name = backen_name
+        self.batch_number = batch_number
         super().__init__(max_shots, max_experiments)
 
 class Batcher(Thread):
 
-    def __init__(self, output: Queue, new_backend:Queue, get_max_batch_size:Callable[[str], int], get_max_shots:Callable[[str], int], batch_timeout:int=30) -> None:
+    def __init__(self, output: Queue, new_backend:Queue, get_max_batch_size:Callable[[str], int], get_max_shots:Callable[[str], int], quantum_job_table:Dict, batch_timeout:int=30) -> None:
         self._output = output
         self._new_backend = new_backend
         self._batch_timeout = batch_timeout
+        self._quantum_job_table = quantum_job_table
         self._backend_queue_table = {}
         self._get_max_batch_size = get_max_batch_size
         self._backend_max_batch_size = {}
@@ -68,7 +77,8 @@ class Batcher(Thread):
         """Generate a list of batches"""
         if len(circuits) == 0:
             return
-        batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name])
+        batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], self._batch_count)
+        self._batch_count += 1
         for job in circuits:
             key = job.id
             circuit = job.circuit
@@ -76,13 +86,12 @@ class Batcher(Thread):
             remaining_shots = batch.add_circuit(key, circuit, shots)
             while remaining_shots > 0:
                 self._log.info(f"Generated Batch {self._batch_count} for backend {backend_name}")
-                self._output.append((self._batch_count, batch))
+                self._output.append(batch)
+                batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], self._batch_count)
                 self._batch_count += 1
-                batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name])
                 remaining_shots = batch.add_circuit(key, circuit, remaining_shots)
-        self._output.append((self._batch_count, batch))
+        self._output.append(batch)
         self._log.info(f"Generated Batch {self._batch_count} for backend {backend_name}")
-        self._batch_count += 1
         self._log.info(f"Added all circuits to batches for backend {backend_name}")
 
     def run(self) -> None:
@@ -108,7 +117,9 @@ class Batcher(Thread):
                     add_to_batch = []
                     for _ in range(self._backend_max_batch_size[backend_name]):
                         try:
-                            add_to_batch.append(backend_queue.get(block=False))
+                            job = backend_queue.get(block=False)
+                            add_to_batch.append(job)
+                            self._quantum_job_table[job.id] = job
                         except Empty:
                             break
                     self._create_batches(backend_name, add_to_batch)
@@ -118,7 +129,7 @@ class Batcher(Thread):
                     else:
                         # start a new timer
                         self._queue_timers[backend_name] = time.time()
-           
+
 class AbstractBackendInteractor(Thread):
 
     def __init__(self, input:Queue, output:Queue, provider:Provider):
@@ -138,30 +149,160 @@ class AbstractBackendInteractor(Thread):
                 self._backend_table[backend_name] = backend
                 return backend
 
+class Assembler(AbstractBackendInteractor):
 
-class Submitter(AbstractBackendInteractor):
+    def _assemble(self, batch:Batch) -> Qobj:
+        backend_name = batch.backend_name
+        backend = self._get_backend(backend_name)
+        circuits_to_execute = []
+        for circuit_item in batch.experiments:
+            circ = circuit_item["circuit"]
+            reps = circuit_item["reps"]
+            circuits_to_execute.extend([circ]*reps)
+        return assemble(transpile(circuits_to_execute, backend=backend), backend, shots=batch.shots, memory=True)
 
-        
     def run(self) -> None:
         self._log.info("Started")
         while True:
-            backend_name, batch = self._input.get()
-            backend = self._get_backend(backend_name)
+            batch:Batch = self._input.get()
+            self._log.info(f"Got batch {batch.batch_number} for backend {batch.backend_name}")
+            qobj = self._assemble(batch)
+            self._output.put((batch, qobj))
+           
 
-    
+
+
+class Submitter(AbstractBackendInteractor):
+
+    def _submit(self, backend_name, qobj:Qobj) -> Job:
+        backend = self._get_backend(backend_name)
+        return backend.run(qobj)
+        
+    def run(self) -> None:
+        self._log.info("Started")
+        batch: Batch
+        qobj: Qobj
+        while True:
+            batch, qobj = self._input.get()
+            job = self._submit(batch.backend_name, qobj)
+            self._output.put((batch, job))
+
+            
 
 
     
 
 class Retriever(AbstractBackendInteractor):
 
+    def __init__(self, input: Queue, output: Queue, provider: Provider, quantum_job_table:Dict):
+        super().__init__(input, output, provider)
+        self._quantum_job_table = quantum_job_table
+        self._previous_key = {}
+        self._previous_memory = {}
+        self._previous_counts = {}
+
+    def _process_job_result(self, job_result:Result, batch:Batch):
+        results = {}
+        exp_number = 0
+        # get the Result as dict and delete the results 
+        result_dict = job_result.to_dict()
+
+        index = batch.batch_number
+        backend_name = batch.backend_name
+        previous_key = self._previous_key[backend_name]
+        previous_memory = self._previous_memory[backend_name]
+        previous_counts = self._previous_counts[backend_name]
+        
+        self._log.info(f"Process result of job {index}")
+
+        for exp in batch.experiments:
+            key = exp["key"]
+            circ = exp["circuit"]
+            reps = exp["reps"]
+            shots = exp["shots"]
+            total_shots = exp["total_shots"]
+            memory = []
+            counts = {}
+            result_data = None
+
+            
+
+            if previous_memory:
+                # there is data from the previous job
+                assert(previous_key==key)
+                memory.extend(previous_memory)
+                counts.update(previous_counts)
+                shots += len(previous_memory)
+                total_shots += len(previous_memory)
+                previous_memory = None
+                previous_counts = None
+                previous_key = None
+            
+            # get ExperimentResult as dict
+            job_exp_result_dict = job_result._get_experiment(exp_number).to_dict() 
+
+            if not (shots == total_shots and reps == 1 and len(memory) == 0):
+                # do not run this block if it is only one experiment (shots == total_shots) with one repetition and no previous data is available
+                for exp_index in range(exp_number, exp_number+reps):
+                    mem = job_result.data(exp_index)['memory']
+                    memory.extend(mem)
+                    cnts = job_result.data(exp_index)['counts']
+                    
+                    if exp_index == exp_number+reps-1 and shots == total_shots:
+                        # last experiment for this circuit
+                        if len(memory) > total_shots:
+                            # trim memory and counts w.r.t. number of shots
+                            too_much = len(memory) - total_shots
+                            memory = memory[:total_shots]
+                            mem = mem[:-too_much]
+                            cnts = dict(Counter(mem))
+
+                    counts = self._add_dicts(counts, cnts)
+                
+                if shots < total_shots:
+                    previous_memory = copy.deepcopy(memory)
+                    previous_counts = copy.deepcopy(counts)
+                    previous_key = key
+                    continue
+                
+                result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
+
+                # overwrite the data and the shots
+                job_exp_result_dict["data"] = result_data
+                job_exp_result_dict["shots"] = total_shots
+
+            # overwrite the results with the computed result
+            result_dict["results"] = [job_exp_result_dict]
+            results[key] = Result.from_dict(result_dict)
+            exp_number += reps
+        self._previous_key[backend_name] = previous_key
+        self._previous_memory[backend_name] = previous_memory
+        self._previous_counts[backend_name] = previous_counts
+        return results
+
     def run(self) -> None:
         self._log.info("Started")
+        batch: Batch
+        job: Job
         while True:
-            self._input.get()
+            batch, job = self._input.get()
+            job_result = job.result()
+            result_for_batch = self._process_job_result(job_result, batch)
+            for key, result in result_for_batch.items():
+                try:
+                    qjob = self._quantum_job_table.pop(key)
+                    qjob.result = result
+                    self._results.put(qjob)
+                except KeyError as ke:
+                    # TODO Exception Handling
+                    raise ke
 
+    
 
-class ExecutionHandler(AbstractExecution):
+class ExecutionHandler():
+    pass
+
+class ExecutionHandlerOld(AbstractExecution):
 
     def __init__(self, backend:BaseBackend, input:Queue, results:Queue, batch_timeout:int=30, max_shots:Optional[int]=None, max_experiments:Optional[int]=None):
         self._log = logger.get_logger(type(self).__name__)
