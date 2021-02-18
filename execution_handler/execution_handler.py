@@ -1,29 +1,22 @@
-from collections import Counter
-from concurrent.futures import Future
 import copy
 import math
 import time
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from collections import Counter
+from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 from queue import Empty, Queue
 from threading import Lock, Thread
 from typing import Callable, Dict, List, Optional, Tuple
-from qiskit import qobj
+
+import logger
+from qiskit import QuantumCircuit, assemble, transpile
+from qiskit.providers import Backend
 from qiskit.providers.ibmq.accountprovider import AccountProvider
 from qiskit.providers.job import Job
-
+from qiskit.providers.provider import Provider
 from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
-
-import logger
-from qiskit import assemble, transpile
-from qiskit.providers import Backend
-from qiskit.providers.basebackend import BaseBackend
-from qiskit.providers.provider import Provider
 from quantum_job import QuantumJob
-
-from execution_handler.scheduler import (AbstractExecution,
-                                         ScheduleItem)
 
 
 class BackendControl():
@@ -81,15 +74,50 @@ class ExecutionSorter(Thread):
             # self._log.debug(f"Sorted job {job.id} for backend {backend}")
             self._backend_queue_table[backend].put(job)
           
-                
-                
+class Batch():
+    '''A batch represents a job on a backend. It can contain multiple experiments.'''
 
-class Batch(ScheduleItem):
-    
     def __init__(self, backen_name:str, max_shots: int, max_experiments: int, batch_number:int):
+        self._log = logger.get_logger(type(self).__name__)
         self.backend_name = backen_name
+        self.max_shots = max_shots
+        self.shots = 0
+        self.max_experiments = max_experiments
+        self.experiments = []
+        self.remaining_experiments = max_experiments
+        self.n_circuits = 0
         self.batch_number = batch_number
-        super().__init__(max_shots, max_experiments)
+
+    
+    def add_circuit(self, key, circuit:QuantumCircuit, shots:int) -> int:
+        """Add a circuit to the Batch.
+
+        Args:
+            key (Any): Identifier for the circuit
+            circuit (QuantumCircuit): The circuit, which should be executed
+            shots (int): The number of shots
+    
+        Returns:
+            int: remaining shots. If they are 0, all shots are executed
+        """
+        if self.remaining_experiments == 0:
+            return shots
+
+        self.n_circuits += 1
+        reps = math.ceil(shots/self.max_shots)
+        self.shots = max(self.shots, min(shots, self.max_shots))
+
+        if reps <= self.remaining_experiments:
+            remaining_shots = 0
+        else:
+            reps = self.remaining_experiments
+            remaining_shots = shots - reps*self.max_shots
+
+        self.remaining_experiments -= reps
+        self.experiments.append({"key":key, "circuit":circuit, "reps":reps, "shots":shots-remaining_shots, "total_shots":shots})
+        
+        return remaining_shots       
+                
 
 class Batcher(Thread):
 
