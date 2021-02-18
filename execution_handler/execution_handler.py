@@ -105,7 +105,7 @@ class Batcher(Thread):
         self._get_max_shots = get_max_shots
         self._backend_max_shots = {}
         self._queue_timers = {}
-        self._batch_count = 0
+        self._batch_count = {}
         Thread.__init__(self)
         self._log.info("Init")
 
@@ -113,21 +113,27 @@ class Batcher(Thread):
         """Generate a list of batches"""
         if len(circuits) == 0:
             return
-        batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], self._batch_count)
+        try:
+            count = self._batch_count[backend_name]
+        except KeyError:
+            count = 0
+            self._batch_count[backend_name] = 0
+
+        batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], count)
         for job in circuits:
             key = job.id
             circuit = job.circuit
             shots = job.shots
             remaining_shots = batch.add_circuit(key, circuit, shots)
             while remaining_shots > 0:
-                self._log.info(f"Generated batch {self._batch_count} for backend {backend_name}")
+                self._log.info(f"Generated for backend {backend_name} batch {self._batch_count[backend_name]}")
                 self._output.put(batch)
-                self._batch_count += 1
-                batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], self._batch_count)
+                self._batch_count[backend_name] += 1
+                batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], self._batch_count[backend_name])
                 remaining_shots = batch.add_circuit(key, circuit, remaining_shots)
-        self._log.info(f"Generated batch {self._batch_count} for backend {backend_name}")
+        self._log.info(f"Generated for backend {backend_name} batch {self._batch_count[backend_name]}")
         self._output.put(batch)
-        self._batch_count += 1
+        self._batch_count[backend_name] += 1
         self._log.info(f"Added all circuits to batches for backend {backend_name}")
 
     def run(self) -> None:
@@ -201,8 +207,10 @@ class Assembler(AbstractBackendInteractor):
             circ = circuit_item["circuit"]
             reps = circuit_item["reps"]
             circuits_to_execute.extend([circ]*reps)
-        qobj =  assemble(transpile(circuits_to_execute, backend=backend), backend, shots=batch.shots, memory=True)
-        self._log.info(f"Assembled Qobj for batch {batch.batch_number}")
+        transpiled_circuits = transpile(circuits_to_execute, backend=backend)
+        self._log.info(f"Transpiled batch {backend_name}/{batch.batch_number}")
+        qobj =  assemble(transpiled_circuits, backend, shots=batch.shots, memory=True)
+        self._log.info(f"Assembled Qobj for batch {backend_name}/{batch.batch_number}")
         return qobj
 
     def run(self) -> None:
@@ -243,7 +251,7 @@ class Submitter(AbstractBackendInteractor):
                     if qobj.done():
                         qobj = qobj.result()
                     else:
-                        self._log.debug(f"Qobj is not yet available -> defer job for batch {batch.batch_number}")
+                        # self._log.debug(f"Qobj is not yet available -> defer job for batch {batch.backend_name}/{batch.batch_number}")
                         deferred_jobs.append((batch, qobj))
                         continue
                 backend_name = batch.backend_name
@@ -253,7 +261,7 @@ class Submitter(AbstractBackendInteractor):
                     self._log.info(f"Submitted batch {batch.batch_number} to {batch.backend_name}")
                     self._output.put((batch, job))
                 else:
-                    self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
+                    # self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
                     deferred_jobs.append((batch, qobj))
             self._internal_jobs_queue = deferred_jobs
 
@@ -266,7 +274,9 @@ class Retriever(Thread):
         self._output = output
         self._wait_time = wait_time
         self._backend_control = backend_control
-        self._jobs = []   
+        self._jobs = []
+        self._batch_counter = {}
+        self._deferred_results = {}   
         Thread.__init__(self)
         self._log.info("Init")    
 
@@ -288,7 +298,30 @@ class Retriever(Thread):
                     self._backend_control.leave(batch.backend_name)
             for job_tuple in final_state_jobs:
                 self._jobs.remove(job_tuple)
-                self._output.put(job_tuple)
+                batch, job = job_tuple
+                self._log.info(f"Received result for batch {batch.backend_name}/{batch.batch_number}")
+                try:
+                    batch_counter = self._batch_counter[batch.backend_name]
+                except KeyError:
+                    batch_counter = 0
+                    self._batch_counter[batch.backend_name] = 0
+                    self._deferred_results[batch.backend_name] = []
+                if batch_counter == batch.batch_number:
+                    batch_counter += 1
+                    self._output.put(job_tuple)
+                    if len(self._deferred_results[batch.backend_name]) > 0:
+                        # sort the deferred job tuples according to their batch number
+                        self._deferred_results[batch.backend_name].sort(key=lambda tuple:tuple[0].batch_number)
+                    while len(self._deferred_results[batch.backend_name]) > 0 and batch_counter == self._deferred_results[batch.backend_name][0][0].batch_number:
+                        # ouput jobs as long as their are deferred jobs and the batch number is next following number
+                        self._output.put(self._deferred_results[batch.backend_name].pop(0))
+                        batch_counter += 1
+                    
+                    self._batch_counter[batch.backend_name] = batch_counter
+                else:
+                    self._deferred_results[batch.backend_name].append(job_tuple)
+                    self._log.info(f"Deferred result for batch {batch.backend_name}/{batch.batch_number} to establish order")
+
             time.sleep(self._wait_time)
 
 
@@ -429,7 +462,7 @@ class ExecutionHandler():
         self._execution_sorter = ExecutionSorter(input, new_backends)
         self._batcher = Batcher(batcher_assembler, new_backends, get_max_batch_size, get_max_shots, quantum_job_table, batch_timeout)
         self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, provider=provider)
-        self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, provider=provider, backend_control=backend_control)
+        self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, provider=provider, backend_control=backend_control, defer_interval=1)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
         self._processor = ResultProcessor(input=retriever_processor, output=output, provider=provider, quantum_job_table=quantum_job_table)
     
