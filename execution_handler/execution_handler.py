@@ -73,6 +73,18 @@ class ExecutionSorter(Thread):
                 self._log.debug(f"Created new queue for backend {backend}")
             # self._log.debug(f"Sorted job {job.id} for backend {backend}")
             self._backend_queue_table[backend].put(job)
+
+class Transpiler(Thread):
+    def __init__(self, input:Queue, output:Queue):
+        self._log = logger.get_logger(type(self).__name__)
+        self._input = input
+        self._output = output
+        Thread.__init__(self)
+        self._log.info("Init")
+
+
+    def run(self) -> None:
+        return super().run()
           
 class Batch():
     '''A batch represents a job on a backend. It can contain multiple experiments.'''
@@ -183,7 +195,7 @@ class Batcher(Thread):
                     # No timer is started but queue is not empty -> start a timer
                     self._queue_timers[backend_name] = time.time()
                 
-                if time.time() - self._queue_timers[backend_name] > self._batch_timeout or  backend_queue.qsize() >= self._backend_max_batch_size[backend_name]:
+                if time.time() - self._queue_timers[backend_name] > self._batch_timeout or backend_queue.qsize() >= self._backend_max_batch_size[backend_name]:
                     # Timeout occured or enough items for a wole batch -> try to get a batch
                     add_to_batch = []
                     for _ in range(self._backend_max_batch_size[backend_name]):
@@ -230,14 +242,15 @@ class Assembler(AbstractBackendInteractor):
     def _assemble(self, batch:Batch) -> Qobj:
         backend_name = batch.backend_name
         backend = self._get_backend(backend_name)
-        circuits_to_execute = []
-        for circuit_item in batch.experiments:
-            circ = circuit_item["circuit"]
+        circuits_to_transpile = list([circuit_item["circuit"] for circuit_item in batch.experiments])
+        transpiled_circuits = transpile(circuits_to_transpile, backend=backend)
+        multiplied_transpiled_circuits = []
+        for i, circuit_item in enumerate(batch.experiments):
             reps = circuit_item["reps"]
-            circuits_to_execute.extend([circ]*reps)
-        transpiled_circuits = transpile(circuits_to_execute, backend=backend)
+            circ = transpiled_circuits[i]
+            multiplied_transpiled_circuits.extend([circ]*reps)
         self._log.info(f"Transpiled batch {backend_name}/{batch.batch_number}")
-        qobj =  assemble(transpiled_circuits, backend, shots=batch.shots, memory=True)
+        qobj =  assemble(multiplied_transpiled_circuits, backend, shots=batch.shots, memory=True)
         self._log.info(f"Assembled Qobj for batch {backend_name}/{batch.batch_number}")
         return qobj
 
