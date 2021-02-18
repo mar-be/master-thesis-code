@@ -75,17 +75,38 @@ class ExecutionSorter(Thread):
             self._backend_queue_table[backend].put(job)
 
 class Transpiler(Thread):
-    def __init__(self, input:Queue, output:Queue):
+    def __init__(self, backend_name:Backend, provider:Provider, input:Queue, output:Queue, max_circuits:int, timeout:int):
         self._log = logger.get_logger(type(self).__name__)
+        self._backend_name = backend_name
+        self._backend = provider.get_backend(backend_name)
         self._input = input
         self._output = output
+        self._jobs = []
+        self._max_circuits = max_circuits
+        self._timeout = timeout
         Thread.__init__(self)
         self._log.info("Init")
 
 
     def run(self) -> None:
-        return super().run()
-          
+        while True:
+            start_time = time.time()
+            while len(self._jobs) <= self._max_circuits and time.time() - start_time <= self._batch_timeout:
+                try:
+                    job:QuantumJob = self._input.get(timeout=5)
+                    self._jobs.append(job)                        
+                except Empty:
+                    if len(self._jobs) == 0:
+                        continue
+            if len(self._jobs) > 0:
+                circuits = list([job.circuit for job in self.jobs])
+                transpiled_circuits = transpile(circuits, backend=self._backend)
+                for tuple in zip(transpiled_circuits, self._jobs):
+                    self._output.put(tuple)
+
+        
+
+
 class Batch():
     '''A batch represents a job on a backend. It can contain multiple experiments.'''
 
