@@ -22,10 +22,10 @@ if __name__ == "__main__":
     # backend_sim = provider.get_backend('ibmq_qasm_simulator')
 
 
-    exec_handler = ExecutionHandler(provider, input, output, 5)
+    exec_handler = ExecutionHandler(provider, input, output, 90)
     exec_handler.start()
 
-    for i in range(300):
+    for i in range(600):
         input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_qasm_simulator"))
         # if i % 2 == 0:
         #     input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))

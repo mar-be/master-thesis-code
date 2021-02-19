@@ -8,7 +8,7 @@ from threading import Lock, Thread
 from typing import Callable, Dict, List, Optional, Tuple
 
 import logger
-from qiskit import QuantumCircuit, assemble, transpile
+from qiskit import QuantumCircuit, assemble, transpile, transpiler
 from qiskit.providers import Backend
 from qiskit.providers.ibmq.accountprovider import AccountProvider
 from qiskit.providers.job import Job
@@ -36,6 +36,14 @@ class BackendLookUp():
             self._log.info(f"Retrieved backend {backend_name}")
             self._backends[backend_name] = backend
         return backend
+
+    def max_shots(self, backend_name:str) -> int:
+        backend = self.get(backend_name)
+        return backend.configuration().max_shots
+
+    def max_experiments(self, backend_name:str) -> int:
+        backend = self.get(backend_name)
+        return backend.configuration().max_experiments
 
 
 class BackendControl():
@@ -82,7 +90,7 @@ class TranspilerLookUp():
             return self._transpilers[backend_name]
             
         except KeyError:
-            backend = self._backend_look_up.get[backend_name]
+            backend = self._backend_look_up.get(backend_name)
             transpiler = Transpiler(Queue(), Queue(), backend, self._min_circuits, self._timeout)
             self._transpilers[backend_name] = transpiler
             transpiler.start()
@@ -96,10 +104,11 @@ class TranspilerLookUp():
 
 class ExecutionSorter(Thread):
 
-    def __init__(self, input:Queue, new_backend:Queue):
+    def __init__(self, input:Queue, new_backend:Queue, transpiler_look_up:TranspilerLookUp):
         self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._new_backend = new_backend
+        self._transpiler_look_up = transpiler_look_up
         self._backend_queue_table = {}
         Thread.__init__(self)
         self._log.info("Init")
@@ -109,23 +118,23 @@ class ExecutionSorter(Thread):
         self._log.info("Started")
         while True:
             job:QuantumJob = self._input.get()
-            backend = job.backend
-            if not backend in self._backend_queue_table.keys():
-                backend_queue = Queue()
-                self._backend_queue_table[backend] = backend_queue
-                self._new_backend.put((backend, backend_queue))
-                self._log.debug(f"Created new queue for backend {backend}")
+            backend_name = job.backend
+            if not backend_name in self._backend_queue_table.keys():
+                transpiler_input = self._transpiler_look_up.get_input(backend_name)
+                self._backend_queue_table[backend_name] = transpiler_input
+                self._new_backend.put(backend_name)
+                self._log.debug(f"Created new transpiler for backend {backend_name}")
             # self._log.debug(f"Sorted job {job.id} for backend {backend}")
-            self._backend_queue_table[backend].put(job)
+            self._backend_queue_table[backend_name].put(job)
 
 class Transpiler(Thread):
     def __init__(self, input:Queue, output:Queue, backend:Backend, min_circuits:int, timeout:int):
-        self._log = logger.get_logger(type(self).__name__)
+        self._log = logger.get_logger(type(self).__name__ + "_" + backend.name())
         self.input = input
         self.output = output
         self._backend = backend
-        self._jobs = []
         self._min_circuits = min_circuits
+        self._max_circuits = backend.configuration().max_experiments
         self._timeout = timeout
         Thread.__init__(self)
         self._log.info("Init")
@@ -134,17 +143,22 @@ class Transpiler(Thread):
     def run(self) -> None:
         while True:
             start_time = time.time()
-            while len(self._jobs) <= self._min_circuits and time.time() - start_time <= self._batch_timeout:
+            jobs = []
+            while len(jobs) < self._max_circuits and time.time() - start_time <= self._timeout:
                 try:
                     job:QuantumJob = self.input.get(timeout=5)
-                    self._jobs.append(job)                        
+                    jobs.append(job)                        
                 except Empty:
-                    if len(self._jobs) == 0:
-                        continue
-            if len(self._jobs) > 0:
-                circuits = list([job.circuit for job in self.jobs])
+                    if len(jobs) >= self._min_circuits:
+                        break
+            
+            if len(jobs) > 0:
+                circuits = list([job.circuit for job in jobs])
+                trans_start_time = time.time()
                 transpiled_circuits = transpile(circuits, backend=self._backend)
-                for tuple in zip(transpiled_circuits, self._jobs):
+                time_diff = time.time() - trans_start_time
+                self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {self._backend.name()} in {time_diff}s")
+                for tuple in zip(transpiled_circuits, jobs):
                     self.output.put(tuple)
 
         
@@ -197,25 +211,27 @@ class Batch():
 
 class Batcher(Thread):
 
-    def __init__(self, output: Queue, new_backend:Queue, get_max_batch_size:Callable[[str], int], get_max_shots:Callable[[str], int], quantum_job_table:Dict, batch_timeout:int=30) -> None:
+    def __init__(self, output: Queue, new_backend:Queue, quantum_job_table:Dict, backend_look_up:BackendLookUp, transpiler_look_up:TranspilerLookUp, batch_timeout:int=30) -> None:
         self._log = logger.get_logger(type(self).__name__)
         self._output = output
         self._new_backend = new_backend
         self._batch_timeout = batch_timeout
         self._quantum_job_table = quantum_job_table
+        self._backend_look_up = backend_look_up
+        self._transpiler_look_up = transpiler_look_up
         self._backend_queue_table = {}
-        self._get_max_batch_size = get_max_batch_size
         self._backend_max_batch_size = {}
-        self._get_max_shots = get_max_shots
         self._backend_max_shots = {}
         self._queue_timers = {}
         self._batch_count = {}
         Thread.__init__(self)
         self._log.info("Init")
 
-    def _create_batches(self, backend_name:str, circuits:List[QuantumJob]):
+    def _create_batches(self, backend_name:str, transpiled_circuits:List[QuantumCircuit], jobs:List[QuantumJob]):
         """Generate a list of batches"""
-        if len(circuits) == 0:
+        assert(len(transpiled_circuits)==len(jobs))
+        self._log.debug(f"Adding {len(transpiled_circuits)} circuits to batches")
+        if len(transpiled_circuits) == 0:
             return
         try:
             count = self._batch_count[backend_name]
@@ -224,9 +240,8 @@ class Batcher(Thread):
             self._batch_count[backend_name] = 0
 
         batch = Batch(backend_name, self._backend_max_shots[backend_name], self._backend_max_batch_size[backend_name], count)
-        for job in circuits:
+        for circuit, job in zip(transpiled_circuits, jobs):
             key = job.id
-            circuit = job.circuit
             shots = job.shots
             remaining_shots = batch.add_circuit(key, circuit, shots)
             while remaining_shots > 0:
@@ -244,10 +259,11 @@ class Batcher(Thread):
         self._log.info("Started")
         while True:
             while not self._new_backend.empty():
-                backend_name, backend_queue = self._new_backend.get()
-                self._backend_queue_table[backend_name] = backend_queue
-                self._backend_max_batch_size[backend_name] = self._get_max_batch_size(backend_name)
-                self._backend_max_shots[backend_name] = self._get_max_shots(backend_name)
+                backend_name = self._new_backend.get()
+                transpiler_output = self._transpiler_look_up.get_output(backend_name)
+                self._backend_queue_table[backend_name] = transpiler_output
+                self._backend_max_batch_size[backend_name] = self._backend_look_up.max_experiments(backend_name)
+                self._backend_max_shots[backend_name] = self._backend_look_up.max_shots(backend_name)
                 self._log.debug(f"Got new backend {backend_name} with max batch size {self._backend_max_batch_size[backend_name]} and max shots {self._backend_max_shots[backend_name]}")
 
             for backend_name, backend_queue in self._backend_queue_table.items():
@@ -261,15 +277,18 @@ class Batcher(Thread):
                 
                 if time.time() - self._queue_timers[backend_name] > self._batch_timeout or backend_queue.qsize() >= self._backend_max_batch_size[backend_name]:
                     # Timeout occured or enough items for a wole batch -> try to get a batch
-                    add_to_batch = []
+                    self._log.debug(f"Time {time.time() - self._queue_timers[backend_name]}, timeout: {self._batch_timeout}, qsize:{backend_queue.qsize()}, max batch size {self._backend_max_batch_size[backend_name]}")
+                    add_to_batch_circs = []
+                    add_to_batch_jobs = []
                     for _ in range(self._backend_max_batch_size[backend_name]):
                         try:
-                            job = backend_queue.get(block=False)
-                            add_to_batch.append(job)
+                            transpiled_circ, job = backend_queue.get(block=False)
+                            add_to_batch_circs.append(transpiled_circ)
+                            add_to_batch_jobs.append(job)
                             self._quantum_job_table[job.id] = job
                         except Empty:
                             break
-                    self._create_batches(backend_name, add_to_batch)
+                    self._create_batches(backend_name, add_to_batch_circs, add_to_batch_jobs)
                     if backend_queue.empty():
                         # delete timer because the queue is empty
                         self._queue_timers.pop(backend_name)
@@ -284,7 +303,7 @@ class Assembler(Thread):
         self._input = input
         self._output = output
         self._backend_look_up = backend_look_up
-        n_workers = 4
+        n_workers = 1
         self._executor =  ThreadPoolExecutor(n_workers)
         Thread.__init__(self)
         self._log.info("Init")
@@ -328,6 +347,21 @@ class Submitter(Thread):
         Thread.__init__(self)
         self._log.info("Init")
 
+    def _assemble(self, batch:Batch) -> Qobj:
+        backend_name = batch.backend_name
+        backend = self._backend_look_up.get(backend_name)
+        circuits = list([circuit_item["circuit"] for circuit_item in batch.experiments])
+        # transpiled_circuits = transpile(circuits_to_transpile, backend=backend)
+        multiplied_circuits = []
+        for i, circuit_item in enumerate(batch.experiments):
+            reps = circuit_item["reps"]
+            circ = circuits[i]
+            multiplied_circuits.extend([circ]*reps)
+        #self._log.info(f"Transpiled batch {backend_name}/{batch.batch_number}")
+        qobj =  assemble(multiplied_circuits, backend, shots=batch.shots, memory=True)
+        self._log.info(f"Assembled Qobj for batch {backend_name}/{batch.batch_number}")
+        return qobj
+
         
     def run(self) -> None:
         self._log.info("Started")
@@ -335,18 +369,13 @@ class Submitter(Thread):
         qobj: Qobj
         while True:
             try:
-                self._internal_jobs_queue.append(self._input.get(timeout=self._defer_interval))
+                batch = self._input.get(timeout=self._defer_interval)
+                qobj = self._assemble(batch)
+                self._internal_jobs_queue.append((batch, qobj))
             except Empty:
                 pass
             deferred_jobs = []
             for batch, qobj in self._internal_jobs_queue:
-                if isinstance(qobj, Future):
-                    if qobj.done():
-                        qobj = qobj.result()
-                    else:
-                        # self._log.debug(f"Qobj is not yet available -> defer job for batch {batch.backend_name}/{batch.batch_number}")
-                        deferred_jobs.append((batch, qobj))
-                        continue
                 backend_name = batch.backend_name
                 backend = self._backend_look_up.get(backend_name)
                 if self._backend_control.try_to_enter(backend_name, backend):
@@ -549,28 +578,27 @@ class ResultProcessor(Thread):
 
 class ExecutionHandler():
     
-    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 30, retrieve_time:int = 30) -> None:
+    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_time:int = 30) -> None:
         new_backends = Queue()
-        batcher_assembler = Queue()
+        batcher_submitter = Queue()
         assembler_submitter = Queue()
         submitter_retrieber = Queue()
         retriever_processor = Queue()
         quantum_job_table = {}
-        get_max_batch_size = lambda backend_name: provider.get_backend(backend_name).configuration().max_experiments
-        get_max_shots = lambda backend_name: provider.get_backend(backend_name).configuration().max_shots
         backend_look_up = BackendLookUp(provider)
         backend_control = BackendControl()
-        self._execution_sorter = ExecutionSorter(input, new_backends)
-        self._batcher = Batcher(batcher_assembler, new_backends, get_max_batch_size, get_max_shots, quantum_job_table, batch_timeout)
-        self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, backend_look_up=backend_look_up)
-        self._submitter = Submitter(input=assembler_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
+        transpiler_look_up = TranspilerLookUp(backend_look_up, 10, 15)
+        self._execution_sorter = ExecutionSorter(input, new_backends, transpiler_look_up)
+        self._batcher = Batcher(batcher_submitter, new_backends, quantum_job_table, backend_look_up, transpiler_look_up, batch_timeout)
+        # self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, backend_look_up=backend_look_up)
+        self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
         self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table)
     
     def start(self):
         self._execution_sorter.start()
         self._batcher.start()
-        self._assembler.start()
+        # self._assembler.start()
         self._submitter.start()
         self._retriever.start()
         self._processor.start()
