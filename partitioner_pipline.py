@@ -25,7 +25,8 @@ if __name__ == "__main__":
     part = Partitioner(input, output_part, part_job_dict, max_subcircuit_qubit=5, num_subcircuits=[2,3,4], max_cuts=10, verbose=True)
     part.start()
 
-    exec_handler = ExecutionHandler(backend_sim, output_part, output_exec)
+    exec_handler = ExecutionHandler(provider, output_part, output_exec, batch_timeout=5)
+    exec_handler.start()
 
     part_res = ResultWriter(output_exec, results_available, part_job_dict)
     part_res.start()
@@ -33,12 +34,12 @@ if __name__ == "__main__":
     part_processing = ResultProcessing(results_available, output, part_job_dict, True)
     part_processing.start()
     
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000))
+    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend="ibmq_quito"))
+    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend="ibmq_qasm_simulator"))
 
     log = logger.get_logger("Pipeline")
     i = 0
     while True:
-        job = output.get()
+        job = output.get() 
         log.info(f"{i} {job.id} {job.result}")
         i += 1
