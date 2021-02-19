@@ -71,15 +71,15 @@ if __name__ == "__main__":
 
     # backend = provider.get_backend('ibmq_athens')
     # backend = provider.get_backend('ibmq_santiago')
-    backend = provider.get_backend('ibmq_16_melbourne')
+    # backend = provider.get_backend('ibmq_16_melbourne')
     # backend = provider.get_backend('ibmq_quito')
     # backend = provider.get_backend('ibmq_qasm_simulator')
     
 
 
-    n_circuits = 250
-    n_qubits = 6
-    circuit_type = "uccsd"
+    n_circuits = 100
+    n_qubits = 2
+    circuit_type = "random"
     permute = False
 
     if circuit_type == "random":
@@ -116,8 +116,10 @@ if __name__ == "__main__":
 
 
     for circ in circuits:
-        input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192))
-        input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192))
+        input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_quito"))
+        input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_quito"))
+        input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_lima"))
+        input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_lima"))
 
 
 
@@ -126,7 +128,8 @@ if __name__ == "__main__":
     aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
     aggregator.start()
 
-    exec_handler = ExecutionHandler(backend, input=input_exec, results=output_exec, batch_timeout=5)
+    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec)
+    exec_handler.start()
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)
     result_analyzer.start()
@@ -138,6 +141,13 @@ if __name__ == "__main__":
 
     results = []
     agg_results = []
+
+    i = 0
+    while True:
+        job = output_pipline.get()
+        r = job.result
+        log.info(f"{i}: Got job {job.id},type {job.type} , from backend {job.backend}, success: {r.success}")
+        i+=1
 
     for i in range(n_circuits):
         job = output_pipline.get()
