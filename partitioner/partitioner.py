@@ -41,11 +41,9 @@ class Partitioner(Thread):
 
     def _cut(self, circuit:QuantumCircuit):
         assert(check_valid(circuit=circuit))
-        if self.verbose:
-            print('*'*20,'Cut','*'*20)
+        self._log.debug('*'*20+'Cut'+'*'*20)
         cut_solution = find_cuts(circuit, self._max_subcircuit_qubit, self._num_subcircuits, self._max_cuts, self.verbose)
-        if self.verbose:
-            print('*'*20,'Generate Subcircuits','*'*20)
+        self._log.debug('*'*20+'Generate Subcircuits'+'*'*20)
         circ_dict, all_indexed_combinations = generate_subcircuit_instances(subcircuits=cut_solution["subcircuits"], complete_path_map=cut_solution["complete_path_map"])
         return cut_solution, circ_dict, all_indexed_combinations
 
@@ -56,6 +54,6 @@ class Partitioner(Thread):
             circ = circ_info["circuit"]
             shots = circ_info["shots"]
             qc=apply_measurement(circuit=circ,qubits=circ.qubits)
-            sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=qJob.shots, key=key))
+            sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=qJob.shots, key=key, backend=qJob.backend))
         self._partition_dict[qJob.id] = {"cut_solution":cut_solution, "all_indexed_combinations":all_indexed_combinations, "job":qJob, "num_sub_jobs":len(sub_jobs)}
         return sub_jobs

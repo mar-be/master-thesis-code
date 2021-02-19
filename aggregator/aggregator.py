@@ -1,4 +1,5 @@
 import copy
+import time
 
 from typing import Dict, List, Any, Tuple
 from queue import Empty, Queue
@@ -23,30 +24,48 @@ class Aggregator(Thread):
         self._output = output
         self._job_dict = job_dict
         self._timeout = timeout
+        self._jobs_to_aggregate = {}
+        self._timers = {}
         Thread.__init__(self)
         self._log.info("Init Aggregator")
 
     
     def run(self) -> None:
         self._log.info("Started Aggregator")
-        jobs_to_aggregate = []
         while True:
             try:
                 q_job = self._input.get(timeout=self._timeout)
-                jobs_to_aggregate.append(q_job)
             except Empty:
-                if len(jobs_to_aggregate) == 0:
+                q_job = None
+            if q_job:
+                try:
+                    self._jobs_to_aggregate[q_job.backend].append(q_job)
+                except KeyError: 
+                    self._jobs_to_aggregate[q_job.backend] = [q_job]
+                    self._timers[q_job.backend] = time.time()
+            
+                # if len(jobs_to_aggregate) == 0:
+                #     continue
+                # elif len(jobs_to_aggregate) == 1:
+                #     self._output.put(jobs_to_aggregate.pop())
+            clear = []
+            for backend_name, jobs_to_aggregate in self._jobs_to_aggregate.items():
+                if len(jobs_to_aggregate) < 2 and time.time() - self._timers[backend_name] < self._timeout:
                     continue
-                elif len(jobs_to_aggregate) == 1:
+                clear.append(backend_name)
+                if len(jobs_to_aggregate) > 1:
+                    agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
+                    agg_shots = max([job.shots for job in jobs_to_aggregate])
+                    agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, shots = agg_shots, backend=backend_name)
+                    self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
+                    self._output.put(agg_job)
+                else:
                     self._output.put(jobs_to_aggregate.pop())
-            if len(jobs_to_aggregate) < 2:
-                continue
-            agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
-            agg_shots = max([job.shots for job in jobs_to_aggregate])
-            agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, shots = agg_shots)
-            self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
-            self._output.put(agg_job)
-            jobs_to_aggregate = []
+            for backend_name in clear:
+                self._jobs_to_aggregate.pop(backend_name)
+                self._timers.pop(backend_name)
+
+
 
 class AggregatorResults(Thread):
     
@@ -72,6 +91,7 @@ class AggregatorResults(Thread):
             assert(len(results)==len(initial_jobs))
             for i, job in enumerate(initial_jobs):
                 job.result = results[i]
+                job.type = Modification_Type.aggregation
                 self._output.put(job)
             
 
