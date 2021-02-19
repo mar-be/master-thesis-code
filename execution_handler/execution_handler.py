@@ -31,7 +31,7 @@ class BackendLookUp():
             return self._provider.get_backend(backend_name)
         try:
             backend = self._backends[backend_name]
-        except:
+        except KeyError:
             backend = self._provider.get_backend(backend_name)
             self._log.info(f"Retrieved backend {backend_name}")
             self._backends[backend_name] = backend
@@ -69,6 +69,31 @@ class BackendControl():
         with self._locks[backend_name]:
             self._counters[backend_name] -= 1
 
+class TranspilerLookUp():
+
+    def __init__(self, backend_look_up:BackendLookUp, min_circuits:int, timeout:int) -> None:
+        self._backend_look_up = backend_look_up
+        self._min_circuits = min_circuits
+        self._timeout = timeout
+        self._transpilers = {}
+
+    def _get_or_create_transpiler(self, backend_name):
+        try:
+            return self._transpilers[backend_name]
+            
+        except KeyError:
+            backend = self._backend_look_up.get[backend_name]
+            transpiler = Transpiler(Queue(), Queue(), backend, self._min_circuits, self._timeout)
+            self._transpilers[backend_name] = transpiler
+            transpiler.start()
+            return transpiler
+
+    def get_input(self, backend_name):
+        return self._get_or_create_transpiler(backend_name).input
+
+    def get_output(self, backend_name):
+        return self._get_or_create_transpiler(backend_name).output
+
 class ExecutionSorter(Thread):
 
     def __init__(self, input:Queue, new_backend:Queue):
@@ -94,14 +119,13 @@ class ExecutionSorter(Thread):
             self._backend_queue_table[backend].put(job)
 
 class Transpiler(Thread):
-    def __init__(self, backend_name:Backend, provider:Provider, input:Queue, output:Queue, max_circuits:int, timeout:int):
+    def __init__(self, input:Queue, output:Queue, backend:Backend, min_circuits:int, timeout:int):
         self._log = logger.get_logger(type(self).__name__)
-        self._backend_name = backend_name
-        self._backend = provider.get_backend(backend_name)
-        self._input = input
-        self._output = output
+        self.input = input
+        self.output = output
+        self._backend = backend
         self._jobs = []
-        self._max_circuits = max_circuits
+        self._min_circuits = min_circuits
         self._timeout = timeout
         Thread.__init__(self)
         self._log.info("Init")
@@ -110,9 +134,9 @@ class Transpiler(Thread):
     def run(self) -> None:
         while True:
             start_time = time.time()
-            while len(self._jobs) <= self._max_circuits and time.time() - start_time <= self._batch_timeout:
+            while len(self._jobs) <= self._min_circuits and time.time() - start_time <= self._batch_timeout:
                 try:
-                    job:QuantumJob = self._input.get(timeout=5)
+                    job:QuantumJob = self.input.get(timeout=5)
                     self._jobs.append(job)                        
                 except Empty:
                     if len(self._jobs) == 0:
@@ -121,7 +145,7 @@ class Transpiler(Thread):
                 circuits = list([job.circuit for job in self.jobs])
                 transpiled_circuits = transpile(circuits, backend=self._backend)
                 for tuple in zip(transpiled_circuits, self._jobs):
-                    self._output.put(tuple)
+                    self.output.put(tuple)
 
         
 
