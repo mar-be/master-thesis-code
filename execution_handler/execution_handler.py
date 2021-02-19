@@ -2,13 +2,11 @@ import copy
 import math
 import time
 from collections import Counter
-from concurrent.futures import Future, ProcessPoolExecutor, ThreadPoolExecutor
 from queue import Empty, Queue
 from threading import Lock, Thread
-from typing import Callable, Dict, List, Optional, Tuple
-
+from typing import Dict, List
 import logger
-from qiskit import QuantumCircuit, assemble, transpile, transpiler
+from qiskit import QuantumCircuit, assemble, transpile
 from qiskit.providers import Backend
 from qiskit.providers.ibmq.accountprovider import AccountProvider
 from qiskit.providers.job import Job
@@ -296,43 +294,6 @@ class Batcher(Thread):
                         # start a new timer
                         self._queue_timers[backend_name] = time.time()
 
-class Assembler(Thread):
-
-    def __init__(self, input: Queue, output: Queue, backend_look_up:BackendLookUp):
-        self._log = logger.get_logger(type(self).__name__)
-        self._input = input
-        self._output = output
-        self._backend_look_up = backend_look_up
-        n_workers = 1
-        self._executor =  ThreadPoolExecutor(n_workers)
-        Thread.__init__(self)
-        self._log.info("Init")
-
-    def _assemble(self, batch:Batch) -> Qobj:
-        backend_name = batch.backend_name
-        backend = self._backend_look_up.get(backend_name)
-        circuits_to_transpile = list([circuit_item["circuit"] for circuit_item in batch.experiments])
-        transpiled_circuits = transpile(circuits_to_transpile, backend=backend)
-        multiplied_transpiled_circuits = []
-        for i, circuit_item in enumerate(batch.experiments):
-            reps = circuit_item["reps"]
-            circ = transpiled_circuits[i]
-            multiplied_transpiled_circuits.extend([circ]*reps)
-        self._log.info(f"Transpiled batch {backend_name}/{batch.batch_number}")
-        qobj =  assemble(multiplied_transpiled_circuits, backend, shots=batch.shots, memory=True)
-        self._log.info(f"Assembled Qobj for batch {backend_name}/{batch.batch_number}")
-        return qobj
-
-    def run(self) -> None:
-        self._log.info("Started")
-        while True:
-            batch:Batch = self._input.get()
-            self._log.info(f"Got batch {batch.batch_number} for backend {batch.backend_name}")
-            future_qobj = self._executor.submit(self._assemble, batch)
-            self._output.put((batch, future_qobj))
-           
-
-
 
 class Submitter(Thread):
 
@@ -351,7 +312,6 @@ class Submitter(Thread):
         backend_name = batch.backend_name
         backend = self._backend_look_up.get(backend_name)
         circuits = list([circuit_item["circuit"] for circuit_item in batch.experiments])
-        # transpiled_circuits = transpile(circuits_to_transpile, backend=backend)
         multiplied_circuits = []
         for i, circuit_item in enumerate(batch.experiments):
             reps = circuit_item["reps"]
@@ -581,7 +541,6 @@ class ExecutionHandler():
     def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_time:int = 30) -> None:
         new_backends = Queue()
         batcher_submitter = Queue()
-        assembler_submitter = Queue()
         submitter_retrieber = Queue()
         retriever_processor = Queue()
         quantum_job_table = {}
@@ -590,7 +549,6 @@ class ExecutionHandler():
         transpiler_look_up = TranspilerLookUp(backend_look_up, 10, 15)
         self._execution_sorter = ExecutionSorter(input, new_backends, transpiler_look_up)
         self._batcher = Batcher(batcher_submitter, new_backends, quantum_job_table, backend_look_up, transpiler_look_up, batch_timeout)
-        # self._assembler = Assembler(input=batcher_assembler, output=assembler_submitter, backend_look_up=backend_look_up)
         self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
         self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table)
@@ -598,7 +556,6 @@ class ExecutionHandler():
     def start(self):
         self._execution_sorter.start()
         self._batcher.start()
-        # self._assembler.start()
         self._submitter.start()
         self._retriever.start()
         self._processor.start()
