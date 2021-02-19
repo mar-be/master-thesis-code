@@ -32,16 +32,18 @@ class Aggregator(Thread):
     
     def run(self) -> None:
         self._log.info("Started Aggregator")
-        jobs_to_aggregate = []
         while True:
             try:
                 q_job = self._input.get(timeout=self._timeout)
-                self._jobs_to_aggregate[q_job.backend].append(q_job)
-            except KeyError: 
-                self._jobs_to_aggregate[q_job.backend] = [q_job]
-                self._timers[q_job.backend] = time.time()
             except Empty:
-                pass
+                q_job = None
+            if q_job:
+                try:
+                    self._jobs_to_aggregate[q_job.backend].append(q_job)
+                except KeyError: 
+                    self._jobs_to_aggregate[q_job.backend] = [q_job]
+                    self._timers[q_job.backend] = time.time()
+            
                 # if len(jobs_to_aggregate) == 0:
                 #     continue
                 # elif len(jobs_to_aggregate) == 1:
