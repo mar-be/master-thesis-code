@@ -1,3 +1,4 @@
+from analyzer.backend_chooser import Backend_Data
 from logger import get_logger
 from queue import Queue
 from execution_handler.execution_handler import ExecutionHandler
@@ -20,6 +21,10 @@ if __name__ == "__main__":
     agg_job_dict = {}
 
     backend_sim = provider.get_backend('ibmq_qasm_simulator')
+    backend = provider.get_backend('ibmq_quito')
+
+    backend_data_1 = Backend_Data(backend_sim)
+    backend_data_2 = Backend_Data(backend)
 
     aggregator = Aggregator(input, output_agg, agg_job_dict, 10)
     aggregator.start()
@@ -32,15 +37,14 @@ if __name__ == "__main__":
 
     for i in range(200):
         if i % 2 == 0:
-            backend = 'ibmq_qasm_simulator'
+            backend_data = backend_data_1
         else:
-            backend = 'ibmq_quito'
-        # backend = 'ibmq_qasm_simulator'
-        input.put(QuantumJob(random_circuit(2, 5, measure=True), shots=10000, backend=backend))
+            backend_data = backend_data_2
+        input.put(QuantumJob(random_circuit(2, 5, measure=True), shots=10000, backend_data=backend_data))
     
     i = 0
     while True:
         job = output.get()
         r = job.result
-        log.info(f"{i}: Got job {job.id},type {job.type}, from backend {job.backend}, success: {r.success}")
+        log.info(f"{i}: Got job {job.id},type {job.type}, from backend {job.backend_data.name}, success: {r.success}")
         i += 1

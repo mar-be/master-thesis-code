@@ -17,7 +17,7 @@ class StreamToLogger(object):
     def flush(self):
         pass
 
-log_level = logging.DEBUG
+log_level = logging.INFO
 
 def get_logger(name:str) -> logging.Logger:
     log = logging.getLogger(name)

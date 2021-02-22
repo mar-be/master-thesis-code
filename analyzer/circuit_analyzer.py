@@ -3,7 +3,7 @@ from qiskit.providers.backend import Backend
 from quantum_job import QuantumJob, Modification_Type
 from queue import Queue
 from threading import Thread
-from analyzer.backend_chooser import Backend_Chooser
+from analyzer.backend_chooser import Backend_Chooser, Backend_Data
 import logger
 
 class CircuitAnalyzer(Thread):
@@ -18,23 +18,21 @@ class CircuitAnalyzer(Thread):
         Thread.__init__(self)
         self._log.info("Init CircuitAnalyzer")
 
-    def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, Backend]:
+    def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, Backend_Data]:
         n_qubits = job.circuit.num_qubits
         backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x.n_qubits>=n_qubits and not x.simulator)
         if backend_record:
             backend_name, backend_data = backend_record
-            backend = backend_data.backend
-            if n_qubits <= backend.configuration().n_qubits/2:
-                return Modification_Type.aggregation, backend
+            if n_qubits <= backend_data.n_qubits/2:
+                return Modification_Type.aggregation, backend_data
             else:
-                return Modification_Type.none, backend
+                return Modification_Type.none, backend_data
         # partition needed because there is no suitable backend 
         while backend_record == None:
             n_qubits -= 1
             backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x.n_qubits>=n_qubits and not x.simulator)
         backend_name, backend_data = backend_record
-        backend = backend_data.backend
-        return Modification_Type.partition, backend
+        return Modification_Type.partition, backend_data
 
 
 
@@ -44,8 +42,9 @@ class CircuitAnalyzer(Thread):
         while True:
             job:QuantumJob = self._input.get()
             self._log.debug(f"Got job {job.id}")
-            mod_type, backend = self.decide_action(job)
-            self._log.info(f"Mod.Type = {mod_type}, Backend = {backend.name()}")
+            mod_type, backend_data = self.decide_action(job)
+            job.backend_data = backend_data
+            self._log.info(f"Mod.Type = {mod_type}, Backend = {backend_data.name}")
             if mod_type == Modification_Type.none:
                 pass
             elif mod_type == Modification_Type.aggregation:

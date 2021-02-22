@@ -116,7 +116,7 @@ class ExecutionSorter(Thread):
         self._log.info("Started")
         while True:
             job:QuantumJob = self._input.get()
-            backend_name = job.backend
+            backend_name = job.backend_data.name
             if not backend_name in self._backend_queue_table.keys():
                 transpiler_input = self._transpiler_look_up.get_input(backend_name)
                 self._backend_queue_table[backend_name] = transpiler_input

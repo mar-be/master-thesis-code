@@ -10,7 +10,7 @@ from qiskit.providers import Provider, Backend
 class Backend_Data():
 
     def __init__(self, backend:Backend) -> None:
-        self.backend = backend
+        self.name = backend.name()
         self.n_qubits = backend.configuration().n_qubits
         self.operational = backend.status().operational
         self.simulator = backend.configuration().simulator

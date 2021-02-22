@@ -1,3 +1,4 @@
+from analyzer.backend_chooser import Backend_Data
 from queue import Queue
 from execution_handler.execution_handler import ExecutionHandler
 from partitioner.partitioner import Partitioner
@@ -20,9 +21,9 @@ if __name__ == "__main__":
 
     part_job_dict = {}
 
-    backend_sim = provider.get_backend('ibmq_qasm_simulator')
+    backend = provider.get_backend('ibmq_belem')
 
-    part = Partitioner(input, output_part, part_job_dict, max_subcircuit_qubit=5, num_subcircuits=[2,3,4], max_cuts=10, verbose=True)
+    part = Partitioner(input, output_part, part_job_dict, num_subcircuits=[2,3,4], max_cuts=10)
     part.start()
 
     exec_handler = ExecutionHandler(provider, output_part, output_exec, batch_timeout=5)
@@ -33,9 +34,11 @@ if __name__ == "__main__":
 
     part_processing = ResultProcessing(results_available, output, part_job_dict, True)
     part_processing.start()
+
+    backend_data = Backend_Data(backend)
     
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend="ibmq_quito"))
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend="ibmq_qasm_simulator"))
+    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
+    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
 
     log = logger.get_logger("Pipeline")
     i = 0

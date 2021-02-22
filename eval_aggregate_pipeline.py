@@ -1,3 +1,5 @@
+from typing import List
+from analyzer.backend_chooser import Backend_Data
 from logging import raiseExceptions
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -18,6 +20,8 @@ from qiskit.circuit.random import random_circuit
 from evaluate.metrics import metric_diff, chi_square, kullback_leibler_divergence
 from evaluate.util import sv_to_probability, counts_to_probability
 from analyzer.result_analyzer import ResultAnalyzer
+
+import numpy as np
 
 from logger import get_logger
 
@@ -56,6 +60,32 @@ def uccsd(n_qubits, n_circuits):
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
 
+def write_file(backend, results, agg_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute):
+    res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
+    agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]
+
+    data = []
+    n_circuits = len(circuits)
+    for i in range(n_circuits):
+        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist()})
+
+    backend_dict = {"name":backend.name()}
+    if backend.configuration() != None:
+        backend_dict["config"] = backend.configuration().to_dict() 
+    
+    if backend.status() != None:
+        backend_dict["status"] = backend.status().to_dict()
+
+    if backend.properties() != None:
+        backend_dict["properties"] = backend.properties().to_dict()
+
+    now = datetime.now()
+    now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
+    with open(f'agg_data/{circuit_type}_{backend.name()}_{now_str}.json', 'w') as f:
+        json.dump({"backend":backend_dict, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "data":data}, f, indent=4, default=json_serial)
+
+    log.info("Wrote results to file.")
+
 
 if __name__ == "__main__":
 
@@ -75,6 +105,8 @@ if __name__ == "__main__":
     # backend = provider.get_backend('ibmq_quito')
     # backend = provider.get_backend('ibmq_qasm_simulator')
     
+    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
+    shots = 8192
 
 
     n_circuits = 100
@@ -112,14 +144,19 @@ if __name__ == "__main__":
         n_circuits = len(circuits)
         log.info(f"Generated all permutations. Now there are {n_circuits} circuits")
 
-        
+    backend_data_list = []
+    backends = {}
+    for backend_name in backend_names:
+        backend = provider.get_backend(backend_name)
+        backend_data = Backend_Data(backend)
+        backend_data_list.append(backend_data)
+        backends[backend_name] = {"backend":backend, "backend_data":backend_data}
 
+    for backend_data in backend_data_list:
+        for circ in circuits:
+            input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+            input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
 
-    for circ in circuits:
-        input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_quito"))
-        input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_quito"))
-        input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_lima"))
-        input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=8192, backend="ibmq_lima"))
 
 
 
@@ -139,49 +176,30 @@ if __name__ == "__main__":
 
     log.info("Started the Aggrgator pipeline")
 
-    results = []
-    agg_results = []
+    results = {}
+    agg_results = {}
 
-    i = 0
-    while True:
+
+    n_results = 2*n_circuits*len(backend_names)
+    for backend_name in backend_names:
+        results[backend_name] = []
+        agg_results[backend_name] = []
+
+    for i in range(n_results):
         job = output_pipline.get()
         r = job.result
-        log.info(f"{i}: Got job {job.id},type {job.type} , from backend {job.backend}, success: {r.success}")
-        i+=1
-
-    for i in range(n_circuits):
-        job = output_pipline.get()
-        results.append(job.result)
-    
-    log.info("All results for not aggregated circuits are available")
-
-    for i in range(n_circuits):
-        job = output_pipline.get()
-        agg_results.append(job.result)
-    
-    log.info("All results for aggregated circuits are available")
+        backend_name = job.backend_data.name
+        log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}, success: {r.success}")
+        if len(results[backend_name]) < n_circuits:
+            results[backend_name].append(r)
+        else:
+            agg_results[backend_name].append(r)
+        if len(results[backend_name]) == n_circuits and len(agg_results[backend_name]) == 0:
+            log.info(f"All results for not aggregated circuits are available for backend {backend_name}")
+        elif len(agg_results[backend_name]) == n_circuits:
+            log.info(f"All results for aggregated circuits are available for backend {backend_name}")
+            write_file(backends[backend_name]["backend"], results.pop(backend_name), agg_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute)
 
 
-    res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
-    agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]
 
-    data = []
-    for i in range(n_circuits):
-        data.append({"circuit":circuits[i].qasm(), "sv-result":sv_res_prob[i].tolist(), "result":res_prob[i].tolist(), "agg-result":agg_res_prob[i].tolist()})
 
-    backend_dict = {"name":backend.name()}
-    if backend.configuration() != None:
-        backend_dict["config"] = backend.configuration().to_dict() 
-    
-    if backend.status() != None:
-        backend_dict["status"] = backend.status().to_dict()
-
-    if backend.properties() != None:
-        backend_dict["properties"] = backend.properties().to_dict()
-
-    now = datetime.now()
-    now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    with open(f'agg_data/{circuit_type}_{backend.name()}_{now_str}.json', 'w') as f:
-        json.dump({"backend":backend_dict, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "data":data}, f, indent=4, default=json_serial)
-
-    log.info("Wrote results to file.")

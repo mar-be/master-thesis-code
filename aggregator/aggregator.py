@@ -7,6 +7,7 @@ from threading import Thread
 
 from qiskit import QuantumCircuit, circuit
 from qiskit.circuit.random import random_circuit
+from qiskit.providers import backend
 from qiskit.result import Result
 
 from quantum_job import QuantumJob, Modification_Type
@@ -38,11 +39,12 @@ class Aggregator(Thread):
             except Empty:
                 q_job = None
             if q_job:
+                backend_name = q_job.backend_data.name
                 try:
-                    self._jobs_to_aggregate[q_job.backend].append(q_job)
+                    self._jobs_to_aggregate[backend_name].append(q_job)
                 except KeyError: 
-                    self._jobs_to_aggregate[q_job.backend] = [q_job]
-                    self._timers[q_job.backend] = time.time()
+                    self._jobs_to_aggregate[backend_name] = [q_job]
+                    self._timers[backend_name] = time.time()
             
                 # if len(jobs_to_aggregate) == 0:
                 #     continue
@@ -56,7 +58,7 @@ class Aggregator(Thread):
                 if len(jobs_to_aggregate) > 1:
                     agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
                     agg_shots = max([job.shots for job in jobs_to_aggregate])
-                    agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, shots = agg_shots, backend=backend_name)
+                    agg_job = QuantumJob(agg_circ, Modification_Type.aggregation, shots = agg_shots, backend_data = jobs_to_aggregate[0].backend_data)
                     self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
                     self._output.put(agg_job)
                 else:
