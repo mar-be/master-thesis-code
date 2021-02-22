@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from analyzer.backend_chooser import Backend_Chooser, no_simulator_filter
+from analyzer.backend_chooser import Backend_Chooser
 from analyzer.circuit_analyzer import CircuitAnalyzer
 from queue import Queue
 from quantum_job import QuantumJob

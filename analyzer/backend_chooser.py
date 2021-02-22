@@ -3,11 +3,29 @@ from typing import Any, Dict, List, Callable, Tuple, Optional
 from qiskit import IBMQ, QuantumCircuit
 from qiskit.providers.ibmq import least_busy
 from qiskit import IBMQ
-from qiskit.providers import Provider, Backend, backend
+from qiskit.providers import Provider, Backend
 
 
-operational_filter = lambda x: x["operational"]
-no_simulator_filter = lambda x: not x["simulator"]
+
+class Backend_Data():
+
+    def __init__(self, backend:Backend) -> None:
+        self.backend = backend
+        self.n_qubits = backend.configuration().n_qubits
+        self.operational = backend.status().operational
+        self.simulator = backend.configuration().simulator
+        self.pending_jobs = backend.status().pending_jobs
+        self.active_jobs = backend.job_limit().active_jobs
+        self.maximum_jobs = backend.job_limit().maximum_jobs
+        # only available by real QPUs
+        try:
+            self.quantum_volume = backend.configuration().quantum_volume
+        except AttributeError:
+            pass
+
+    def __str__(self):
+        return str(self.__dict__)
+
 
 class Backend_Chooser():
 
@@ -20,7 +38,7 @@ class Backend_Chooser():
 
     def _update_backends(self):
         for b in self._provider.backends():
-            self._backends[b.name()] = {"backend":b, "n_qubits":b.configuration().n_qubits, "operational":b.status().operational, "simulator":b.configuration().simulator, "pending_jobs":b.status().pending_jobs}
+            self._backends[b.name()] = Backend_Data(b)
 
     def _check_update_backends(self):
         now = time.time()
@@ -40,17 +58,18 @@ class Backend_Chooser():
 
     def get_least_busy(self, filters:Optional[Callable[[Backend], bool]] = None) -> Optional[Tuple[str, Dict]]:
         if filters == None:
-            f = operational_filter
+            f = lambda x: x.operational
         else:
-            f = lambda x: filters(x) and operational_filter(x)
+            f = lambda x: filters(x) and x.operational
         filtered_backends = self.get_backends(filters=f)
         if len(filtered_backends) == 0:
             return None
-        least_busy = min(filtered_backends.items(), key=lambda x: x[1]["pending_jobs"])
+        backends_with_free_jobs = dict(filter(lambda backend: backend[1].active_jobs < backend[1].maximum_jobs, filtered_backends.items()))
+        least_busy = min(backends_with_free_jobs.items(), key=lambda x: x[1].pending_jobs)
         return least_busy 
         
     def get_least_busy_qubits(self, n_qubit:int) -> Tuple[str, Dict]:
-        return self.get_least_busy(filters=lambda x: x["n_qubits"]>=n_qubit)
+        return self.get_least_busy(filters=lambda x: x.n_qubits>=n_qubit)
 
 
 
@@ -58,24 +77,10 @@ class Backend_Chooser():
 if __name__ == "__main__":
     IBMQ.load_account()
     provider = IBMQ.get_provider()
-    bh =  Backend_Chooser(provider)
-    # print(bh.get_backend_names(filters=lambda x: x.configuration().n_qubits >= 10 and not x.configuration().simulator))
-    # print(bh.get_least_busy(filters=lambda x: not x.configuration().simulator))
-    print(bh.get_backends_with_qubits(filters=lambda x: not x.configuration().simulator))
-    # print(bh.get_backends_with_qubits())
-
-    # Create a Quantum Circuit acting on the q register
-    circuit = QuantumCircuit(2, 2)
-
-    # Add a H gate on qubit 0
-    circuit.h(0)
-
-    # Add a CX (CNOT) gate on control qubit 0 and target qubit 1
-    circuit.cx(0, 1)
-
-    # Map the quantum measurement to the classical bits
-    circuit.measure([0,1], [0,1])
-    sb= bh.get_suitable_backends(circuit)
-    print([b.name() for b in sb])
-    print([b.status().to_dict() for b in sb])
-    print(least_busy(sb))
+    bc =  Backend_Chooser(provider)
+    backend_name, backend_data = bc.get_least_busy(filters=lambda x: x.n_qubits>=5 and not x.simulator and x.quantum_volume >= 16)
+    print(backend_name)
+    print(backend_data)
+    # print([b.name() for b in sb])
+    # print([b.status().to_dict() for b in sb])
+    # print(least_busy(sb))
