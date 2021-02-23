@@ -26,3 +26,33 @@ def sv_to_probability(statevector:np.ndarray) -> np.ndarray:
 
 def _complex_length(complex_number:complex) -> float:
     return np.power(complex_number.real, 2) + np.power(complex_number.imag, 2)
+
+def _round(number:np.float, tol=None):
+    if not tol:
+        tol = np.float=np.finfo(np.float).eps
+    if abs(number) < tol:
+        return 0.0
+    elif abs(number-1) < tol:
+        return 1.0
+    else:
+        return number
+
+def round(array:np.ndarray, tol=None)-> np.ndarray:
+    if tol:
+        return np.vectorize(lambda x :_round(x, tol))(array)
+    else:
+        return np.vectorize(_round)(array)
+
+def reject_outliers(data, m = 3.):
+    d = np.abs(data - np.median(data))
+    mdev = np.median(d)
+    s = d/mdev if mdev else 0.
+    bool_array = s<m
+    return data[bool_array], np.where(bool_array)[0], bool_array
+
+if __name__ == "__main__":
+    data_points = np.array([1, 12, 2, 200, 7, 8])
+    data, index, bool_array = reject_outliers(data_points)
+    print(data)
+    print(index)
+    print(bool_array)

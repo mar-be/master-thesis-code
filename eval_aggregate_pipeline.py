@@ -60,7 +60,7 @@ def uccsd(n_qubits, n_circuits):
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
 
-def write_file(dir_path, backend, results, agg_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute):
+def write_file(dir_path, backend, results, agg_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute, shots):
     res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
     agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]
 
@@ -82,7 +82,7 @@ def write_file(dir_path, backend, results, agg_results, sv_res_prob: List[np.nda
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
     with open(f'{dir_path}/{backend.name()}.json', 'w') as f:
-        json.dump({"date":now_str, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
+        json.dump({"date":now_str, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "shots":shots, "backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
 
     log.info("Wrote results to file.")
 
@@ -112,7 +112,7 @@ if __name__ == "__main__":
 
     n_circuits = 100
     n_qubits = 2
-    circuit_type = "growing_depth"
+    circuit_type = "random"
     permute = False
 
     now = datetime.now()
@@ -207,7 +207,7 @@ if __name__ == "__main__":
             log.info(f"All results for not aggregated circuits are available for backend {backend_name}")
         elif len(agg_results[backend_name]) == n_circuits:
             log.info(f"All results for aggregated circuits are available for backend {backend_name}")
-            write_file(dir_path, backends[backend_name]["backend"], results.pop(backend_name), agg_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute)
+            write_file(dir_path, backends[backend_name]["backend"], results.pop(backend_name), agg_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute, shots)
 
 
 
