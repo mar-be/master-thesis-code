@@ -16,7 +16,7 @@ def histogram(values, name):
     plt.show()
 
 if __name__ == "__main__":
-    file_name = "./agg_data/random_ibmq_16_melbourne_2021-02-15-10-04-10.json"
+    file_name = "./agg_data/growing_depth_2021-02-23-09-02-18/ibmq_quito.json"
     # read file
     with open(file_name, 'r') as myfile:
         data=myfile.read()

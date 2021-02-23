@@ -1,29 +1,29 @@
-from typing import List
-from analyzer.backend_chooser import Backend_Data
-from logging import raiseExceptions
-
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd
-from queue import Queue
 import itertools
 import json
-from datetime import datetime, date
+import os
+from datetime import date, datetime
+from logging import raiseExceptions
+from queue import Queue
+from typing import List
 
+import numpy as np
+from qiskit import IBMQ, execute
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.random import random_circuit
 from qiskit.providers.aer import Aer, AerJob
 from qiskit.providers.models import backendproperties
 
-from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
-from qiskit import IBMQ, execute
-from quantum_job import QuantumJob
-from qiskit.circuit.random import random_circuit
-from evaluate.metrics import metric_diff, chi_square, kullback_leibler_divergence
-from evaluate.util import sv_to_probability, counts_to_probability
+from analyzer.backend_chooser import Backend_Data
 from analyzer.result_analyzer import ResultAnalyzer
-
-import numpy as np
-
+from evaluate.metrics import (chi_square, kullback_leibler_divergence,
+                              metric_diff)
+from evaluate.util import counts_to_probability, sv_to_probability
+from execution_handler.execution_handler import ExecutionHandler
 from logger import get_logger
+from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd
+from quantum_job import QuantumJob
+
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
@@ -60,7 +60,7 @@ def uccsd(n_qubits, n_circuits):
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
 
-def write_file(backend, results, agg_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute):
+def write_file(dir_path, backend, results, agg_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute):
     res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in results]
     agg_res_prob = [counts_to_probability(r.get_counts(), n_qubits) for r in agg_results]
 
@@ -81,8 +81,8 @@ def write_file(backend, results, agg_results, sv_res_prob: List[np.ndarray], n_q
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    with open(f'agg_data/{circuit_type}_{backend.name()}_{now_str}.json', 'w') as f:
-        json.dump({"backend":backend_dict, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "data":data}, f, indent=4, default=json_serial)
+    with open(f'{dir_path}/{backend.name()}.json', 'w') as f:
+        json.dump({"date":now_str, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
 
     log.info("Wrote results to file.")
 
@@ -106,13 +106,22 @@ if __name__ == "__main__":
     # backend = provider.get_backend('ibmq_qasm_simulator')
     
     backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
+    # backend_names = ['ibmq_qasm_simulator']
     shots = 8192
 
 
     n_circuits = 100
     n_qubits = 2
-    circuit_type = "random"
+    circuit_type = "growing_depth"
     permute = False
+
+    now = datetime.now()
+    now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
+    dir_path = f"agg_data/{circuit_type}_{now_str}"
+
+    os.mkdir(dir_path)
+
+    log.info(f"Created directory {dir_path}")
 
     if circuit_type == "random":
         circuits, n_circuits = random_circuits(n_qubits, n_circuits)
@@ -198,7 +207,7 @@ if __name__ == "__main__":
             log.info(f"All results for not aggregated circuits are available for backend {backend_name}")
         elif len(agg_results[backend_name]) == n_circuits:
             log.info(f"All results for aggregated circuits are available for backend {backend_name}")
-            write_file(backends[backend_name]["backend"], results.pop(backend_name), agg_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute)
+            write_file(dir_path, backends[backend_name]["backend"], results.pop(backend_name), agg_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute)
 
 
 
