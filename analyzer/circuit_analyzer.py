@@ -45,9 +45,9 @@ class CircuitAnalyzer(Thread):
             mod_type, backend_data = self.decide_action(job)
             job.backend_data = backend_data
             self._log.info(f"Mod.Type = {mod_type}, Backend = {backend_data.name}")
-            if mod_type == Modification_Type.none:
-                pass
-            elif mod_type == Modification_Type.aggregation:
-                pass
+            if mod_type == Modification_Type.aggregation:
+                self._output_agg.put(job)
+            elif mod_type == Modification_Type.partition:
+                self._output_part.put(job)
             else:
-                pass
+                self._output.put(job)

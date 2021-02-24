@@ -17,6 +17,7 @@ class Backend_Data():
         self.pending_jobs = backend.status().pending_jobs
         self.active_jobs = backend.job_limit().active_jobs
         self.maximum_jobs = backend.job_limit().maximum_jobs
+        self.status_msg = backend.status().status_msg
         # only available by real QPUs
         try:
             self.quantum_volume = backend.configuration().quantum_volume
@@ -58,9 +59,9 @@ class Backend_Chooser():
 
     def get_least_busy(self, filters:Optional[Callable[[Backend], bool]] = None) -> Optional[Tuple[str, Dict]]:
         if filters == None:
-            f = lambda x: x.operational
+            f = lambda x: x.operational and x.status_msg == "active"
         else:
-            f = lambda x: filters(x) and x.operational
+            f = lambda x: filters(x) and x.operational and x.status_msg == "active"
         filtered_backends = self.get_backends(filters=f)
         if len(filtered_backends) == 0:
             return None
