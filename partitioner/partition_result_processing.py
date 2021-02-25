@@ -113,7 +113,7 @@ class ResultProcessing(Thread):
             self._vertical_collapse(job, early_termination, eval_mode)
             self._write_all_files(job, eval_mode)
             reconstructed_prob = self.post_process(job, eval_mode, num_threads, early_termination, qubit_limit, recursion_depth)
-            job.result = self._createResult(job, reconstructed_prob)
+            job.result_prob = self._createResult(job, reconstructed_prob)
             self._output.put(job)
             self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)
@@ -368,11 +368,11 @@ class ResultProcessing(Thread):
         return reconstructed_prob
 
     def _createResult(self, job: QuantumJob, prob: np.ndarray) -> Result:
-        # result_dict = self._partition_dict[job.id]["result_dict"]
-        # exp_result_data = ExperimentResultData(unitary=prob)
-        # exp_result = ExperimentResult(job.shots, True, exp_result_data)
-        # return Result(result_dict["backend_name"], result_dict["backend_version"], job.id, job.id, True, exp_result)
-        return prob
+        prob_dict = {}
+        for i, p in enumerate(prob):
+            if p != 0:
+                prob_dict[hex(i)] = p
+        return prob_dict
 
     def verify(self, job, early_termination, num_threads, qubit_limit, eval_mode):
         circuit_name = job.id

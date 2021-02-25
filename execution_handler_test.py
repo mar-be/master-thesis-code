@@ -1,3 +1,4 @@
+from analyzer.backend_chooser import Backend_Data
 from execution_handler.execution_handler import ExecutionHandler
 from quantum_job import QuantumJob
 
@@ -19,14 +20,16 @@ if __name__ == "__main__":
 
     # backend = provider.get_backend('ibmq_athens')
 
-    # backend_sim = provider.get_backend('ibmq_qasm_simulator')
+    backend_sim = provider.get_backend('ibmq_qasm_simulator')
+
+    backend_data = Backend_Data(backend_sim)
 
 
-    exec_handler = ExecutionHandler(provider, input, output, 90)
+    exec_handler = ExecutionHandler(provider, input, output)
     exec_handler.start()
 
-    for i in range(600):
-        input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_qasm_simulator"))
+    for i in range(10):
+        input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend_data=backend_data))
         # if i % 2 == 0:
         #     input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))
         # else:
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     while True:
         job = output.get()
         r = job.result
-        log.info(f"{i}: Got job {job.id}, success: {r.success}")
+        log.info(f"{i}: Got job {job.id}, success: {r.success}, prob: {job.result_prob}")
         i+=1
 
 

@@ -11,12 +11,30 @@ class Modification_Type(Enum):
 
 class QuantumJob():
 
-    def __init__(self, circuit:QuantumCircuit, type:Modification_Type=Modification_Type.none, **kwargs) -> None:
+    def __init__(self, circuit:QuantumCircuit, shots:int, type:Modification_Type=Modification_Type.none, **kwargs) -> None:
         self.id = uuid4().hex
         self.circuit = circuit
         self.type = type
-        self.result:Optional[Result] = None
+        self.shots = shots
+        self._result:Optional[Result] = None
+        self.result_prob:Optional[Dict] = None
         self.__dict__.update(kwargs)
+
+    @property
+    def result(self) -> Optional[Result]:
+        return self._result
+
+    @result.setter
+    def result(self, result:Optional[Result]):
+        if result:
+            self._result = result
+            cnts = result.data()['counts']
+            self.result_prob = dict({key:value/self.shots for key, value in cnts.items()})
+        else:
+            self._result = None
+
+        
+
 
     
 
