@@ -33,6 +33,16 @@ class QuantumJob():
         else:
             self._result = None
 
+    @classmethod
+    def create(cls, task_dict:Dict):
+    
+        qasm = task_dict["qasm"]
+        shots = task_dict["shots"]
+        circuit = QuantumCircuit.from_qasm_str(qasm)
+
+        return cls(circuit, shots)
+
+
         
 
 
