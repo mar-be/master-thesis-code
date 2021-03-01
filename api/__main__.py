@@ -2,9 +2,7 @@ from quantum_job import QuantumTask, Status
 from api.util import must_have
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
-
-app = Flask(__name__)
-api = Api(app)
+from queue import Queue
 
 
 class TaskDAO():
@@ -56,6 +54,9 @@ class Task_DAO_Resource(Resource):
 
 class TaskCreation(Task_DAO_Resource):
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def post(self):
         if request.is_json:
                 body = request.get_json()
@@ -65,6 +66,9 @@ class TaskCreation(Task_DAO_Resource):
           
 
 class Task(Task_DAO_Resource):
+
+    def __init__(self) -> None:
+        super().__init__()
 
     def get(self, task_id):
         task = self.task_dao.get_task(task_id)
@@ -88,15 +92,26 @@ class Task(Task_DAO_Resource):
         return jsonify(latest_status=latest_status.name)
 
 
-    
+
+class API():
+
+    def __init__(self, task_dao:TaskDAO, run_queue:Queue) -> None:
+        self.app = Flask(__name__)
+        self.api = Api(self.app)
+        self.api.add_resource(HelloWorld, '/')
+        TaskCreation_Init = TaskCreation.create(task_dao)
+        self.api.add_resource(TaskCreation_Init, "/task")
+        Task_Init = Task.create(task_dao)
+        self.api.add_resource(Task_Init, "/task/<string:task_id>")
+        self.run_queue = run_queue
+
+    def run(self, debug=False):
+        self.app.run(debug=debug) 
+
 
 
 
 if __name__ == '__main__':
-    api.add_resource(HelloWorld, '/')
     task_dao = TaskDAO()
-    TaskCreation_Init = TaskCreation.create(task_dao)
-    api.add_resource(TaskCreation_Init, "/task")
-    Task_Init = Task.create(task_dao)
-    api.add_resource(Task, "/task/<string:task_id>")
-    app.run(debug=True) 
+    api = API(task_dao, Queue())
+    api.run(debug=True)
