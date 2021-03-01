@@ -4,6 +4,13 @@ from qiskit.result import Result
 from uuid import uuid4
 from enum import Enum
 
+class Status(Enum):
+    created = 0
+    running = 1
+    failed = 2
+    deleted = 3
+    done = 4
+
 class Modification_Type(Enum):
     none = 0
     aggregation = 1
@@ -33,6 +40,12 @@ class QuantumJob():
         else:
             self._result = None
 
+
+class QuantumTask(QuantumJob):
+    def __init__(self, circuit: QuantumCircuit, shots: int, type: Modification_Type=Modification_Type.none, **kwargs) -> None:
+        self.status: Status = Status.created
+        QuantumJob.__init__(self, circuit, shots, type, **kwargs) 
+    
     @classmethod
     def create(cls, task_dict:Dict):
     
@@ -42,8 +55,11 @@ class QuantumJob():
 
         return cls(circuit, shots)
 
-
-        
+    def to_dict(self):
+        d = {"id":self.id, "qasm":self.circuit.qasm(), "status":self.status.name, "shots":self.shots}
+        if self.result_prob:
+            d["result"]=self.result_prob
+        return d
 
 
     

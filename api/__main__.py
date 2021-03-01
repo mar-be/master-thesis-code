@@ -1,6 +1,6 @@
-from quantum_job import QuantumJob
+from quantum_job import QuantumTask, Status
 from api.util import must_have
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 
 app = Flask(__name__)
@@ -21,11 +21,11 @@ class TaskDAO():
     def delete_task(self, id):
         if id not in self._data.keys():
             return None
-        self._data.pop(id)
-        return id
+        return self._data.pop(id)
+        
  
     def update_task(self, task):
-        self.data[task.id] = task    
+        self._data[task.id] = task    
     
 
 
@@ -59,17 +59,34 @@ class TaskCreation(Task_DAO_Resource):
     def post(self):
         if request.is_json:
                 body = request.get_json()
-                quantum_task = QuantumJob.create(body)
+                quantum_task = QuantumTask.create(body)
                 self.task_dao.add_task(quantum_task)
-                return quantum_task.id
+                return jsonify(id=quantum_task.id)
           
 
 class Task(Task_DAO_Resource):
 
     def get(self, task_id):
-        return str(self.task_dao.get_task(task_id))
+        task = self.task_dao.get_task(task_id)
+        if task is None:
+            return 'TaskDoesNotExist', 404
+        return jsonify(**task.to_dict())
 
-    
+    def put(self, task_id):
+        task = self.task_dao.get_task(task_id)
+        if task is None:
+            return 'TaskDoesNotExist', 404
+        task.status = Status.running
+        self.task_dao.update_task(task)
+        return '', 202
+
+    def delete(self, task_id):
+        task = self.task_dao.delete_task(task_id)
+        if task is None:
+            return 'TaskDoesNotExist', 404
+        latest_status = task.status
+        return jsonify(latest_status=latest_status.name)
+
 
     
 
