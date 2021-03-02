@@ -6,7 +6,7 @@ from quantum_job import QuantumTask, Status
 from api.util import must_have
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
-from queue import Queue
+from queue import Empty, Queue
 import logger
 
 
@@ -118,20 +118,30 @@ class Task(Task_DAO_Resource):
 
 class APIResultUpdater(Thread):
     
-    def __init__(self, tasks:Queue(), task_dao:TaskDAO) -> None:
+    def __init__(self, tasks:Queue(), errors:Queue(), task_dao:TaskDAO) -> None:
         self._log = logger.get_logger(type(self).__name__)
         self._tasks = tasks
+        self._errors = errors
         self._tasks_dao = task_dao
         Thread.__init__(self)
 
     
     def run(self) -> None:
         while True:
-            task = self._tasks.get()
-            task.status = Status.done
-            self._tasks_dao.update_task(task)
-            self._log.info(f"Received result for task {task.id}")
-
+            while not self._errors.empty():
+                try:
+                    error_task = self._errors.get(block=False)
+                    error_task.status = Status.failed
+                    self._tasks_dao.update_task(error_task)
+                except Empty:
+                    break
+            try:
+                task = self._tasks.get(timeout=10)
+                task.status = Status.done
+                self._tasks_dao.update_task(task)
+                self._log.info(f"Received result for task {task.id}")
+            except Empty:
+                continue
     
 
 class API():
@@ -164,7 +174,7 @@ if __name__ == '__main__':
     vl.start()
     task_dao = TaskDAO()
     api = API(task_dao, vl.input)
-    result_updater = APIResultUpdater(vl.output, task_dao)
+    result_updater = APIResultUpdater(vl.output, vl.errors, task_dao)
     result_updater.start()
 
     api.run(debug=True)

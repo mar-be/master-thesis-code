@@ -17,6 +17,7 @@ class Virtualization_Layer():
 
         self.input = Queue()
         self.output = Queue()
+        self.errors = Queue()
 
         input_execution = Queue()
         output_execution = Queue()
@@ -36,7 +37,7 @@ class Virtualization_Layer():
         self.backend_chooser = Backend_Chooser(provider)
         self.circuit_analyzer = CircuitAnalyzer(input=self.input, output=input_execution, output_agg=input_aggregation, output_part=input_partition, backend_chooser=self.backend_chooser)
         self.aggregator = Aggregator(input=input_aggregation, output=input_execution, job_dict=aggregation_dict, timeout=aggregation_timeout)
-        self.partitioner = Partitioner(input=input_partition, output=input_execution, partition_dict=partition_dict, num_subcircuits=num_subcircuits, max_cuts=max_cuts)
+        self.partitioner = Partitioner(input=input_partition, output=input_execution, partition_dict=partition_dict, num_subcircuits=num_subcircuits, max_cuts=max_cuts, error_queue=self.errors)
         self.execution_handler = ExecutionHandler(provider, input=input_execution, output=output_execution, batch_timeout=batch_timeout, retrieve_time=retrieve_time)
         self.result_analyzer = ResultAnalyzer(input=output_execution, output=self.output, output_agg=input_aggregation_result, output_part=input_partition_result)
         self.aggregation_result_processor = AggregatorResults(input=input_aggregation_result, output=self.output, job_dict=aggregation_dict)

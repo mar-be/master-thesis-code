@@ -10,8 +10,8 @@ headers = {'Content-Type': 'application/json'}
 
 tasks = []
 circuits = []
-for i in range(300):
-    circuits.append({"qasm":random_circuit(2, 5, 2, measure=True).qasm(), "shots":8192})
+for i in range(1):
+    circuits.append({"qasm":random_circuit(16, 5, 2, measure=True).qasm(), "shots":8192})
 
 print("Send request")
 response = requests.request("POST", url_creation, json={"circuits":circuits}, headers=headers)
