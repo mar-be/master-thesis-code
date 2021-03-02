@@ -40,10 +40,10 @@ class Task_DAO_Resource(Resource):
 
     @classmethod
     def create(cls, task_dao):
-        """[summary]
+        """creates a Task_DAO_Resource with the given TaskDAO
 
         Args:
-            task_dao (TaskDAO): an instance of ITodoRepository
+            task_dao (TaskDAO): an instance of TaskDAO to access the tasks
 
         Returns:
             Task: class object of Task Resource
@@ -81,6 +81,7 @@ class Task(Task_DAO_Resource):
         if task is None:
             return 'TaskDoesNotExist', 404
         task.status = Status.running
+        Task.run_queue.put(task)
         self.task_dao.update_task(task)
         return '', 202
 
@@ -90,6 +91,16 @@ class Task(Task_DAO_Resource):
             return 'TaskDoesNotExist', 404
         latest_status = task.status
         return jsonify(latest_status=latest_status.name)
+
+    
+    @classmethod
+    def set_run_queue(cls, run_queue:Queue) -> None:  
+        """Sets the queue to run the tasks
+
+        Args:
+            run_queue (Queue): input queue of the virtualization layer
+        """        
+        cls.run_queue = run_queue
 
 
 
@@ -101,6 +112,7 @@ class API():
         self.api.add_resource(HelloWorld, '/')
         TaskCreation_Init = TaskCreation.create(task_dao)
         self.api.add_resource(TaskCreation_Init, "/task")
+        Task.set_run_queue(run_queue)
         Task_Init = Task.create(task_dao)
         self.api.add_resource(Task_Init, "/task/<string:task_id>")
         self.run_queue = run_queue
