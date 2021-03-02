@@ -58,7 +58,7 @@ class QuantumTask(QuantumJob):
     def to_dict(self):
         d = {"id":self.id, "qasm":self.circuit.qasm(), "status":self.status.name, "shots":self.shots}
         if self.result_prob:
-            d["result"]=self.result_prob
+            d["result"] = self.result_prob
         return d
 
 

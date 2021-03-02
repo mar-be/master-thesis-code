@@ -1,8 +1,13 @@
+from threading import Thread
+from typing import List
+from virtualization_layer import Virtualization_Layer
+from qiskit import IBMQ
 from quantum_job import QuantumTask, Status
 from api.util import must_have
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from queue import Queue
+import logger
 
 
 class TaskDAO():
@@ -60,9 +65,17 @@ class TaskCreation(Task_DAO_Resource):
     def post(self):
         if request.is_json:
                 body = request.get_json()
-                quantum_task = QuantumTask.create(body)
-                self.task_dao.add_task(quantum_task)
-                return jsonify(id=quantum_task.id)
+                if "circuits" in body.keys():
+                    result_list = []
+                    for item in body["circuits"]:
+                        quantum_task = QuantumTask.create(item)
+                        self.task_dao.add_task(quantum_task)
+                        result_list.append({"id":quantum_task.id})
+                    return jsonify(results=result_list)
+                else:
+                    quantum_task = QuantumTask.create(body)
+                    self.task_dao.add_task(quantum_task)
+                    return jsonify(id=quantum_task.id)
           
 
 class Task(Task_DAO_Resource):
@@ -103,6 +116,23 @@ class Task(Task_DAO_Resource):
         cls.run_queue = run_queue
 
 
+class APIResultUpdater(Thread):
+    
+    def __init__(self, tasks:Queue(), task_dao:TaskDAO) -> None:
+        self._log = logger.get_logger(type(self).__name__)
+        self._tasks = tasks
+        self._tasks_dao = task_dao
+        Thread.__init__(self)
+
+    
+    def run(self) -> None:
+        while True:
+            task = self._tasks.get()
+            task.status = Status.done
+            self._tasks_dao.update_task(task)
+            self._log.info(f"Received result for task {task.id}")
+
+    
 
 class API():
 
@@ -118,12 +148,23 @@ class API():
         self.run_queue = run_queue
 
     def run(self, debug=False):
-        self.app.run(debug=debug) 
+        self.app.run(debug=debug)
+
 
 
 
 
 if __name__ == '__main__':
+    provider = IBMQ.load_account()
+
+    vl = Virtualization_Layer(provider)
+
+   
+
+    vl.start()
     task_dao = TaskDAO()
-    api = API(task_dao, Queue())
+    api = API(task_dao, vl.input)
+    result_updater = APIResultUpdater(vl.output, task_dao)
+    result_updater.start()
+
     api.run(debug=True)
