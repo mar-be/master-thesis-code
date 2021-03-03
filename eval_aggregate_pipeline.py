@@ -1,5 +1,6 @@
 import itertools
 import json
+import math
 import os
 from datetime import date, datetime
 from logging import raiseExceptions
@@ -12,6 +13,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
 from qiskit.providers.aer import Aer, AerJob
 from qiskit.providers.models import backendproperties
+from qiskit.circuit.library import QFT
 
 from aggregator.aggregator import Aggregator, AggregatorResults
 from analyzer.backend_chooser import Backend_Data
@@ -21,7 +23,7 @@ from evaluate.metrics import (chi_square, kullback_leibler_divergence,
 from evaluate.util import counts_to_probability, sv_to_probability
 from execution_handler.execution_handler import ExecutionHandler
 from logger import get_logger
-from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd
+from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd, gen_supremacy
 from quantum_job import QuantumJob
 
 
@@ -55,6 +57,13 @@ def hwea(n_qubits, n_circuits, depth=5):
 
 def uccsd(n_qubits, n_circuits):
     return [gen_uccsd(n_qubits) for i in range(n_circuits)], n_circuits
+
+def aqft(n_qubits, n_circuits):
+    approximation_degree=int(math.log(n_qubits,2)+2)
+    return [QFT(num_qubits=n_qubits, approximation_degree=n_qubits-approximation_degree,do_swaps=False) for i in range(n_circuits)], n_circuits
+
+def supremacy_linear(n_qubits, n_circuits, depth=8):
+    return [gen_supremacy(1, n_qubits, depth, regname='q') for i in range(n_circuits)], n_circuits
 
 
 def get_all_permutations(input_list):
@@ -112,7 +121,7 @@ if __name__ == "__main__":
 
     n_circuits = 100
     n_qubits = 2
-    circuit_type = "random"
+    circuit_type = "supremacy_linear"
     permute = False
 
     now = datetime.now()
@@ -133,6 +142,10 @@ if __name__ == "__main__":
         circuits, n_circuits = hwea(n_qubits, n_circuits)
     elif circuit_type == "uccsd":
         circuits, n_circuits = uccsd(n_qubits, n_circuits)
+    elif circuit_type == "aqft":
+        circuits, n_circuits = aqft(n_qubits, n_circuits)
+    elif circuit_type == 'supremacy_linear':
+        circuits, n_circuits = supremacy_linear(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
 

@@ -2,6 +2,7 @@ import json
 import numpy as np
 from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square
 from evaluate.util import round, reject_outliers
+import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
 
 def line_plot(values, agg_values, name):
@@ -13,13 +14,13 @@ def line_plot(values, agg_values, name):
 
 
 def histogram(values, agg_values, name, range=None):
-    plt.hist([values, agg_values], range=range, histtype="bar", log=True, label=["no aggregation", "aggregation"])
+    plt.hist([values, agg_values], range=range, histtype="bar", label=["no aggregation", "aggregation"])
     plt.title(name)
     plt.legend()
     plt.show()
 
 if __name__ == "__main__":
-    file_name = "./agg_data/growing_depth_2021-02-23-13-02-54/ibmq_athens.json"
+    file_name = "./agg_data/aqft_2021-03-03-15-55-46/ibmq_athens.json"
     # read file
     with open(file_name, 'r') as myfile:
         data=myfile.read()
@@ -38,6 +39,8 @@ if __name__ == "__main__":
     count_max = 0
     count_order_errors = 0
     count_order = 0
+    cutqc_agg_c2_list = []
+    cutqc_c2_list = []
     agg_c2_list = []
     c2_list = []
     agg_bc_list = []
@@ -49,8 +52,10 @@ if __name__ == "__main__":
         sv_res_prob = np.array(item["sv-result"])
         sv_res_prob = round(sv_res_prob, 1/shots)
         c2_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, chi_square)
+        cutqc_agg_c2_list.append(metrics.chi2_distance(agg_res_prob, sv_res_prob, True))
         agg_c2_list.append(chi_square(agg_res_prob, sv_res_prob))
         c2_list.append(chi_square(res_prob, sv_res_prob))
+        cutqc_c2_list.append(metrics.chi2_distance(res_prob, sv_res_prob, True))
         bc_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, bhattacharyya_difference)
         bc_list.append(bhattacharyya_difference(res_prob, sv_res_prob))
         agg_bc_list.append(bhattacharyya_difference(agg_res_prob, sv_res_prob))
@@ -94,10 +99,13 @@ if __name__ == "__main__":
 
 
     line_plot(c2_list, agg_c2_list, "Chi Squared")
+    line_plot(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared")
     line_plot(bc_list, agg_bc_list, "Bhattacharyya Difference")
 
 
     histogram(c2_list, agg_c2_list, "Chi Squared")
-    histogram(c2_list, agg_c2_list, "Chi Squared", (0.0, 1.0))
+    # histogram(c2_list, agg_c2_list, "Chi Squared", (0.0, 1.0))
+    histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared")
+    # histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", (0.0, 1.0))
     histogram(bc_list, agg_bc_list, "Bhattacharyya Difference")
-    histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", (0.0, 0.1))
+    # histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", (0.0, 0.1))
