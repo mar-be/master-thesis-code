@@ -20,7 +20,7 @@ def histogram(values, agg_values, name, range=None):
     plt.show()
 
 if __name__ == "__main__":
-    file_name = "./agg_data/aqft_2021-03-03-15-55-46/ibmq_athens.json"
+    file_name = "./agg_data/qft_2021-03-04-08-25-05/ibmq_qasm_simulator.json"
     # read file
     with open(file_name, 'r') as myfile:
         data=myfile.read()

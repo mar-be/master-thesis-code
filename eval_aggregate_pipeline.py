@@ -58,6 +58,9 @@ def hwea(n_qubits, n_circuits, depth=5):
 def uccsd(n_qubits, n_circuits):
     return [gen_uccsd(n_qubits) for i in range(n_circuits)], n_circuits
 
+def qft(n_qubits, n_circuits):
+    return [QFT(num_qubits=n_qubits, approximation_degree=0, do_swaps=False) for i in range(n_circuits)], n_circuits
+
 def aqft(n_qubits, n_circuits):
     approximation_degree=int(math.log(n_qubits,2)+2)
     return [QFT(num_qubits=n_qubits, approximation_degree=n_qubits-approximation_degree,do_swaps=False) for i in range(n_circuits)], n_circuits
@@ -121,7 +124,7 @@ if __name__ == "__main__":
 
     n_circuits = 100
     n_qubits = 2
-    circuit_type = "supremacy_linear"
+    circuit_type = "qft"
     permute = False
 
     now = datetime.now()
@@ -143,6 +146,8 @@ if __name__ == "__main__":
     elif circuit_type == "uccsd":
         circuits, n_circuits = uccsd(n_qubits, n_circuits)
     elif circuit_type == "aqft":
+        circuits, n_circuits = aqft(n_qubits, n_circuits)
+    elif circuit_type == "qft":
         circuits, n_circuits = aqft(n_qubits, n_circuits)
     elif circuit_type == 'supremacy_linear':
         circuits, n_circuits = supremacy_linear(n_qubits, n_circuits)
