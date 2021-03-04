@@ -31,7 +31,7 @@ def evaluate(rb_fit:RBFitter, rb_opts:Dict, result_queue:Queue, name:str, log:Lo
     rb_fit.plot_rb_data(0, ax=ax, add_label=True, show_plt=False)
         
     # Add title and label
-    ax.set_title('%d Qubit RB - NO Aggregation'%(nQ), fontsize=18)
+    ax.set_title('%d Qubit RB - %s'%(nQ, name), fontsize=18)
 
     plt.savefig(name + ".png")
     log.info("Saved file " + name)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     rb_circs, xdata = rb.randomized_benchmarking_seq(**rb_opts)
 
     shots = 8192
-    backend_name = "ibmq_quito"
+    backend_name = "ibmq_lima"
     # backend_name = "ibmq_qasm_simulator"
 
     count = 0
@@ -104,5 +104,5 @@ if __name__ == "__main__":
     rb_fit = rb.RBFitter(None, xdata, rb_opts['rb_pattern'])
     rb_agg_fit = rb.RBFitter(None, xdata, rb_opts['rb_pattern'])
 
-    evaluate(rb_fit, rb_opts, output_pipline, backend_name+"no_aggregation", log)
-    evaluate(rb_agg_fit, rb_opts, output_pipline, backend_name+"aggregation", log)
+    evaluate(rb_fit, rb_opts, output_pipline, backend_name+"_no_aggregation", log)
+    evaluate(rb_agg_fit, rb_opts, output_pipline, backend_name+"_aggregation", log)

@@ -1,29 +1,43 @@
 import json
+import os
 import numpy as np
 from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square
 from evaluate.util import round, reject_outliers
 import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
 
-def line_plot(values, agg_values, name):
+def line_plot(values, agg_values, name, filename):
     plt.plot(values, label="no aggregation")
     plt.plot(agg_values, label="aggregation")
     plt.title(name)
     plt.legend()
-    plt.show()
+    plt.savefig(filename)
+    plt.close()
 
 
-def histogram(values, agg_values, name, range=None):
+def histogram(values, agg_values, name, filename, range=None):
     plt.hist([values, agg_values], range=range, histtype="bar", label=["no aggregation", "aggregation"])
     plt.title(name)
     plt.legend()
-    plt.show()
+    plt.savefig(filename)
+    plt.close()
 
-if __name__ == "__main__":
-    file_name = "./agg_data/qft_2021-03-04-08-25-05/ibmq_qasm_simulator.json"
+def evaluate_file(file_path):
     # read file
-    with open(file_name, 'r') as myfile:
+    with open(file_path, 'r') as myfile:
         data=myfile.read()
+
+    file_name = os.path.basename(file_path)
+    dir_path =  os.path.dirname(file_path) +"/" + file_name.split(".")[0]
+
+    try:
+        os.makedirs(dir_path)
+        print(f"Created directory {dir_path}")
+    except FileExistsError:
+        print(f"Directory {dir_path} already exists")
+
+    
+    
 
     # parse file
     obj = json.loads(data)
@@ -98,14 +112,26 @@ if __name__ == "__main__":
 
 
 
-    line_plot(c2_list, agg_c2_list, "Chi Squared")
-    line_plot(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared")
-    line_plot(bc_list, agg_bc_list, "Bhattacharyya Difference")
+    line_plot(c2_list, agg_c2_list, "Chi Squared", dir_path + "/line_chi_2.png")
+    line_plot(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/line_cutqc_chi_2.png")
+    line_plot(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/line_bc.png")
 
 
-    histogram(c2_list, agg_c2_list, "Chi Squared")
+    histogram(c2_list, agg_c2_list, "Chi Squared", dir_path + "/hist_chi_2.png")
     # histogram(c2_list, agg_c2_list, "Chi Squared", (0.0, 1.0))
-    histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared")
+    histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/hist_cutqc_chi_2.png")
     # histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", (0.0, 1.0))
-    histogram(bc_list, agg_bc_list, "Bhattacharyya Difference")
+    histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/hist_bc.png")
     # histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", (0.0, 0.1))
+
+if __name__ == "__main__":
+    path = "./agg_data/uccsd_2021-02-23-10-48-56"
+    files = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        files.extend(filenames)
+        break
+    print(f"found the following files {files}")
+    for file in files:
+        print(f"Evaluate file {file}")
+        evaluate_file(file_path=path + "/" + file)
+    
