@@ -138,6 +138,7 @@ def aggregate(list_of_circuits: List[QuantumCircuit]) -> Tuple[QuantumCircuit, D
         clbit_count += len(circ.clbits)
         circ_info[index]["qubits"] = {"start":qubits.start, "stop":qubits.stop}
         circ_info[index]["clbits"] = {"start":clbits.start, "stop":clbits.stop}
+        circ_info[index]["name"] = circ.name
     agg_info["circuits"] = circ_info
     agg_info["total_qubits"] = qubit_count
     agg_info["total_clbits"] = clbit_count
@@ -187,6 +188,7 @@ def __calc_result(index:int, agg_info:Dict[Any, Any], result:Result) -> Result:
     result_dict_copy["results"][0]["header"]["clbit_labels"] = clbit_labels
     result_dict_copy["results"][0]["header"]["creg_sizes"] = creg_sizes
     result_dict_copy["results"][0]["header"]["memory_slots"] = n_qubits
+    result_dict_copy["results"][0]["header"]["name"] = agg_info["circuits"][index]["name"]
 
     if len(qubit_labels) > 0:
         result_dict_copy["results"][0]["header"]["qubit_labels"] = qubit_labels
