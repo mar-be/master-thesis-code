@@ -15,6 +15,8 @@ from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
+import multiprocessing as mp
+import mp_queue
 
 
 class BackendLookUp():
@@ -89,7 +91,9 @@ class TranspilerLookUp():
             
         except KeyError:
             backend = self._backend_look_up.get(backend_name)
-            transpiler = Transpiler(Queue(), Queue(), backend, self._min_circuits, self._timeout)
+            backend.configuration()
+            backend.properties()
+            transpiler = Transpiler(mp_queue.Queue(), mp_queue.Queue(), backend, self._min_circuits, self._timeout)
             self._transpilers[backend_name] = transpiler
             transpiler.start()
             return transpiler
@@ -125,8 +129,8 @@ class ExecutionSorter(Thread):
             # self._log.debug(f"Sorted job {job.id} for backend {backend}")
             self._backend_queue_table[backend_name].put(job)
 
-class Transpiler(Thread):
-    def __init__(self, input:Queue, output:Queue, backend:Backend, min_circuits:int, timeout:int):
+class Transpiler(mp.Process):
+    def __init__(self, input:mp_queue.Queue, output:mp_queue.Queue, backend:Backend, min_circuits:int, timeout:int):
         self._log = logger.get_logger(type(self).__name__ + "_" + backend.name())
         self.input = input
         self.output = output
@@ -134,7 +138,7 @@ class Transpiler(Thread):
         self._min_circuits = min_circuits
         self._max_circuits = backend.configuration().max_experiments
         self._timeout = timeout
-        Thread.__init__(self)
+        mp.Process.__init__(self)
         self._log.info("Init")
 
 
