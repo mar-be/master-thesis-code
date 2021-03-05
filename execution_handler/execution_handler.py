@@ -152,6 +152,7 @@ class Transpiler(Thread):
             
             if len(jobs) > 0:
                 circuits = list([job.circuit for job in jobs])
+                self._log.debug(f"Start transpilation of {len(circuits)} circuits for backend {self._backend.name()}")
                 trans_start_time = time.time()
                 transpiled_circuits = transpile(circuits, backend=self._backend)
                 time_diff = time.time() - trans_start_time
