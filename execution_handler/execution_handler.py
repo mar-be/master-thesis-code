@@ -3,7 +3,7 @@ import math
 import time
 from collections import Counter
 from queue import Empty, Queue
-from threading import Lock, Thread
+from threading import Lock, Thread, Timer
 from typing import Dict, List
 import logger
 from qiskit import QuantumCircuit, assemble, transpile
@@ -17,6 +17,7 @@ from qiskit.result.result import Result
 from quantum_job import QuantumJob
 import multiprocessing as mp
 import mp_queue
+import concurrent.futures
 
 
 class BackendLookUp():
@@ -104,6 +105,57 @@ class TranspilerLookUp():
     def get_output(self, backend_name):
         return self._get_or_create_transpiler(backend_name).output
 
+class TranspilerExecution():
+
+    def __init__(self, backend_look_up:BackendLookUp, output:Queue, timeout:int) -> None:
+        self._log = logger.get_logger(type(self).__name__)
+        self._backend_look_up = backend_look_up
+        self._output = output
+        self._timeout = timeout
+        self._jobs_to_transpile = {}
+        self._timers = {}
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+    
+    def _transpile_func(self, jobs:List[QuantumJob], backend:Backend):
+        circuits = list([job.circuit for job in jobs])
+        self._log.debug(f"Start transpilation of {len(circuits)} circuits for backend {backend.name()}")
+        trans_start_time = time.time()
+        transpiled_circuits = transpile(circuits, backend=backend)
+        time_diff = time.time() - trans_start_time
+        self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
+        return zip(transpiled_circuits, jobs)
+
+    def _transpile(self, backend_name):
+        n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
+        jobs = self._jobs_to_transpile[backend_name][:n_jobs]
+        self._jobs_to_transpile[backend_name] = self._jobs_to_transpile[backend_name][n_jobs:]
+        backend = self._backend_look_up.get(backend_name)
+        backend.configuration()
+        backend.properties()
+        future =  self.executor.submit(self._transpile_func, jobs, backend)
+        if len(self._jobs_to_transpile[backend_name]) > 0:
+            timer = Timer(self._timeout, self._timer_func, [backend_name])
+            timer.start()
+            self._timers[backend_name] = timer
+        self._output.put(future)
+        
+    
+    def add_job(self, job:QuantumJob):
+        backend_name = job.backend_data.name
+        try:
+            self._jobs_to_transpile[backend_name].append(job)
+        except KeyError:
+            self._jobs_to_transpile[backend_name] = [job]
+        if len(self._jobs_to_transpile[backend_name]) == 1:
+            timer = Timer(self._timeout, self._transpile, [backend_name])
+            timer.start()
+            self._timers[backend_name] = timer
+        if len(self._jobs_to_transpile[backend_name]) == self._backend_look_up.max_experiments(backend_name):
+            # Todo try to cancel
+            self._timers[backend_name].cancel()
+            self._transpile(backend_name)
+
+
 class ExecutionSorter(Thread):
 
     def __init__(self, input:Queue, new_backend:Queue, transpiler_look_up:TranspilerLookUp):
@@ -129,8 +181,8 @@ class ExecutionSorter(Thread):
             # self._log.debug(f"Sorted job {job.id} for backend {backend}")
             self._backend_queue_table[backend_name].put(job)
 
-class Transpiler(mp.Process):
-    def __init__(self, input:mp_queue.Queue, output:mp_queue.Queue, backend:Backend, min_circuits:int, timeout:int):
+class Transpiler(Thread):
+    def __init__(self, input:Queue, output:Queue, backend:Backend, min_circuits:int, timeout:int):
         self._log = logger.get_logger(type(self).__name__ + "_" + backend.name())
         self.input = input
         self.output = output
@@ -138,7 +190,7 @@ class Transpiler(mp.Process):
         self._min_circuits = min_circuits
         self._max_circuits = backend.configuration().max_experiments
         self._timeout = timeout
-        mp.Process.__init__(self)
+        Thread.__init__(self)
         self._log.info("Init")
 
 
