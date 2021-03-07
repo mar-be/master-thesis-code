@@ -1,5 +1,6 @@
 import copy
 import math
+import os
 import time
 from collections import Counter
 from queue import Empty, Queue
@@ -15,10 +16,16 @@ from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
-import multiprocessing as mp
-import mp_queue
 import concurrent.futures
+import qiskit.tools.parallel
 
+def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
+    cpu_count = os.cpu_count()
+    if cpu_count:
+        num_processes = cpu_count
+    return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
+
+transpile.__globals__["parallel_map"] = new_parallel_map
 
 class BackendLookUp():
 
@@ -94,7 +101,7 @@ class TranspilerLookUp():
             backend = self._backend_look_up.get(backend_name)
             backend.configuration()
             backend.properties()
-            transpiler = Transpiler(mp_queue.Queue(), mp_queue.Queue(), backend, self._min_circuits, self._timeout)
+            transpiler = Transpiler(Queue(), Queue(), backend, self._min_circuits, self._timeout)
             self._transpilers[backend_name] = transpiler
             transpiler.start()
             return transpiler
@@ -114,7 +121,7 @@ class TranspilerExecution():
         self._timeout = timeout
         self._jobs_to_transpile = {}
         self._timers = {}
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     
     def _transpile_func(self, jobs:List[QuantumJob], backend:Backend):
         circuits = list([job.circuit for job in jobs])

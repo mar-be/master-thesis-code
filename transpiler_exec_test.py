@@ -4,10 +4,8 @@ from execution_handler.execution_handler import TranspilerExecution, BackendLook
 from analyzer.backend_chooser import Backend_Data
 from qiskit import IBMQ
 import qiskit.ignis.verification.randomized_benchmarking as rb
-import multiprocessing
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
     provider = IBMQ.load_account()
     backend_look_up = BackendLookUp(provider)
     output = Queue()
