@@ -53,6 +53,5 @@ if __name__ == "__main__":
         print(future.result())
 
     while True:
-        future = output.get()
-        print(future.done())
-        future.add_done_callback(callback)
+        circuit, job = output.get()
+        print(job.id)

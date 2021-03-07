@@ -132,6 +132,11 @@ class TranspilerExecution():
         self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
         return zip(transpiled_circuits, jobs)
 
+    def _done_callback(self, future:concurrent.futures.Future):
+        result = future.result()
+        for transpile_tuple in result:
+            self._output.put(transpile_tuple)
+
     def _transpile(self, backend_name):
         n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
         jobs = self._jobs_to_transpile[backend_name][:n_jobs]
@@ -144,7 +149,7 @@ class TranspilerExecution():
             timer = Timer(self._timeout, self._timer_func, [backend_name])
             timer.start()
             self._timers[backend_name] = timer
-        self._output.put(future)
+        future.add_done_callback(self._done_callback)
         
     
     def add_job(self, job:QuantumJob):
