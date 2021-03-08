@@ -153,6 +153,7 @@ class Transpiler():
         except KeyError:
             pass
         n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
+        self._log.debug(f"Prepared {n_jobs} circuits for the transpilation for backend {backend_name}")
         jobs = self._jobs_to_transpile[backend_name][:n_jobs]
         self._jobs_to_transpile[backend_name] = self._jobs_to_transpile[backend_name][n_jobs:]
         self._pending.put((backend_name, jobs))
