@@ -270,6 +270,10 @@ class Batcher(Thread):
             if batch.remaining_experiments == 0:
                 self._log.info(f"Generated full batch {backend_name}/{self._batch_count[backend_name]}")
                 self._output.put(batch)
+                if remaining_shots > 0:
+                    self.self._batch_timers[backend_name] = time.time()
+                else:
+                    self._batch_timers.pop(backend_name)
         
     
     def _check_timers(self):
