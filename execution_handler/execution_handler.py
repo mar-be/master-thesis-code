@@ -112,7 +112,7 @@ class TranspilerLookUp():
     def get_output(self, backend_name):
         return self._get_or_create_transpiler(backend_name).output
 
-class Transpiler(Thread):
+class Transpiler():
 
     def __init__(self, input:Queue, output:Queue, backend_look_up:BackendLookUp, timeout:int) -> None:
         self._log = logger.get_logger(type(self).__name__)
@@ -123,26 +123,31 @@ class Transpiler(Thread):
         self._jobs_to_transpile = {}
         self._timers = {}
         self._pending_transpilation = {}
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        Thread.__init__(self)
+        self._pending = Queue()
         self._log.info("Init")
-    
-    def _transpile_func(self, jobs:List[QuantumJob], backend:Backend):
-        circuits = list([job.circuit for job in jobs])
-        self._log.debug(f"Start transpilation of {len(circuits)} circuits for backend {backend.name()}")
-        trans_start_time = time.time()
-        transpiled_circuits = transpile(circuits, backend=backend)
-        time_diff = time.time() - trans_start_time
-        self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
-        return backend.name(), zip(transpiled_circuits, jobs)
 
-    def _done_callback(self, future:concurrent.futures.Future):
-        backend_name, result = future.result()
-        self._pending_transpilation[backend_name] = False
-        for transpile_tuple in result:
-            self._output.put(transpile_tuple)
+    def start(self):
+        Thread(target=self._route_job).start()
+        Thread(target=self._transpile).start()
+        self._log.info("Started")
 
-    def _transpile(self, backend_name) -> bool:
+
+    def _transpile(self):
+        while True:
+            backend_name, jobs = self._pending.get()
+            backend = self._backend_look_up.get(backend_name)
+            circuits = list([job.circuit for job in jobs])
+            self._log.debug(f"Start transpilation of {len(circuits)} circuits for backend {backend.name()}")
+            trans_start_time = time.time()
+            transpiled_circuits = transpile(circuits, backend=backend)
+            time_diff = time.time() - trans_start_time
+            self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
+            self._pending_transpilation[backend_name] = False
+            for transpile_tuple in zip(transpiled_circuits, jobs):
+                self._output.put(transpile_tuple)
+            
+            
+    def _create_transpilation_batch(self, backend_name:str) -> bool:
         try:
             if self._pending_transpilation[backend_name]:
                 return False
@@ -151,18 +156,14 @@ class Transpiler(Thread):
         n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
         jobs = self._jobs_to_transpile[backend_name][:n_jobs]
         self._jobs_to_transpile[backend_name] = self._jobs_to_transpile[backend_name][n_jobs:]
-        backend = self._backend_look_up.get(backend_name)
-        backend.configuration()
-        backend.properties()
+        self._pending.put((backend_name, jobs))
         self._pending_transpilation[backend_name] = True
-        future =  self.executor.submit(self._transpile_func, jobs, backend)
         if len(self._jobs_to_transpile[backend_name]) > 0:
-            self._timers[backend_name] =  time.time()
-        future.add_done_callback(self._done_callback)
+                self._timers[backend_name] =  time.time()
         return True
-        
+
     
-    def add_job(self, job:QuantumJob):
+    def _add_job(self, job:QuantumJob):
         backend_name = job.backend_data.name
         try:
             self._jobs_to_transpile[backend_name].append(job)
@@ -172,7 +173,7 @@ class Transpiler(Thread):
             self._timers[backend_name] = time.time()
         if len(self._jobs_to_transpile[backend_name]) == self._backend_look_up.max_experiments(backend_name):
             # Todo try to cancel
-            if self._transpile(backend_name):
+            if self._create_transpilation_batch(backend_name):
                 self._timers.pop(backend_name)
 
     def _check_timers(self):
@@ -180,18 +181,17 @@ class Transpiler(Thread):
         for backend_name in self._timers.keys():
             time_diff = time.time() - self._timers[backend_name]
             if time_diff > self._timeout:
-                if self._transpile(backend_name):
+                if self._create_transpilation_batch(backend_name):
                     self._log.debug(f"Transpilation timeout for backend {backend_name}: {time_diff}s")
                     timers_to_clear.append(backend_name)
         for backend_name in timers_to_clear:
             self._timers.pop(backend_name)
 
-    def run(self) -> None:
-        self._log.info("Started")
+    def _route_job(self):
         while True:
             try:
                 job = self._input.get(timeout=5)
-                self.add_job(job)
+                self._add_job(job)
             except Empty:
                 pass
             self._check_timers()
