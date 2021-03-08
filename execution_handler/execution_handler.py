@@ -16,7 +16,7 @@ from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
-import concurrent.futures
+import multiprocessing as mp
 import qiskit.tools.parallel
 
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
@@ -124,6 +124,7 @@ class Transpiler():
         self._timers = {}
         self._pending_transpilation = {}
         self._pending = Queue()
+        self._finished = Queue()
         self._log.info("Init")
 
     def start(self):
@@ -142,9 +143,7 @@ class Transpiler():
             transpiled_circuits = transpile(circuits, backend=backend)
             time_diff = time.time() - trans_start_time
             self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
-            self._pending_transpilation[backend_name] = False
-            for transpile_tuple in zip(transpiled_circuits, jobs):
-                self._output.put(transpile_tuple)
+            self._finished.put((backend_name, zip(transpiled_circuits, jobs)))
             
             
     def _create_transpilation_batch(self, backend_name:str) -> bool:
@@ -195,6 +194,13 @@ class Transpiler():
             except Empty:
                 pass
             self._check_timers()
+            try:
+                backend_name, transpiled_result = self._finished.get(block=False)
+                self._pending_transpilation[backend_name] = False
+                for transpiled_tuple in transpiled_result:
+                    self._output.put(transpiled_tuple)
+            except Empty:
+                pass
 
 
         
@@ -367,7 +373,7 @@ class Submitter(Thread):
                 backend = self._backend_look_up.get(backend_name)
                 if self._backend_control.try_to_enter(backend_name, backend):
                     job = backend.run(qobj)
-                    self._log.info(f"Submitted batch {batch.batch_number} to {batch.backend_name}")
+                    self._log.info(f"Submitted batch {batch.backend_name}/{batch.batch_number}")
                     self._output.put((batch, job))
                 else:
                     # self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
@@ -573,7 +579,7 @@ class ExecutionHandler():
         quantum_job_table = {}
         backend_look_up = BackendLookUp(provider)
         backend_control = BackendControl()
-        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = 10)
+        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = 20)
         self._batcher = Batcher(input=transpiler_batcher, output=batcher_submitter, quantum_job_table=quantum_job_table, backend_look_up=backend_look_up, batch_timeout=batch_timeout)
         self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
