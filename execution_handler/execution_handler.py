@@ -4,7 +4,7 @@ import os
 import time
 from collections import Counter
 from queue import Empty, Queue
-from threading import Lock, Thread, Timer
+from threading import Lock, Thread
 from typing import Dict, List
 import logger
 from qiskit import QuantumCircuit, assemble, transpile
@@ -122,6 +122,7 @@ class Transpiler(Thread):
         self._timeout = timeout
         self._jobs_to_transpile = {}
         self._timers = {}
+        self._pending_transpilation = {}
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         Thread.__init__(self)
         self._log.info("Init")
@@ -133,26 +134,32 @@ class Transpiler(Thread):
         transpiled_circuits = transpile(circuits, backend=backend)
         time_diff = time.time() - trans_start_time
         self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
-        return zip(transpiled_circuits, jobs)
+        return backend.name(), zip(transpiled_circuits, jobs)
 
     def _done_callback(self, future:concurrent.futures.Future):
-        result = future.result()
+        backend_name, result = future.result()
+        self._pending_transpilation[backend_name] = False
         for transpile_tuple in result:
             self._output.put(transpile_tuple)
 
-    def _transpile(self, backend_name):
+    def _transpile(self, backend_name) -> bool:
+        try:
+            if self._pending_transpilation[backend_name]:
+                return False
+        except KeyError:
+            pass
         n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
         jobs = self._jobs_to_transpile[backend_name][:n_jobs]
         self._jobs_to_transpile[backend_name] = self._jobs_to_transpile[backend_name][n_jobs:]
         backend = self._backend_look_up.get(backend_name)
         backend.configuration()
         backend.properties()
+        self._pending_transpilation[backend_name] = True
         future =  self.executor.submit(self._transpile_func, jobs, backend)
         if len(self._jobs_to_transpile[backend_name]) > 0:
-            timer = Timer(self._timeout, self._timer_func, [backend_name])
-            timer.start()
-            self._timers[backend_name] = timer
+            self._timers[backend_name] =  time.time()
         future.add_done_callback(self._done_callback)
+        return True
         
     
     def add_job(self, job:QuantumJob):
@@ -161,20 +168,33 @@ class Transpiler(Thread):
             self._jobs_to_transpile[backend_name].append(job)
         except KeyError:
             self._jobs_to_transpile[backend_name] = [job]
-        if len(self._jobs_to_transpile[backend_name]) == 1:
-            timer = Timer(self._timeout, self._transpile, [backend_name])
-            timer.start()
-            self._timers[backend_name] = timer
+        if not backend_name in self._timers.keys():
+            self._timers[backend_name] = time.time()
         if len(self._jobs_to_transpile[backend_name]) == self._backend_look_up.max_experiments(backend_name):
             # Todo try to cancel
-            self._timers[backend_name].cancel()
-            self._transpile(backend_name)
+            if self._transpile(backend_name):
+                self._timers.pop(backend_name)
+
+    def _check_timers(self):
+        timers_to_clear = []
+        for backend_name in self._timers.keys():
+            time_diff = time.time() - self._timers[backend_name]
+            if time_diff > self._timeout:
+                if self._transpile(backend_name):
+                    self._log.debug(f"Transpilation timeout for backend {backend_name}: {time_diff}s")
+                    timers_to_clear.append(backend_name)
+        for backend_name in timers_to_clear:
+            self._timers.pop(backend_name)
 
     def run(self) -> None:
         self._log.info("Started")
         while True:
-            job = self._input.get()
-            self.add_job(job)
+            try:
+                job = self._input.get(timeout=5)
+                self.add_job(job)
+            except Empty:
+                pass
+            self._check_timers()
 
 
         
