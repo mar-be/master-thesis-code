@@ -17,14 +17,15 @@ from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
 import qiskit.tools.parallel
+import concurrent.futures.process
 
-def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
-    cpu_count = psutil.cpu_count(logical = True)
-    if cpu_count:
-        num_processes = max(cpu_count-1, 1)
-    return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
+# def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
+#     cpu_count = psutil.cpu_count(logical = True)
+#     if cpu_count:
+#         num_processes = max(cpu_count-1, 1)
+#     return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
 
-transpile.__globals__["parallel_map"] = new_parallel_map
+# transpile.__globals__["parallel_map"] = new_parallel_map
 
 class BackendLookUp():
 
@@ -113,7 +114,15 @@ class Transpiler():
             circuits = list([job.circuit for job in jobs])
             self._log.debug(f"Start transpilation of {len(circuits)} circuits for backend {backend.name()}")
             trans_start_time = time.time()
-            transpiled_circuits = transpile(circuits, backend=backend)
+            tries = 3
+            for i in range(tries):
+                try:
+                    transpiled_circuits = transpile(circuits, backend=backend)
+                    break
+                except concurrent.futures.process.BrokenProcessPoll as e:
+                    self._log.exception(e)
+                    if i == tries-1:
+                        raise e
             time_diff = time.time() - trans_start_time
             self._log.info(f"Transpiled {len(transpiled_circuits)} circuits for backend {backend.name()} in {time_diff}s")
             self._finished.put((backend_name, zip(transpiled_circuits, jobs)))
@@ -436,7 +445,7 @@ class Retriever(Thread):
 
 class ResultProcessor(Thread):
 
-    def __init__(self, input: Queue, output: Queue, quantum_job_table:Dict, memory=False):
+    def __init__(self, input: Queue, output: Queue, quantum_job_table:Dict, memory:bool=False):
         self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
