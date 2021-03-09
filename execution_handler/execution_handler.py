@@ -1,6 +1,6 @@
 import copy
 import math
-import os
+import psutil
 import time
 from collections import Counter
 from queue import Empty, Queue
@@ -20,9 +20,9 @@ import multiprocessing as mp
 import qiskit.tools.parallel
 
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
-    cpu_count = os.cpu_count()
+    cpu_count = psutil.cpu_count(logical = True)
     if cpu_count:
-        num_processes = cpu_count
+        num_processes = max(cpu_count-1, 1)
     return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
 
 transpile.__globals__["parallel_map"] = new_parallel_map
@@ -187,22 +187,32 @@ class Transpiler():
         for backend_name in timers_to_clear:
             self._timers.pop(backend_name)
 
+    def _any_pending_transpilation(self) -> bool:
+        if len(self._pending_transpilation) == 0:
+            return False
+        else:
+            return any(self._pending_transpilation.values())
+
     def _route_job(self):
         while True:
             for i in range(1000):
                 try:
-                    block = (i==0)
+                    timeout = 1
+                    if i == 0:
+                        timeout = 5
                     # only block in the first iteration
-                    job = self._input.get(block=block, timeout=5)
+                    job = self._input.get(timeout=timeout)
                     self._add_job(job)
                 except Empty:
                     break
-            self._check_timers()
+            if not self._any_pending_transpilation():
+                self._check_timers()
             try:
                 backend_name, transpiled_result = self._finished.get(block=False)
                 self._pending_transpilation[backend_name] = False
                 for transpiled_tuple in transpiled_result:
                     self._output.put(transpiled_tuple)
+                self._check_timers()
             except Empty:
                 pass
 
