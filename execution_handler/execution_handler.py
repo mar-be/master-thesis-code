@@ -436,11 +436,12 @@ class Retriever(Thread):
 
 class ResultProcessor(Thread):
 
-    def __init__(self, input: Queue, output: Queue, quantum_job_table:Dict):
+    def __init__(self, input: Queue, output: Queue, quantum_job_table:Dict, memory=False):
         self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
         self._quantum_job_table = quantum_job_table
+        self._memory = memory
         self._previous_key = {}
         self._previous_memory = {}
         self._previous_counts = {}
@@ -520,8 +521,11 @@ class ResultProcessor(Thread):
                     previous_counts = copy.deepcopy(counts)
                     previous_key = key
                     continue
-                
-                result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
+                if self._memory:
+                    result_data = ExperimentResultData(counts=counts, memory=memory).to_dict()
+                else:
+                    result_data = ExperimentResultData(counts=counts).to_dict()
+
 
                 # overwrite the data and the shots
                 job_exp_result_dict["data"] = result_data

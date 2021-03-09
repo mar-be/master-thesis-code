@@ -3,6 +3,7 @@ from datetime import datetime
 from logging import Logger
 import os
 from typing import Dict, List
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
 from analyzer.backend_chooser import Backend_Data
 from quantum_job import QuantumJob
@@ -15,6 +16,7 @@ import qiskit.ignis.verification.randomized_benchmarking as rb
 from qiskit import IBMQ
 import matplotlib.pyplot as plt
 from qiskit.result import Result
+import pickle
 
 def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
     half = len(results)//2
@@ -30,9 +32,26 @@ def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_n
     agg_fit = fit(agg_results, rb_opts, xdata, log)
     plot(agg_fit, f"{backend_name} agg", f"{dir_path_backend}/aggregation.png", log)
     
-        
 
-    
+def pickle_dump(object, filename):
+    with open(filename,'wb') as f:
+        pickle.dump(object, f)
+
+
+def store_results_backend(results:List[Result], backend_dict:Dict, dir_path:str, backend_name:str, log:Logger):
+    path = f"{dir_path}/{backend_name}/data"
+    os.mkdir(path)
+    pickle_dump(results, f"{path}/results.pkl")
+    pickle_dump(backend_dict, f"{path}/backend_dict.pkl")
+    log.info("Pickeld all result files")
+
+def store_general_data(rb_circs:List[List[QuantumCircuit]], rb_opts:Dict, xdata:List,  dir_path:str, log:Logger):
+    path = f"{dir_path}/general_data"
+    os.mkdir(path)
+    pickle_dump(rb_circs, f"{path}/rb_circs.pkl")
+    pickle_dump(rb_opts, f"{path}/rb_opts.pkl")
+    pickle_dump(xdata, f"{path}/xdata.pkl")
+    log.info("Pickeld all general files")
 
 def fit(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFitter:
     rb_fit = rb.RBFitter(None, xdata, rb_opts['rb_pattern'])
@@ -77,8 +96,8 @@ if __name__ == "__main__":
 
     shots = 8192
 
-    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
-    # backend_names = ['ibmq_qasm_simulator']
+    # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
+    backend_names = ['ibmq_qasm_simulator']
 
     rb_circs, xdata = rb.randomized_benchmarking_seq(**rb_opts)
 
@@ -148,6 +167,8 @@ if __name__ == "__main__":
 
     os.mkdir(dir_path)
 
+    store_general_data(rb_circs, rb_opts, xdata, dir_path, log)
+
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result
@@ -155,5 +176,17 @@ if __name__ == "__main__":
         log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}, success: {r.success}")
         results[backend_name].append(r)
         if len(results[backend_name]) == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
-            evaluate(results.pop(backend_name), rb_opts, xdata, dir_path, backend_name, log)
+            result = results.pop(backend_name)
+            evaluate(result, rb_opts, xdata, dir_path, backend_name, log)
+            backend = backends[backend_name]["backend"]
+            backend_dict = {"name":backend.name()}
+            if backend.configuration() != None:
+                backend_dict["config"] = backend.configuration().to_dict() 
+            
+            if backend.status() != None:
+                backend_dict["status"] = backend.status().to_dict()
+
+            if backend.properties() != None:
+                backend_dict["properties"] = backend.properties().to_dict()
+            store_results_backend(result, backend_dict, dir_path, backend_name, log)
 
