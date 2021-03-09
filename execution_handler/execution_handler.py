@@ -17,7 +17,7 @@ from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
 import qiskit.tools.parallel
-import concurrent.futures.process
+from concurrent.futures.process import BrokenProcessPool
 
 # def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
 #     cpu_count = psutil.cpu_count(logical = True)
@@ -119,7 +119,7 @@ class Transpiler():
                 try:
                     transpiled_circuits = transpile(circuits, backend=backend)
                     break
-                except concurrent.futures.process.BrokenProcessPoll as e:
+                except BrokenProcessPool as e:
                     self._log.exception(e)
                     if i == tries-1:
                         raise e
