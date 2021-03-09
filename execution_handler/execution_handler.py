@@ -189,11 +189,14 @@ class Transpiler():
 
     def _route_job(self):
         while True:
-            try:
-                job = self._input.get(timeout=5)
-                self._add_job(job)
-            except Empty:
-                pass
+            for i in range(1000):
+                try:
+                    block = (i==0)
+                    # only block in the first iteration
+                    job = self._input.get(block=block, timeout=5)
+                    self._add_job(job)
+                except Empty:
+                    break
             self._check_timers()
             try:
                 backend_name, transpiled_result = self._finished.get(block=False)
