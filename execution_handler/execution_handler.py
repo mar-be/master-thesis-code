@@ -5,7 +5,7 @@ import time
 from collections import Counter
 from queue import Empty, Queue
 from threading import Lock, Thread
-from typing import Dict, List
+from typing import Dict
 import logger
 from qiskit import QuantumCircuit, assemble, transpile
 from qiskit.providers import Backend
@@ -16,7 +16,6 @@ from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_job import QuantumJob
-import multiprocessing as mp
 import qiskit.tools.parallel
 
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=1):
@@ -85,32 +84,6 @@ class BackendControl():
         with self._locks[backend_name]:
             self._counters[backend_name] -= 1
 
-class TranspilerLookUp():
-
-    def __init__(self, backend_look_up:BackendLookUp, min_circuits:int, timeout:int) -> None:
-        self._backend_look_up = backend_look_up
-        self._min_circuits = min_circuits
-        self._timeout = timeout
-        self._transpilers = {}
-
-    def _get_or_create_transpiler(self, backend_name):
-        try:
-            return self._transpilers[backend_name]
-            
-        except KeyError:
-            backend = self._backend_look_up.get(backend_name)
-            backend.configuration()
-            backend.properties()
-            transpiler = Transpiler(Queue(), Queue(), backend, self._min_circuits, self._timeout)
-            self._transpilers[backend_name] = transpiler
-            transpiler.start()
-            return transpiler
-
-    def get_input(self, backend_name):
-        return self._get_or_create_transpiler(backend_name).input
-
-    def get_output(self, backend_name):
-        return self._get_or_create_transpiler(backend_name).output
 
 class Transpiler():
 
