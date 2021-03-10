@@ -120,7 +120,10 @@ class Transpiler():
                     transpiled_circuits = transpile(circuits, backend=backend)
                     break
                 except BrokenProcessPool as e:
-                    self._log.exception(e)
+                    if hasattr(e, 'message'):
+                        self._log.info(f"In try {i} the following error occured {e.message}")
+                    else:
+                        self._log.exception(e)
                     if i == tries-1:
                         raise e
             time_diff = time.time() - trans_start_time
