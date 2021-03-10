@@ -535,10 +535,15 @@ class ResultProcessor(Thread):
                 else:
                     result_data = ExperimentResultData(counts=counts).to_dict()
 
-
                 # overwrite the data and the shots
                 job_exp_result_dict["data"] = result_data
                 job_exp_result_dict["shots"] = total_shots
+
+            else:
+                if not self._memory:
+                    counts = job_result.data(exp_number)['counts']
+                    result_data = ExperimentResultData(counts=counts).to_dict()
+                    job_exp_result_dict["data"] = result_data
 
             # overwrite the results with the computed result
             result_dict["results"] = [job_exp_result_dict]
@@ -571,7 +576,7 @@ class ResultProcessor(Thread):
 
 class ExecutionHandler():
     
-    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_time:int = 30) -> None:
+    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_time:int = 30, memory:bool=False) -> None:
         transpiler_batcher = Queue()
         batcher_submitter = Queue()
         submitter_retrieber = Queue()
@@ -583,7 +588,7 @@ class ExecutionHandler():
         self._batcher = Batcher(input=transpiler_batcher, output=batcher_submitter, quantum_job_table=quantum_job_table, backend_look_up=backend_look_up, batch_timeout=batch_timeout)
         self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
-        self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table)
+        self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table, memory=memory)
     
     def start(self):
         self._transpiler.start()
