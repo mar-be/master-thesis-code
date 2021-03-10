@@ -22,7 +22,7 @@ from concurrent.futures.process import BrokenProcessPool
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=qiskit.tools.parallel.CPU_COUNT):
     if num_processes == psutil.cpu_count(logical=True) and num_processes > 1:
         # at least one free logical core
-        num_processes =- 1
+        num_processes -= 1
     print(f"num_processes={num_processes}")
     return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
 
