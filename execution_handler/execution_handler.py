@@ -18,6 +18,7 @@ from qiskit.result.result import Result
 from quantum_job import QuantumJob
 import qiskit.tools.parallel
 from concurrent.futures.process import BrokenProcessPool
+import qiskit.providers.ibmq.job.exceptions
 
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=qiskit.tools.parallel.CPU_COUNT):
     if num_processes == psutil.cpu_count(logical=True) and num_processes > 1:
@@ -412,9 +413,12 @@ class Retriever(Thread):
                 i += 1
             final_state_jobs = []
             for batch, job in self._jobs:
-                if job.in_final_state():
-                    final_state_jobs.append((batch, job))
-                    self._backend_control.leave(batch.backend_name)
+                try:
+                    if job.in_final_state():
+                        final_state_jobs.append((batch, job))
+                        self._backend_control.leave(batch.backend_name)
+                except qiskit.providers.ibmq.job.exceptions.IBMQJobApiError as e:
+                    self._log.exception(e) 
             for job_tuple in final_state_jobs:
                 self._jobs.remove(job_tuple)
                 batch, job = job_tuple
