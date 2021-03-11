@@ -2,7 +2,7 @@
 from datetime import datetime
 from logging import Logger
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
 from analyzer.backend_chooser import Backend_Data
@@ -37,13 +37,25 @@ def pickle_dump(object, filename):
     with open(filename,'wb') as f:
         pickle.dump(object, f)
 
+def pickle_load(filename:str) -> Any:
+    with open(filename,'rb') as f:
+        return pickle.load(f)
 
-def store_results_backend(results:List[Result], backend_dict:Dict, dir_path:str, backend_name:str, log:Logger):
+def pickle_append_result(result:Result, filename):
+    if os.path.exists(filename):
+        results = pickle_load(filename)
+        results.append(result)
+    else:
+        results = [result]
+    pickle_dump(results, filename)
+
+
+
+def store_backend_data(backend_dict:Dict, dir_path:str, backend_name:str, log:Logger):
     path = f"{dir_path}/{backend_name}/data"
-    os.mkdir(path)
-    pickle_dump(results, f"{path}/results.pkl")
+    os.makedirs(path)
     pickle_dump(backend_dict, f"{path}/backend_dict.pkl")
-    log.info("Pickeld all result files")
+    log.info(f"Pickled backend_dict for backend {backend_name}")
 
 def store_general_data(rb_circs:List[List[QuantumCircuit]], rb_opts:Dict, xdata:List,  dir_path:str, log:Logger):
     path = f"{dir_path}/general_data"
@@ -151,9 +163,9 @@ if __name__ == "__main__":
     log.info("Started the Aggrgator pipeline")
 
     n_results = 2*rb_opts['nseeds']*len(rb_opts['length_vector'])*len(backend_names)
-    results = {}
+    results_counter = {}
     for backend_name in backend_names:
-        results[backend_name] = []
+        results_counter[backend_name] = 0
 
     try:
         os.makedirs(dir_path)
@@ -169,26 +181,28 @@ if __name__ == "__main__":
 
     store_general_data(rb_circs, rb_opts, xdata, dir_path, log)
 
+    for backend_name in backend_names:
+        backend = backends[backend_name]["backend"]
+        backend_dict = {"name":backend.name()}
+        if backend.configuration() != None:
+            backend_dict["config"] = backend.configuration().to_dict() 
+        
+        if backend.status() != None:
+            backend_dict["status"] = backend.status().to_dict()
+
+        if backend.properties() != None:
+            backend_dict["properties"] = backend.properties().to_dict()
+        store_backend_data(backend_dict, dir_path, backend_name, log)
+
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result
+        pickle_append_result(r, f"{dir_path}/{backend_name}/data/results.pkl")
         backend_name = job.backend_data.name
         log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}, success: {r.success}")
-        results[backend_name].append(r)
-        if len(results[backend_name]) == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
-            result = results.pop(backend_name)
-            evaluate(result, rb_opts, xdata, dir_path, backend_name, log)
-            backend = backends[backend_name]["backend"]
-            backend_dict = {"name":backend.name()}
-            if backend.configuration() != None:
-                backend_dict["config"] = backend.configuration().to_dict() 
-            
-            if backend.status() != None:
-                backend_dict["status"] = backend.status().to_dict()
-
-            if backend.properties() != None:
-                backend_dict["properties"] = backend.properties().to_dict()
-            store_results_backend(result, backend_dict, dir_path, backend_name, log)
+        results_counter[backend_name] += 1
+        if results_counter[backend_name] == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
+            log.info(f"Got all results for {backend_name}")
 
     log.info("Finished")
 
