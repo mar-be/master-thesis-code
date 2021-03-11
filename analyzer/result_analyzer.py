@@ -18,15 +18,15 @@ class ResultAnalyzer(Thread):
         self._log.info("Started ResultAnalyzer")
         while True:
             job:QuantumJob = self._input.get()
-            self._log.debug(f"Got job {job.id}")
+            #self._log.debug(f"Got job {job.id}")
             if job.type == Modification_Type.none:
-                self._log.debug(f"Put job {job.id} in output queue")
+                #self._log.debug(f"Put job {job.id} in output queue")
                 self._output.put(job)
             elif job.type == Modification_Type.aggregation:
-                self._log.debug(f"Put job {job.id} in aggregation queue")
+                #self._log.debug(f"Put job {job.id} in aggregation queue")
                 self._output_agg.put(job)
             elif job.type == Modification_Type.partition:
-                self._log.debug(f"Put job {job.id} in partition queue")
+                #self._log.debug(f"Put job {job.id} in partition queue")
                 self._output_part.put(job)
             else:
                 self._log.error("Unkown Modification_Type")

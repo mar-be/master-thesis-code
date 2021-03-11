@@ -199,7 +199,7 @@ if __name__ == "__main__":
         r = job.result
         pickle_append_result(r, f"{dir_path}/{backend_name}/data/results.pkl")
         backend_name = job.backend_data.name
-        log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}, success: {r.success}")
+        log.debug(f"{i}: Got result {r._get_experiment(0).header.name}, type {job.type}, from backend {backend_name}, success: {r.success}")
         results_counter[backend_name] += 1
         if results_counter[backend_name] == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
             log.info(f"Got all results for {backend_name}")
