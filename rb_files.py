@@ -17,7 +17,10 @@ import numpy as np
 from qiskit.result.result import Result
 
 BLUE_COLOR_LIST = ["#8080ff", "#0000ff", "#000080" ]
+LIGHT_BLUE_COLOR_LIST = ["#80ccff", "#0099ff", "#004c80" ]
 GREEN_COLOR_LIST = ["#80ff80", "#00ff00", "#008000" ]
+LIGHT_GREEN_COLOR_LIST = ["#80ffcc", "#00ff99", "#00804d" ]
+ORANGE_COLOR_LIST = ["#ffcc80", "#ff9900", "#804d00" ]
 
 def pickle_load(filename:str) -> Any:
     with open(filename,'rb') as f:
@@ -27,23 +30,29 @@ def pickle_dump(object, filename):
     with open(filename,'wb') as f:
         pickle.dump(object, f)
 
-def fitter_plot(rb_fit:RBFitter, ax:Optional[Axes]=None, color:List = None):
+def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes]=None, color:List = None):
     if not ax:
         plt.figure(figsize=(8, 6))
         ax = plt.subplot(1, 1, 1)
     prev_lines = copy.copy(ax.lines)
     # Plot the essence by calling plot_rb_data
     rb_fit.plot_rb_data(0, ax=ax, add_label=False, show_plt=False)
+    data_label_flag = True
     for line in ax.lines:
         if not line in prev_lines:
             if color:
                 c = line.get_color()
                 if c == "gray":
                     line.set_color(color[0])
+                    if data_label_flag:
+                        line.set_label(f"{name} data")
+                        data_label_flag = False
                 elif c == "r":
                     line.set_color(color[1])
+                    line.set_label(f"{name} mean")
                 elif c == "blue":
                     line.set_color(color[2])
+                    line.set_label(f"{name} fitted func")
         
     # Add title and label
     # ax.set_title('%d Qubit RB - %s'%(nQ, name), fontsize=18)
@@ -73,14 +82,16 @@ def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_n
     no_agg_fit.calc_statistics()
     # log.info(f"No Agg probabilities: {no_agg_fit.raw_data}")
     log.info(f"No Agg statistics: {no_agg_fit.ydata}")
-    ax = fitter_plot(no_agg_fit, color=GREEN_COLOR_LIST)
+    ax = fitter_plot(no_agg_fit, "no agg", color=ORANGE_COLOR_LIST)
     agg_fit = fit(agg_results, rb_opts, xdata, log)
     agg_fit.calc_data()
     agg_fit.calc_statistics()
     # log.info(f"Agg probabilities: {agg_fit.raw_data}")
     log.info(f"Agg statistics: {agg_fit.ydata}")
-    ax = fitter_plot(agg_fit, ax, color=BLUE_COLOR_LIST)
-    plt.savefig(f"{dir_path}/{backend_name}/together.png")
+    ax = fitter_plot(agg_fit, "agg", ax=ax, color=LIGHT_BLUE_COLOR_LIST)
+    plt.title(f"RB for {backend_name}")
+    plt.legend()
+    plt.savefig(f"{dir_path}/{backend_name}/{backend_name}_together.png")
 
 def get_general_data(path:str):
     rb_circs = pickle_load(f"{path}/general_data/rb_circs.pkl")

@@ -190,3 +190,5 @@ if __name__ == "__main__":
                 backend_dict["properties"] = backend.properties().to_dict()
             store_results_backend(result, backend_dict, dir_path, backend_name, log)
 
+    log.info("Finished")
+
