@@ -63,11 +63,13 @@ def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes]=None, color:List = 
 
 def fit(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFitter:
     rb_fit = RBFitter(None, xdata, rb_opts['rb_pattern'])
-    batch_size = len(rb_opts['length_vector'])
-    for rb_seed in range(rb_opts['nseeds']):
-        result_batch = results[rb_seed*batch_size: rb_seed*batch_size + batch_size]
-        rb_fit.add_data(result_batch)
-        log.info('After seed %d, alpha: %f, EPC: %f'%(rb_seed,rb_fit.fit[0]['params'][1], rb_fit.fit[0]['epc']))
+    rb_fit.add_data(results)
+    log.info(f"Fitted {len(results)} results, alpha: {rb_fit.fit[0]['params'][1]}, EPC: {rb_fit.fit[0]['epc']}")
+    # batch_size = len(rb_opts['length_vector'])
+    # for rb_seed in range(rb_opts['nseeds']):
+    #     result_batch = results[rb_seed*batch_size: rb_seed*batch_size + batch_size]
+    #     rb_fit.add_data(result_batch)
+    #     log.info('After seed %d, alpha: %f, EPC: %f'%(rb_seed,rb_fit.fit[0]['params'][1], rb_fit.fit[0]['epc']))
     return rb_fit
 
 def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
@@ -76,18 +78,11 @@ def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_n
     agg_results = results[half:]
     assert(len(no_agg_results)==len(agg_results))
 
-
+    log.info(f"Fit no agg data for backend {backend_name}")
     no_agg_fit = fit(no_agg_results, rb_opts, xdata, log)
-    no_agg_fit.calc_data()
-    no_agg_fit.calc_statistics()
-    # log.info(f"No Agg probabilities: {no_agg_fit.raw_data}")
-    log.info(f"No Agg statistics: {no_agg_fit.ydata}")
     ax = fitter_plot(no_agg_fit, "no agg", color=ORANGE_COLOR_LIST)
+    log.info(f"Fit agg data for backend {backend_name}")
     agg_fit = fit(agg_results, rb_opts, xdata, log)
-    agg_fit.calc_data()
-    agg_fit.calc_statistics()
-    # log.info(f"Agg probabilities: {agg_fit.raw_data}")
-    log.info(f"Agg statistics: {agg_fit.ydata}")
     ax = fitter_plot(agg_fit, "agg", ax=ax, color=LIGHT_BLUE_COLOR_LIST)
     plt.title(f"RB for {backend_name}")
     plt.legend()
@@ -167,7 +162,7 @@ def merge(dir_paths: List[str], result_path: str, log:Logger):
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    result_path = f"{result_path}/{now_str}_merged"
+    result_path = f"{result_path}/{now_str}_merged/_{len(dir_paths)}"
     os.mkdir(result_path)
 
     rb_opts_merged['nseeds'] = nseeds_merged
@@ -184,12 +179,45 @@ def merge(dir_paths: List[str], result_path: str, log:Logger):
         pickle_dump(backends[backend_name], f"{backend_data_path}/backend_dict.pkl")
         log.info(f"Pickeld all files for backend {backend_name}")
 
+def merge_separate_result_files(path:str, backend_name:str):
+    agg_path = f"{path}/{backend_name}/data/res_agg"
+    no_agg_path = f"{path}/{backend_name}/data/res_no_agg"
+    no_agg_files = []
+    for (dirpath, dirnames, filenames) in os.walk(no_agg_path):
+        no_agg_files.extend(filenames)
+    agg_files = []
+    for (dirpath, dirnames, filenames) in os.walk(agg_path):
+        agg_files.extend(filenames)
+
+    reverse_string_func = lambda s: s[::-1]
+    no_agg_files.sort(key=reverse_string_func)
+    agg_files.sort(key=reverse_string_func)
+
+    results = []
+
+    for file in no_agg_files:
+        res = pickle_load(f"{no_agg_path}/{file}")
+        results.append(res)
+
+    for file in agg_files:
+        res = pickle_load(f"{agg_path}/{file}")
+        results.append(res)
+
+    pickle_dump(results, f"{path}/{backend_name}/data/results.pkl")
+
+    
+def merge_separate_result_files_all_backends(path:str, log:Logger):
+    backends = get_backends_in_dir(path)
+    for backend_name in backends:
+        log.info(f"Merge results for backend {backend_name}")
+        merge_separate_result_files(path, backend_name)
 
 
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-03-11-16-39-17_merged"
-    paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34"]
+    path = "rb_data/2021-03-12-10-41-20_merged"
+    paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", "rb_data/2021-03-12-08-38-08"]
     # merge(paths, "./rb_data", log)
     evaluate_dir(path, log)
+    # merge_separate_result_files_all_backends(path, log)
     
