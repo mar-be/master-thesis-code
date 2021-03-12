@@ -194,11 +194,11 @@ if __name__ == "__main__":
             backend_dict["properties"] = backend.properties().to_dict()
         store_backend_data(backend_dict, dir_path, backend_name, log)
 
-    agg_path = f"{dir_path}/{backend_name}/data/res_agg"
-    no_agg_path = f"{dir_path}/{backend_name}/data/res_no_agg"
-    os.mkdir(agg_path)
-    os.mkdir(no_agg_path)
-    
+        agg_path = f"{dir_path}/{backend_name}/data/res_agg"
+        no_agg_path = f"{dir_path}/{backend_name}/data/res_no_agg"
+        os.mkdir(agg_path)
+        os.mkdir(no_agg_path)
+
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result
