@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
 from analyzer.backend_chooser import Backend_Data
-from quantum_job import QuantumJob
+from quantum_job import Modification_Type, QuantumJob
 from logger import get_logger
 from queue import Queue
 from analyzer.result_analyzer import ResultAnalyzer
@@ -194,10 +194,20 @@ if __name__ == "__main__":
             backend_dict["properties"] = backend.properties().to_dict()
         store_backend_data(backend_dict, dir_path, backend_name, log)
 
+    agg_path = f"{dir_path}/{backend_name}/data/res_agg"
+    no_agg_path = f"{dir_path}/{backend_name}/data/res_no_agg"
+    os.mkdir(agg_path)
+    os.mkdir(no_agg_path)
+    
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result
-        pickle_append_result(r, f"{dir_path}/{backend_name}/data/results.pkl")
+        agg_path
+        if job.type == Modification_Type.aggregation:
+            pickle_path = f"{agg_path}/{r._get_experiment(0).header.name}.pkl"
+        else:
+            pickle_path = f"{no_agg_path}/{r._get_experiment(0).header.name}.pkl"
+        pickle_dump(r, pickle_path)
         backend_name = job.backend_data.name
         log.debug(f"{i}: Got result {r._get_experiment(0).header.name}, type {job.type}, from backend {backend_name}, success: {r.success}")
         results_counter[backend_name] += 1
