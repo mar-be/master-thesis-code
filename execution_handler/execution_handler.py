@@ -418,7 +418,7 @@ class Retriever(Thread):
                         final_state_jobs.append((batch, job))
                         self._backend_control.leave(batch.backend_name)
                 except qiskit.providers.ibmq.job.exceptions.IBMQJobApiError as e:
-                    self._log.exception(e) 
+                    self._log.info("Connection Problem") 
             for job_tuple in final_state_jobs:
                 self._jobs.remove(job_tuple)
                 batch, job = job_tuple

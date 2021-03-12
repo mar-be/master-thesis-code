@@ -202,13 +202,13 @@ if __name__ == "__main__":
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result
-        agg_path
-        if job.type == Modification_Type.aggregation:
-            pickle_path = f"{agg_path}/{r._get_experiment(0).header.name}.pkl"
-        else:
-            pickle_path = f"{no_agg_path}/{r._get_experiment(0).header.name}.pkl"
-        pickle_dump(r, pickle_path)
         backend_name = job.backend_data.name
+        if job.type == Modification_Type.aggregation:
+            pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
+        else:
+            pickle_path = f"{dir_path}/{backend_name}/data/res_no_agg/{r._get_experiment(0).header.name}.pkl"
+        pickle_dump(r, pickle_path)
+        
         log.debug(f"{i}: Got result {r._get_experiment(0).header.name}, type {job.type}, from backend {backend_name}, success: {r.success}")
         results_counter[backend_name] += 1
         if results_counter[backend_name] == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
