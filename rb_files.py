@@ -30,46 +30,65 @@ def pickle_dump(object, filename):
     with open(filename,'wb') as f:
         pickle.dump(object, f)
 
-def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes]=None, color:List = None):
-    if not ax:
-        plt.figure(figsize=(8, 6))
-        ax = plt.subplot(1, 1, 1)
-    prev_lines = copy.copy(ax.lines)
-    # Plot the essence by calling plot_rb_data
-    rb_fit.plot_rb_data(0, ax=ax, add_label=False, show_plt=False)
-    data_label_flag = True
-    for line in ax.lines:
-        if not line in prev_lines:
-            if color:
-                c = line.get_color()
-                if c == "gray":
-                    line.set_color(color[0])
-                    if data_label_flag:
-                        line.set_label(f"{name} data")
-                        data_label_flag = False
-                elif c == "r":
-                    line.set_color(color[1])
-                    line.set_label(f"{name} mean")
-                elif c == "blue":
-                    line.set_color(color[2])
-                    line.set_label(f"{name} fitted func")
-        
-    # Add title and label
-    # ax.set_title('%d Qubit RB - %s'%(nQ, name), fontsize=18)
+def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger, no_agg_color:List = ORANGE_COLOR_LIST, agg_color: List = BLUE_COLOR_LIST):
+    plt.figure(figsize=(8, 6))
+    ax = plt.subplot(1, 1, 1)
 
-    # plt.savefig(filename)
-    # log.info("Saved file " + filename)
+    ax = fitter_plot(no_agg_fit, "no agg", ax, no_agg_color, x_shift=1)
+    ax = fitter_plot(agg_fit, "agg", ax, agg_color, x_shift=-1)
+
+    ax.tick_params(labelsize=16)
+    ax.set_xlabel('Clifford Length', fontsize=18)
+    ax.set_ylabel('Ground State Population', fontsize=20)
+    ax.grid(True)
+
+    handles, labels = ax.get_legend_handles_labels()
+    order = [0,1,4,2,3,5]
+    
+    plt.title(title, fontsize=18)
+    plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=16)
+    plt.savefig(path, format="pdf")
+    log.info(f"Created plot {path}")
+        
+
+def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes], color:List, pattern_index=0, x_shift=0):
+    
+    fitted_func = rb_fit.rb_fit_fun
+    xdata = rb_fit.cliff_lengths[pattern_index]
+    raw_data = rb_fit.raw_data[pattern_index]
+    ydata = rb_fit.ydata[pattern_index]
+    fit = rb_fit.fit[pattern_index]
+
+    raw_data_transposed = list(map(list, zip(*raw_data)))
+
+    xdata_shift = xdata + x_shift
+
+    
+    # Plot the fit
+    ax.plot(xdata,
+            fitted_func(xdata, *fit['params']),
+            color=color[2], linestyle='-', linewidth=4, label=f"{name} fitted exponential")
+    
+    # Plot the mean with error bars
+    ax.errorbar(xdata_shift, ydata['mean'],
+                yerr=ydata['std'],
+                color=color[0], linestyle='', linewidth=4, label=f"{name} std dev")
+
+    # Plot the mean
+    ax.plot(xdata, ydata['mean'], color=color[1], linestyle='--', linewidth=4, label=f"{name} mean")
+
+    # # Plot the result for each sequence    
+    # bp = ax.boxplot(raw_data_transposed, positions=xdata_shift, patch_artist=True, showmeans=True, showfliers=False, manage_ticks=False, widths=3, zorder=2)
+    # for patch in bp['boxes']:
+    #     patch.set_facecolor(color[0])
+
     return ax
 
-def fit(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFitter:
+def fit_data(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFitter:
     rb_fit = RBFitter(None, xdata, rb_opts['rb_pattern'])
     rb_fit.add_data(results)
+    rb_fit._nseeds = range(rb_opts["nseeds"])
     log.info(f"Fitted {len(results)} results, alpha: {rb_fit.fit[0]['params'][1]}, EPC: {rb_fit.fit[0]['epc']}")
-    # batch_size = len(rb_opts['length_vector'])
-    # for rb_seed in range(rb_opts['nseeds']):
-    #     result_batch = results[rb_seed*batch_size: rb_seed*batch_size + batch_size]
-    #     rb_fit.add_data(result_batch)
-    #     log.info('After seed %d, alpha: %f, EPC: %f'%(rb_seed,rb_fit.fit[0]['params'][1], rb_fit.fit[0]['epc']))
     return rb_fit
 
 def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
@@ -79,14 +98,13 @@ def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_n
     assert(len(no_agg_results)==len(agg_results))
 
     log.info(f"Fit no agg data for backend {backend_name}")
-    no_agg_fit = fit(no_agg_results, rb_opts, xdata, log)
-    ax = fitter_plot(no_agg_fit, "no agg", color=ORANGE_COLOR_LIST)
+    no_agg_fit = fit_data(no_agg_results, rb_opts, xdata, log)
     log.info(f"Fit agg data for backend {backend_name}")
-    agg_fit = fit(agg_results, rb_opts, xdata, log)
-    ax = fitter_plot(agg_fit, "agg", ax=ax, color=LIGHT_BLUE_COLOR_LIST)
-    plt.title(f"RB for {backend_name}")
-    plt.legend()
-    plt.savefig(f"{dir_path}/{backend_name}/{backend_name}_together.png")
+    agg_fit = fit_data(agg_results, rb_opts, xdata, log)
+    n_sizes = len(rb_opts['length_vector'])
+    n_qubits = results[0]._get_experiment(0).header.memory_slots
+    plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB for {backend_name} with {int(len(agg_results)/n_sizes)} circuit per length", log)
+    
 
 def get_general_data(path:str):
     rb_circs = pickle_load(f"{path}/general_data/rb_circs.pkl")
@@ -162,7 +180,7 @@ def merge(dir_paths: List[str], result_path: str, log:Logger):
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    result_path = f"{result_path}/{now_str}_merged/_{len(dir_paths)}"
+    result_path = f"{result_path}/{now_str}_merged_{len(dir_paths)}"
     os.mkdir(result_path)
 
     rb_opts_merged['nseeds'] = nseeds_merged
@@ -173,11 +191,25 @@ def merge(dir_paths: List[str], result_path: str, log:Logger):
         backend_data_path = f"{result_path}/{backend_name}/data"
         os.makedirs(backend_data_path)
         backend_results = []
-        backend_results.extend(results["no_agg"])
-        backend_results.extend(results["agg"])
+        backend_results.extend(generate_merged_result_names(results["no_agg"]))
+        backend_results.extend(generate_merged_result_names(results["agg"]))
         pickle_dump(backend_results, f"{backend_data_path}/results.pkl")
         pickle_dump(backends[backend_name], f"{backend_data_path}/backend_dict.pkl")
         log.info(f"Pickeld all files for backend {backend_name}")
+
+def generate_merged_result_names(results:List[Result]) -> List[Result]:
+    seed_counter = {}
+    for result in results:
+        name = result._get_experiment(0).header.name
+        name_witout_seed = name.rsplit("_", 1)[0]
+        if name_witout_seed in seed_counter.keys():
+            seed_counter[name_witout_seed] += 1
+            counter = seed_counter[name_witout_seed]
+        else:
+            seed_counter[name_witout_seed] = 0
+            counter = 0
+        result._get_experiment(0).header.name = name_witout_seed + "_" + str(counter)
+    return results
 
 def merge_separate_result_files(path:str, backend_name:str):
     agg_path = f"{path}/{backend_name}/data/res_agg"
@@ -215,9 +247,11 @@ def merge_separate_result_files_all_backends(path:str, log:Logger):
 
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-03-12-10-41-20_merged"
-    paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", "rb_data/2021-03-12-08-38-08"]
-    # merge(paths, "./rb_data", log)
-    evaluate_dir(path, log)
+    path = "rb_data/2021-03-12-16-29-09_merged_11"
+    paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", \
+            "rb_data/2021-03-12-08-38-08", "rb_data/2021-03-12-09-32-49", "rb_data/2021-03-12-10-42-06", "rb_data/2021-03-12-11-20-39", \
+            "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43"]
     # merge_separate_result_files_all_backends(path, log)
+    evaluate_dir(path, log)
+    # merge(paths, "./rb_data", log)
     
