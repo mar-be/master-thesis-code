@@ -1,66 +1,56 @@
 from threading import Thread
-from typing import List
+from typing import Dict, List, Optional
+from bson.objectid import ObjectId
+
+from mongoengine.fields import DictField, IntField, StringField
 from virtualization_layer import Virtualization_Layer
 from qiskit import IBMQ
-from quantum_job import QuantumTask, Status
+from quantum_job import Modification_Type, QuantumJob
 from api.util import must_have
 from flask import Flask, request, jsonify
-from flask_restful import Resource, Api
+import flask_restful
 from queue import Empty, Queue
 import logger
+from flask_mongoengine import Document, MongoEngine, DynamicDocument
+from qiskit import QuantumCircuit
 
 
-class TaskDAO():
 
-    def __init__(self) -> None:
-        self._data = {}
+class Task(Document):
+    qasm = StringField(required=True)
+    shots = IntField(min_value=0)
+    qjob_id = StringField(null=True)
+    status = StringField(default="created")
+    result_prob = DictField(null=True)
+    result_cnts = DictField(null=True)
 
-    def get_task(self, id):
-        return self._data.get(id)
- 
-    def add_task(self, task):
-        self._data[task.id] = task
- 
-    def delete_task(self, id):
-        if id not in self._data.keys():
-            return None
-        return self._data.pop(id)
-        
- 
-    def update_task(self, task):
-        self._data[task.id] = task    
-    
+    @property
+    def id_str(self):
+        return str(self.id)
 
+    def to_dict(self):
+        d = {"id":self.id_str, "qasm":self.qasm, "status":self.status, "shots":self.shots}
+        if self.result_prob:
+            d["result_prob"] = self.result_prob
+        if self.result_cnts:
+            d["result_cnts"] = self.result_cnts
+        return d
 
-class HelloWorld(Resource):
+    def update_results(self, job:QuantumJob):
+        self.result_prob = job.result_prob
+
+    def create_qjob(self):
+        qjob = QuantumJob(QuantumCircuit.from_qasm_str(self.qasm), shots=self.shots)
+        self.qjob_id = qjob.id
+        return qjob
+
+class HelloWorld(flask_restful.Resource):
     def get(self):
         return {'hello': 'world'}
 
 
-class Task_DAO_Resource(Resource):
+class TaskCreation_API(flask_restful.Resource):
 
-    def __init__(self) -> None:
-        must_have(self, member="task_dao", of_type=TaskDAO, use_method=Task_DAO_Resource.create.__name__)
-        super().__init__()
-
-    @classmethod
-    def create(cls, task_dao):
-        """creates a Task_DAO_Resource with the given TaskDAO
-
-        Args:
-            task_dao (TaskDAO): an instance of TaskDAO to access the tasks
-
-        Returns:
-            Task: class object of Task Resource
-        """        
-     
-        cls.task_dao = task_dao
-        return cls
-
-class TaskCreation(Task_DAO_Resource):
-
-    def __init__(self) -> None:
-        super().__init__()
 
     def post(self):
         if request.is_json:
@@ -68,42 +58,44 @@ class TaskCreation(Task_DAO_Resource):
                 if "circuits" in body.keys():
                     result_list = []
                     for item in body["circuits"]:
-                        quantum_task = QuantumTask.create(item)
-                        self.task_dao.add_task(quantum_task)
-                        result_list.append({"id":quantum_task.id})
+                        task = Task(**item)
+                        task.save()
+                        result_list.append({"id":task.id_str})
                     return jsonify(results=result_list)
                 else:
-                    quantum_task = QuantumTask.create(body)
-                    self.task_dao.add_task(quantum_task)
-                    return jsonify(id=quantum_task.id)
-          
+                    task = Task(**body)
+                    task.save()
+                    return jsonify(id=task.id_str)
 
-class Task(Task_DAO_Resource):
+def get_task(task_id:str) -> Optional[ObjectId]:
+    o_id = ObjectId(task_id)
+    return Task.objects(id=o_id).first()
 
-    def __init__(self) -> None:
-        super().__init__()
+class Task_API(flask_restful.Resource):
+
 
     def get(self, task_id):
-        task = self.task_dao.get_task(task_id)
+        task = get_task(task_id)
         if task is None:
             return 'TaskDoesNotExist', 404
         return jsonify(**task.to_dict())
 
     def put(self, task_id):
-        task = self.task_dao.get_task(task_id)
+        task = get_task(task_id)
         if task is None:
             return 'TaskDoesNotExist', 404
-        task.status = Status.running
-        Task.run_queue.put(task)
-        self.task_dao.update_task(task)
+        task.status = "running"
+        Task_API.run_queue.put(task.create_qjob())
+        task.save()
         return '', 202
 
     def delete(self, task_id):
-        task = self.task_dao.delete_task(task_id)
+        task = get_task(task_id)
         if task is None:
             return 'TaskDoesNotExist', 404
         latest_status = task.status
-        return jsonify(latest_status=latest_status.name)
+        task.delete()
+        return jsonify(latest_status=latest_status)
 
     
     @classmethod
@@ -118,11 +110,10 @@ class Task(Task_DAO_Resource):
 
 class APIResultUpdater(Thread):
     
-    def __init__(self, tasks:Queue(), errors:Queue(), task_dao:TaskDAO) -> None:
+    def __init__(self, tasks:Queue(), errors:Queue()) -> None:
         self._log = logger.get_logger(type(self).__name__)
         self._tasks = tasks
         self._errors = errors
-        self._tasks_dao = task_dao
         Thread.__init__(self)
 
     
@@ -130,15 +121,19 @@ class APIResultUpdater(Thread):
         while True:
             while not self._errors.empty():
                 try:
-                    error_task = self._errors.get(block=False)
-                    error_task.status = Status.failed
-                    self._tasks_dao.update_task(error_task)
+                    error_job = self._errors.get(block=False)
+                    error_task = Task.objects(qjob_id=error_job.id).first()
+                    error_task.status = "failed"
+                    error_task.save()
                 except Empty:
                     break
             try:
-                task = self._tasks.get(timeout=10)
-                task.status = Status.done
-                self._tasks_dao.update_task(task)
+                job = self._tasks.get(timeout=10)
+                task = Task.objects(qjob_id=job.id).first()
+                task.status = "done"
+                #TODO copy results
+                task.update_results(job)
+                task.save()
                 self._log.info(f"Received result for task {task.id}")
             except Empty:
                 continue
@@ -146,21 +141,60 @@ class APIResultUpdater(Thread):
 
 class API():
 
-    def __init__(self, task_dao:TaskDAO, run_queue:Queue) -> None:
+    def __init__(self, run_queue:Queue, mongo_config:Dict) -> None:
         self.app = Flask(__name__)
-        self.api = Api(self.app)
+        self.api = flask_restful.Api(self.app)
         self.api.add_resource(HelloWorld, '/')
-        TaskCreation_Init = TaskCreation.create(task_dao)
-        self.api.add_resource(TaskCreation_Init, "/task")
-        Task.set_run_queue(run_queue)
-        Task_Init = Task.create(task_dao)
-        self.api.add_resource(Task_Init, "/task/<string:task_id>")
+        self.api.add_resource(TaskCreation_API, "/task")
+        Task_API.set_run_queue(run_queue)
+        self.api.add_resource(Task_API, "/task/<string:task_id>")
         self.run_queue = run_queue
+        self.app.config['MONGODB_SETTINGS'] = mongo_config
+        self.db = MongoEngine(self.app)
 
     def run(self, debug=False):
         self.app.run(debug=debug)
 
 
+# Class-based application configuration
+class ConfigClass(object):
+    """ Flask application config """
+
+    # Flask settings
+    SECRET_KEY = 'This is an INSECURE secret!! DO NOT use this in production!!'
+
+    # Flask-MongoEngine settings
+    MONGODB_SETTINGS = {
+            'alias': 'default',
+            'db': "tasks",
+            'host': "localhost",
+            'port': 27017,
+            'username': "root",
+            'password': "rootpassword",
+            "authentication_source": "admin"
+        }
+
+
+def initialize_routes(api):
+    api.add_resource(HelloWorld, '/')
+    api.add_resource(TaskCreation_API, "/task")
+    api.add_resource(Task_API, "/task/<string:task_id>")
+
+
+def create_app():
+    """ Flask application factory """
+
+    # Setup Flask and load app.config
+    app = Flask(__name__)
+    app.config.from_object(__name__+'.ConfigClass')
+    api = flask_restful.Api(app)
+
+
+    MongoEngine(app)
+
+    initialize_routes(api)
+
+    return app
 
 
 
@@ -168,13 +202,14 @@ if __name__ == '__main__':
     provider = IBMQ.load_account()
 
     vl = Virtualization_Layer(provider)
-
-   
-
     vl.start()
-    task_dao = TaskDAO()
-    api = API(task_dao, vl.input)
-    result_updater = APIResultUpdater(vl.output, vl.errors, task_dao)
+
+    Task_API.set_run_queue(vl.input)
+
+
+    result_updater = APIResultUpdater(vl.output, vl.errors)
     result_updater.start()
 
-    api.run(debug=True)
+    app = create_app()
+
+    app.run(debug=True)
