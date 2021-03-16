@@ -2,7 +2,7 @@ from datetime import datetime
 import os
 from randomized_benchmarking import store_general_data
 from matplotlib.axes import Axes
-import copy
+import itertools
 
 from qiskit.providers import backend
 from logger import get_logger
@@ -43,7 +43,7 @@ def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger,
     ax.grid(True)
 
     handles, labels = ax.get_legend_handles_labels()
-    order = [0,1,4,2,3,5]
+    order = [0,1,2,3,4,5]
     
     plt.title(title, fontsize=18)
     plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=16)
@@ -63,24 +63,21 @@ def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes], color:List, patter
 
     xdata_shift = xdata + x_shift
 
+    x = list(itertools.chain.from_iterable(itertools.repeat(xdata_shift, len(raw_data))))
+    y = list(itertools.chain.from_iterable(raw_data))
+
+    ax.plot(x, y, color=color[0], linestyle='none', marker='x', label=f"{name} data")
     
     # Plot the fit
     ax.plot(xdata,
             fitted_func(xdata, *fit['params']),
             color=color[2], linestyle='-', linewidth=4, label=f"{name} fitted exponential")
     
-    # Plot the mean with error bars
-    ax.errorbar(xdata_shift, ydata['mean'],
-                yerr=ydata['std'],
-                color=color[0], linestyle='', linewidth=4, label=f"{name} std dev")
+    # Plot the std dev with error bars
+    # ax.errorbar(xdata_shift, ydata['mean'], yerr=ydata['std'], color=color[0], linestyle='', linewidth=4, label=f"{name} std dev")
 
     # Plot the mean
     ax.plot(xdata, ydata['mean'], color=color[1], linestyle='--', linewidth=4, label=f"{name} mean")
-
-    # # Plot the result for each sequence    
-    # bp = ax.boxplot(raw_data_transposed, positions=xdata_shift, patch_artist=True, showmeans=True, showfliers=False, manage_ticks=False, widths=3, zorder=2)
-    # for patch in bp['boxes']:
-    #     patch.set_facecolor(color[0])
 
     return ax
 
@@ -247,10 +244,11 @@ def merge_separate_result_files_all_backends(path:str, log:Logger):
 
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-03-12-16-29-09_merged_11"
+    path = "rb_data/2021-03-15-19-05-46_merged_15"
     paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", \
             "rb_data/2021-03-12-08-38-08", "rb_data/2021-03-12-09-32-49", "rb_data/2021-03-12-10-42-06", "rb_data/2021-03-12-11-20-39", \
-            "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43"]
+            "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43", "rb_data/2021-03-13-15-46-28", \
+            "rb_data/2021-03-13-16-38-24", "rb_data/2021-03-15-15-00-03", "rb_data/2021-03-15-16-32-00"]
     # merge_separate_result_files_all_backends(path, log)
     evaluate_dir(path, log)
     # merge(paths, "./rb_data", log)
