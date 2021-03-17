@@ -9,6 +9,20 @@ example_config = {
     },
     "logger":{
         "level":"INFO"
+    },
+    "backend_chooser":{
+        "backend_black_list":[],
+        "backend_white_list":[],
+        "allow_simulator":False,
+        "number_of_qubits":{
+            "min":None,
+            "max":None
+        },
+        "quantum_volume":{
+            "min":None,
+            "max":None
+        }
+
     }
 }
 

@@ -1,9 +1,11 @@
+import copy
 import time
 from typing import Any, Dict, List, Callable, Tuple, Optional
 from qiskit import IBMQ, QuantumCircuit
 from qiskit.providers.ibmq import least_busy
 from qiskit import IBMQ
 from qiskit.providers import Provider, Backend
+from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
 
 
 
@@ -30,12 +32,40 @@ class Backend_Data():
 
 class Backend_Chooser():
 
-    def __init__(self, provider: Provider, update_interval: int = 60) -> None:
+    def __init__(self, provider: Provider, config:Dict, update_interval: int = 60) -> None:
         self._provider = provider
+        self._config = config["backend_chooser"]
         self._update_interval = update_interval
         self._backends = {}
         self._last_update = time.time()
         self._update_backends()
+
+    def _config_filter(self, backend:Backend_Data, filters:Dict=None) -> bool:
+        if filters is None:
+            # use default config
+            config = self._config
+        else:
+            # adapt default config with the given values
+            config = copy.deepcopy(self._config)
+            config.update(filters)
+
+        if backend.name in config["backend_black_list"]:
+            return False
+        if len(config["backend_white_list"]) > 0 and backend.name not in config["backend_white_list"]:
+            return False
+        if not config["allow_simulator"] and backend.simulator:
+            return False
+        if not config["number_of_qubits"]["min"] is None and config["number_of_qubits"]["min"] > backend.n_qubits:
+            return False
+        if not config["number_of_qubits"]["max"] is None and config["number_of_qubits"]["max"] < backend.n_qubits:
+            return False
+        if hasattr(backend, "quantum_volume"):
+            if not config["quantum_volume"]["min"] is None and config["quantum_volume"]["min"] > backend.quantum_volume:
+                return False
+            if not config["quantum_volume"]["max"] is None and config["quantum_volume"]["max"] < backend.quantum_volume:
+                return False
+        return True
+        
 
     def _update_backends(self):
         for b in self._provider.backends():

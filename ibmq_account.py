@@ -6,7 +6,7 @@ import logger
 log = logger.get_logger(__name__)
 
 
-def get_provider(ibmq_config:Optional[Dict]=None) -> Optional[AccountProvider]:
+def get_provider(config:Optional[Dict]=None) -> Optional[AccountProvider]:
     """Authenticate against IBM Quantum Experience.
     Either use the specified token in the config or stored token.
 
@@ -15,10 +15,14 @@ def get_provider(ibmq_config:Optional[Dict]=None) -> Optional[AccountProvider]:
 
     Returns:
         Optional[AccountProvider]: a authenticated session via a Provider object
-    """    
-    if not ibmq_config is None and "token" in ibmq_config.keys():
-        provider = IBMQ.enable_account(ibmq_config["token"])
-    else:
+    """ 
+    provider = None   
+    if not config is None:
+        try:
+            provider = IBMQ.enable_account(config["IBMQ"]["token"])
+        except KeyError:
+            pass
+    if provider is None:
         provider = IBMQ.load_account()
     log.info("IBMQ authentification sucessful")
     return provider

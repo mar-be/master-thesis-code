@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import Dict
 
 class StreamToLogger(object):
     """
@@ -32,6 +33,6 @@ def get_logger(name:str) -> logging.Logger:
 
     return log
 
-def set_log_level(level:str):
+def set_log_level_from_config(config:Dict):
     global log_level 
-    log_level = level
+    log_level = config["logger"]["level"]

@@ -201,8 +201,8 @@ def create_app():
 if __name__ == '__main__':
 
     config = cfg.load_or_create()
-    logger.set_log_level(config["logger"]["level"])
-    provider = ibmq_account.get_provider(config["IBMQ"])
+    logger.set_log_level(config)
+    provider = ibmq_account.get_provider(config)
 
     vl = Virtualization_Layer(provider)
     vl.start()
