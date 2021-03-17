@@ -1,20 +1,20 @@
 from threading import Thread
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from bson.objectid import ObjectId
 
 from mongoengine.fields import DictField, IntField, StringField
 from virtualization_layer import Virtualization_Layer
-from qiskit import IBMQ
-from quantum_job import Modification_Type, QuantumJob
-from api.util import must_have
+import ibmq_account
+from quantum_job import QuantumJob
 from flask import Flask, request, jsonify
 import flask_restful
 from queue import Empty, Queue
 import logger
 from flask_mongoengine import Document, MongoEngine, DynamicDocument
 from qiskit import QuantumCircuit
+import config.load_config as cfg
 
-
+import logger
 
 class Task(Document):
     qasm = StringField(required=True)
@@ -199,7 +199,10 @@ def create_app():
 
 
 if __name__ == '__main__':
-    provider = IBMQ.load_account()
+
+    config = cfg.load_or_create()
+    logger.set_log_level(config["logger"]["level"])
+    provider = ibmq_account.get_provider(config["IBMQ"])
 
     vl = Virtualization_Layer(provider)
     vl.start()

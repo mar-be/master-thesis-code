@@ -17,17 +17,21 @@ class StreamToLogger(object):
     def flush(self):
         pass
 
-log_level = logging.DEBUG
+log_level = "DEBUG"
 
 def get_logger(name:str) -> logging.Logger:
     log = logging.getLogger(name)
     log.setLevel(log_level)
-    formatter = logging.Formatter(fmt="%(asctime)s %(levelname)s %(name)s: %(message)s", 
+    formatter = logging.Formatter(fmt="%(asctime)s %(levelname)-8s %(name)s: %(message)s", 
                             datefmt="%Y-%m-%d - %H:%M:%S")
     ch = logging.StreamHandler()
     ch.setFormatter(formatter)
     log.addHandler(ch)
-    sl = StreamToLogger(log)
-    sys.stdout = sl
+    # sl = StreamToLogger(log)
+    # sys.stdout = sl
 
     return log
+
+def set_log_level(level:str):
+    global log_level 
+    log_level = level

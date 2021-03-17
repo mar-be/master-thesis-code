@@ -8,3 +8,4 @@ cutqc/merge
 cutqc/vertical_collapse
 agg_data
 rb_data
+config.json
