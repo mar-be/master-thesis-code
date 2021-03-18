@@ -12,6 +12,6 @@ if __name__ == "__main__":
     circuit = random_circuit(full_circ_size, 5, 2)
     print(circuit)
     job = QuantumJob(circuit, Modification_Type.none)
-    part = Partitioner(None, None, {}, max_subcircuit_qubit, num_subcircuits=[2,3,4], max_cuts=10, verbose=True)
+    part = Partitioner(None, None, {}, max_subcircuit_qubit, max_separate_circuits=4, max_cuts=10, verbose=True)
     sub_jobs = part._cut_job(job)
     print("fertig")

@@ -34,6 +34,10 @@ example_config = {
     "aggregator":{
         "timeout":10
     },
+    "partitioner":{
+        "max_separate_circuits":4,
+        "max_cuts":10,
+    },
     "execution_handler":{
         "transpile_timeout":20,
         "batch_timeout":60,

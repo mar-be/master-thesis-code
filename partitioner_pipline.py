@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # backend = provider.get_backend('ibmq_belem')
 
-    part = Partitioner(input, output_part, part_job_dict, num_subcircuits=[2,3,4], max_cuts=10)
+    part = Partitioner(input, output_part, part_job_dict, max_separate_circuits=4, max_cuts=10)
     part.start()
 
     exec_handler = ExecutionHandler(provider, output_part, output_exec, batch_timeout=5)
