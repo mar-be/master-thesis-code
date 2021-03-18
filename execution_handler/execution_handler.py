@@ -302,7 +302,7 @@ class Batcher(Thread):
                 self._log.info(f"Generated full batch {backend_name}/{self._batch_count[backend_name]}")
                 self._output.put(batch)
                 if remaining_shots > 0:
-                    self.self._batch_timers[backend_name] = time.time()
+                    self._batch_timers[backend_name] = time.time()
                 else:
                     self._batch_timers.pop(backend_name)
         
@@ -588,7 +588,7 @@ class ResultProcessor(Thread):
 
 class ExecutionHandler():
     
-    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_time:int = 30, memory:bool=False) -> None:
+    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_interval:int = 30, transpile_timeout=20, submitter_defer_interval=30, provide_memory:bool=False) -> None:
         transpiler_batcher = Queue()
         batcher_submitter = Queue()
         submitter_retrieber = Queue()
@@ -596,11 +596,11 @@ class ExecutionHandler():
         quantum_job_table = {}
         backend_look_up = BackendLookUp(provider)
         backend_control = BackendControl()
-        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = 20)
+        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = transpile_timeout)
         self._batcher = Batcher(input=transpiler_batcher, output=batcher_submitter, quantum_job_table=quantum_job_table, backend_look_up=backend_look_up, batch_timeout=batch_timeout)
-        self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=5)
-        self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_time, backend_control=backend_control)
-        self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table, memory=memory)
+        self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=submitter_defer_interval)
+        self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_interval, backend_control=backend_control)
+        self._processor = ResultProcessor(input=retriever_processor, output=output, quantum_job_table=quantum_job_table, memory=provide_memory)
     
     def start(self):
         self._transpiler.start()

@@ -1,6 +1,6 @@
 import copy
 import time
-from typing import Any, Dict, List, Callable, Tuple, Optional
+from typing import Any, Dict, List, Callable, Tuple, Optional, Union
 from qiskit import IBMQ, QuantumCircuit
 from qiskit.providers.ibmq import least_busy
 from qiskit import IBMQ
@@ -34,20 +34,24 @@ class Backend_Chooser():
 
     def __init__(self, provider: Provider, config:Dict, update_interval: int = 60) -> None:
         self._provider = provider
-        self._config = config["backend_chooser"]
+        self._config = config
         self._update_interval = update_interval
         self._backends = {}
         self._last_update = time.time()
         self._update_backends()
 
-    def _config_filter(self, backend:Backend_Data, filters:Dict=None) -> bool:
-        if filters is None:
+    def _backend_filter(self, backend:Union[Backend_Data,Tuple[str, Backend_Data]], filter_dict:Dict=None, filter_func:Callable[[Backend_Data],bool]=None) -> bool:
+        if isinstance(backend, Tuple):
+            _ , backend = backend
+        if filter_dict is None:
             # use default config
             config = self._config
         else:
             # adapt default config with the given values
             config = copy.deepcopy(self._config)
-            config.update(filters)
+            config.update(filter_dict)
+        if filter_func is None:
+            filter_func = lambda x:True
 
         if backend.name in config["backend_black_list"]:
             return False
@@ -64,7 +68,7 @@ class Backend_Chooser():
                 return False
             if not config["quantum_volume"]["max"] is None and config["quantum_volume"]["max"] < backend.quantum_volume:
                 return False
-        return True
+        return filter_func(backend)
         
 
     def _update_backends(self):
@@ -77,31 +81,28 @@ class Backend_Chooser():
             self._update_backends()
             self._last_update = now
 
-    def get_backends(self, filters:Optional[Callable[[Dict], bool]] = None) -> Dict:
+    def get_backends(self, filter_dict:Dict=None, filter_func:Optional[Callable[[Backend_Data],bool]] = None) -> Dict:
         self._check_update_backends()
-        if filters == None:
+        if filter_func == None:
             return self._backends
-        value_filters = lambda x: filters(x[1])
-        return dict(filter(value_filters, self._backends.items()))
+        backend_filter = lambda b: self._backend_filter(b, filter_dict, filter_func)
+        return dict(filter(backend_filter, self._backends.items()))
     
-    def get_backend_names(self, filters:Optional[Callable[[Dict], bool]] = None) -> List[str]:
-        return self.get_backends(filters).keys()
+    def get_backend_names(self, filter_dict:Dict=None, filter_func:Optional[Callable[[Backend_Data],bool]] = None) -> List[str]:
+        return self.get_backends(filter_dict, filter_func).keys()
 
-    def get_least_busy(self, filters:Optional[Callable[[Backend], bool]] = None) -> Optional[Tuple[str, Dict]]:
-        if filters == None:
+    def get_least_busy(self, filter_dict:Dict=None, filter_func:Optional[Callable[[Backend_Data],bool]] = None) -> Optional[Tuple[str, Dict]]:
+        if filter_func is None:
             f = lambda x: x.operational and x.status_msg == "active"
         else:
-            f = lambda x: filters(x) and x.operational and x.status_msg == "active"
-        filtered_backends = self.get_backends(filters=f)
+            f = lambda x: filter_func(x) and x.operational and x.status_msg == "active"
+        filtered_backends = self.get_backends(filter_dict=filter_dict, filter_func=f)
         if len(filtered_backends) == 0:
             return None
         backends_with_free_jobs = dict(filter(lambda backend: backend[1].active_jobs < backend[1].maximum_jobs, filtered_backends.items()))
         least_busy = min(backends_with_free_jobs.items(), key=lambda x: x[1].pending_jobs)
         return least_busy 
         
-    def get_least_busy_qubits(self, n_qubit:int) -> Tuple[str, Dict]:
-        return self.get_least_busy(filters=lambda x: x.n_qubits>=n_qubit)
-
 
 
 

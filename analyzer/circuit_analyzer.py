@@ -20,7 +20,7 @@ class CircuitAnalyzer(Thread):
 
     def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, Backend_Data]:
         n_qubits = job.circuit.num_qubits
-        backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x.n_qubits>=n_qubits and not x.simulator)
+        backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=n_qubits)
         if backend_record:
             backend_name, backend_data = backend_record
             if n_qubits <= backend_data.n_qubits/2:
@@ -30,7 +30,7 @@ class CircuitAnalyzer(Thread):
         # partition needed because there is no suitable backend 
         while backend_record == None:
             n_qubits -= 1
-            backend_record = self._backend_chooser.get_least_busy(filters=lambda x: x.n_qubits>=n_qubits and not x.simulator)
+            backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=n_qubits)
         backend_name, backend_data = backend_record
         return Modification_Type.partition, backend_data
 

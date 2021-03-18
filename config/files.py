@@ -5,13 +5,13 @@ CONFIG_PATH = "./config.json"
 
 example_config = {
     "IBMQ":{
-        "token":"Insert here your token or delete this key-value pair to use your default token of your system."
+        "token":"Insert your token here or delete this key-value pair to use the default token of your system."
     },
     "logger":{
         "level":"INFO"
     },
     "backend_chooser":{
-        "backend_black_list":[],
+        "backend_black_list":["simulator_mps", "simulator_extended_stabilizer", "simulator_statevector", "simulator_stabilizer"],
         "backend_white_list":[],
         "allow_simulator":False,
         "number_of_qubits":{
@@ -23,6 +23,23 @@ example_config = {
             "max":None
         }
 
+    },
+    "circuit_analyzer":{
+        "modification_types":{
+            "none":True,
+            "aggregation":True,
+            "partition":True
+        }
+    },
+    "aggregator":{
+        "timeout":10
+    },
+    "execution_handler":{
+        "transpile_timeout":20,
+        "batch_timeout":60,
+        "submitter_defer_interval":30, 
+        "retrieve_interval":30,
+        "provide_memory":False
     }
 }
 

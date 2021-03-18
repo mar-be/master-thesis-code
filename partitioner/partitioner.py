@@ -36,8 +36,9 @@ class Partitioner(Thread):
                 self._log.info(f"Found cut for job {job.id}")
                 for sub_job in sub_jobs:
                     self._output.put(sub_job)
-            except Exception as e:
-                if self._error_queue and job:
+            except AssertionError as e:
+                self._log.debug(f"Job {job.id} not feasible for partition")
+                if self._error_queue:
                     job.error = str(e)
                     self._error_queue.put(job)
                 else:

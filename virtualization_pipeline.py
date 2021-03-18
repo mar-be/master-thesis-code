@@ -1,27 +1,22 @@
-from queue import Queue
 from virtualization_layer import Virtualization_Layer
 
 from qiskit import IBMQ
 from qiskit.circuit.random.utils import random_circuit
 
 import logger
-from aggregator.aggregator import Aggregator, AggregatorResults
-from analyzer.backend_chooser import Backend_Chooser
-from analyzer.circuit_analyzer import CircuitAnalyzer
-from analyzer.result_analyzer import ResultAnalyzer
-from execution_handler.execution_handler import ExecutionHandler
-from partitioner.partition_result_processing import (ResultProcessing,
-                                                     ResultWriter)
-from partitioner.partitioner import Partitioner
+
 from quantum_job import QuantumJob
+import config.load_config as cfg
+import ibmq_account
 
 if __name__ == "__main__":
 
-    log = logger.get_logger("Virtualization")
+    config = cfg.load_or_create()
+    logger.set_log_level_from_config(config)
+    log = logger.get_logger(__name__)
+    provider = ibmq_account.get_provider(config)
 
-    provider = IBMQ.load_account()
-
-    vl = Virtualization_Layer(provider)
+    vl = Virtualization_Layer(provider, config)
 
     input = vl.input
     output = vl.output
