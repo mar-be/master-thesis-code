@@ -23,7 +23,7 @@ if __name__ == "__main__":
 
     vl.start()
 
-    input.put(QuantumJob(random_circuit(33, 5, 2, measure=True), shots=10000))
+    input.put(QuantumJob(random_circuit(6, 5, 2, measure=True), shots=10000))
     input.put(QuantumJob(random_circuit(5, 5, 2, measure=True), shots=10000))
     input.put(QuantumJob(random_circuit(5, 5, 2, measure=True), shots=10000))
     input.put(QuantumJob(random_circuit(2, 5, 2, measure=True), shots=10000))

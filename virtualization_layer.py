@@ -39,7 +39,7 @@ class Virtualization_Layer():
         partition_dict = {}
 
         self.backend_chooser = Backend_Chooser(provider, config["backend_chooser"])
-        self.circuit_analyzer = CircuitAnalyzer(input=self.input, output=input_execution, output_agg=input_aggregation, output_part=input_partition, backend_chooser=self.backend_chooser)
+        self.circuit_analyzer = CircuitAnalyzer(input=self.input, output=input_execution, output_agg=input_aggregation, output_part=input_partition, backend_chooser=self.backend_chooser, config=config["circuit_analyzer"])
         self.aggregator = Aggregator(input=input_aggregation, output=input_execution, job_dict=aggregation_dict, timeout=config["aggregator"]["timeout"])
         self.partitioner = Partitioner(input=input_partition, output=input_execution, partition_dict=partition_dict, error_queue=self.errors, **config["partitioner"])
         self.execution_handler = ExecutionHandler(provider, input=input_execution, output=output_execution, **config["execution_handler"])

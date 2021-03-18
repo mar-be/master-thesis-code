@@ -29,7 +29,8 @@ example_config = {
             "none":True,
             "aggregation":True,
             "partition":True
-        }
+        },
+        "optimization_goal":"Either pick: 'least_busy' or 'efficient_qubit_usage'. The default value 'least_busy' gets chosen, if the given value does not match."
     },
     "aggregator":{
         "timeout":10
