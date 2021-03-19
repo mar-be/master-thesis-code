@@ -29,6 +29,6 @@ class Task(Document):
         self.result = job.result_prob
 
     def create_qjob(self):
-        qjob = QuantumJob(QuantumCircuit.from_qasm_str(self.qasm), shots=self.shots)
+        qjob = QuantumJob(QuantumCircuit.from_qasm_str(self.qasm), shots=self.shots, config=self.config)
         self.qjob_id = qjob.id
         return qjob

@@ -1,6 +1,5 @@
-from logging import error
+import copy
 from typing import Dict, Tuple
-from qiskit.providers.backend import Backend
 from quantum_job import QuantumJob, Modification_Type
 from queue import Queue
 from threading import Thread
@@ -20,59 +19,53 @@ class CircuitAnalyzer(Thread):
         self._output_part = output_part
         self._backend_chooser = backend_chooser
         self._error_queue = error_queue
-        self._optimization_goal = "least_busy"
-        self._mod_none = True
-        self._mod_agg = True
-        self._mod_part = True
+        self._config_dict = {
+            "modification_types":{
+                "none":True,
+                "aggregation":True,
+                "partition":True
+            },
+            "optimization_goal":"least_busy"
+        }
         if not config is None:
-            try:
-                self._mod_none = config["modification_types"]["none"]
-            except KeyError:
-                pass
-            try:
-                self._mod_agg = config["modification_types"]["aggregation"]
-            except KeyError:
-                pass
-            try:
-                self._mod_part = config["modification_types"]["partition"]
-            except KeyError:
-                pass
-            try:
-                self._optimization_goal = config["optimization_goal"]
-            except KeyError:
-                pass
-
-
+            self._config_dict.update(config)
         Thread.__init__(self)
         self._log.info("Init CircuitAnalyzer")
 
     def decide_action(self, job:QuantumJob) -> Tuple[Modification_Type, Backend_Data]:
-        mod_none = self._mod_none
-        mod_agg = self._mod_agg
-        mod_part = self._mod_part
+        config = copy.deepcopy(self._config_dict)
+        if "circuit_analyzer" in job.config.keys():
+            config.update(job.config["circuit_analyzer"])
+        mod_none = config["modification_types"]["none"]
+        mod_agg = config["modification_types"]["aggregation"]
+        mod_part = config["modification_types"]["partition"]
+        optimization_goal = config["optimization_goal"]
         n_qubits = job.circuit.num_qubits
-        if self._optimization_goal == "efficient_qubit_usage":
+        config_bc = None
+        if "backend_chooser" in job.config.keys():
+            config_bc = job.config["backend_chooser"]
+        if optimization_goal == "efficient_qubit_usage":
             # aggregation > none > partition
             if mod_agg:
-                backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=2*n_qubits)
+                backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=2*n_qubits)
                 if backend_record:
                     backend_name, backend_data = backend_record
                     return Modification_Type.aggregation, backend_data
             if mod_none:
-                backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=n_qubits)
+                backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=n_qubits)
                 if backend_record:
                     backend_name, backend_data = backend_record
                     return Modification_Type.none, backend_data
             if mod_part:
                 for i in range(n_qubits, 0, -1):
-                    backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=i)
+                    backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=i)
                     if backend_record:
                         backend_name, backend_data = backend_record
                         return Modification_Type.partition, backend_data
 
         else:
             # least_busy: Use the backend which is least busy. If possible aggregate. If aggregation and none is not possible, try partition
-            backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=n_qubits)
+            backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=n_qubits)
             if backend_record:
                 backend_name, backend_data = backend_record
                 if mod_agg and n_qubits <= backend_data.n_qubits/2:
@@ -83,7 +76,7 @@ class CircuitAnalyzer(Thread):
             # partition needed because there is no suitable backend
             if mod_part:
                 for i in range(n_qubits, 0, -1):
-                    backend_record = self._backend_chooser.get_least_busy(filter_func=lambda x: x.n_qubits>=i)
+                    backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=i)
                     if backend_record:
                         backend_name, backend_data = backend_record
                         return Modification_Type.partition, backend_data
