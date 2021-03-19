@@ -3,8 +3,8 @@ import requests
 import json
 import time
 
-url_creation = "http://localhost:5000/task"
-url_task = "http://localhost:5000/task/"
+url_creation = "http://localhost:5000/tasks"
+url_task = "http://localhost:5000/tasks/"
 
 headers = {'Content-Type': 'application/json'}
 
@@ -28,11 +28,12 @@ for task in tasks:
 
 while len(tasks)>0:
     task = tasks[0]
-    response = requests.request("GET", url_task+task)
-    res_json= json.loads(response.text)
+    response = requests.request("GET", url_task+task+"/status")
+    res_json = json.loads(response.text)
     if res_json["status"] == "running":
-        print(f"{res_json['id']} is still running")
+        print(f"{task} is still running")
         time.sleep(10)
         continue
+    response = requests.request("GET", url_task+task+"/result")
+    print(response.text)
     tasks.pop(0)
-    print(res_json)
