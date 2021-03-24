@@ -13,6 +13,8 @@ from quantum_job import Modification_Type, QuantumJob
 
 import logger
 
+class NoFeasibleCut(Exception):
+    pass
 
 class Partitioner(Thread):
 
@@ -33,10 +35,10 @@ class Partitioner(Thread):
                 job = self._input.get()
                 self._log.info(f"Searching for cut for job {job.id}")
                 sub_jobs = self._cut_job(job)
-                self._log.info(f"Found cut for job {job.id}")
+                self._log.info(f"Found cut for job {job.id}: Generated {len(sub_jobs)} sub-jobs")
                 for sub_job in sub_jobs:
                     self._output.put(sub_job)
-            except AssertionError as e:
+            except (AssertionError, NoFeasibleCut) as e:
                 self._log.debug(f"Job {job.id} not feasible for partition")
                 if self._error_queue:
                     job.error = str(e)
@@ -48,6 +50,8 @@ class Partitioner(Thread):
         assert(check_valid(circuit=circuit))
         self._log.debug('*'*20+'Cut'+'*'*20)
         cut_solution = find_cuts(circuit, subcircuit_max_qubits, range(2, max_separate_circuits+1), max_cuts, self._log.level==logger.logging.DEBUG)
+        if len(cut_solution) == 0:
+            raise NoFeasibleCut
         self._log.debug('*'*20+'Generate Subcircuits'+'*'*20)
         circ_dict, all_indexed_combinations = generate_subcircuit_instances(subcircuits=cut_solution["subcircuits"], complete_path_map=cut_solution["complete_path_map"])
         return cut_solution, circ_dict, all_indexed_combinations
@@ -77,6 +81,6 @@ class Partitioner(Thread):
         try:
             max_cuts = qJob.config["partitioner"]["max_cuts"]
         except KeyError:
-            max_cuts = self.max_cuts
+            max_cuts = self._max_cuts
 
-        return max_separate_circuits, max_separate_circuits, max_cuts
+        return subcircuit_max_qubits, max_separate_circuits, max_cuts

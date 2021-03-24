@@ -10,7 +10,7 @@ headers = {'Content-Type': 'application/json'}
 
 tasks = []
 circuits = []
-for i in range(10):
+for i in range(20):
     circuits.append({"qasm":random_circuit(5, 5, 2, measure=True).qasm(), "shots":8192})
 
 print("Send request")
