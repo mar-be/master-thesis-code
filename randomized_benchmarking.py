@@ -138,12 +138,18 @@ if __name__ == "__main__":
         backend_data_list.append(backend_data)
         backends[backend_name] = {"backend":backend, "backend_data":backend_data}
 
+    # for backend_data in backend_data_list:
+    #     for rb_seed, rb_circ_seed in enumerate(rb_circs):
+    #         for circ in rb_circ_seed:
+    #             input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+    #             input_exec.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+
     for backend_data in backend_data_list:
-        for rb_seed, rb_circ_seed in enumerate(rb_circs):
-            for circ in rb_circ_seed:
+        for length_idx in range(len(rb_opts['length_vector'])):
+            for rb_seed, rb_circ_seed in enumerate(rb_circs):
+                circ = rb_circ_seed[length_idx]
                 input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
                 input_exec.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
-
 
 
     agg_job_dict = {}
