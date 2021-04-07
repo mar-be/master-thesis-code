@@ -6,8 +6,8 @@ A Python package for CutQC
 ### Installation
 1. Make a virtual environment and install required packages:
 ```
-conda create -n artifact python=3.7
-conda deactivate && conda activate artifact
+conda create -n qc_virt python=3.8.5
+conda deactivate && conda activate qc_virt
 pip install numpy matplotlib pillow pydot termcolor
 pip install qiskit==0.24.0
 conda config --add channels http://conda.anaconda.org/gurobi
