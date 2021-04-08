@@ -116,7 +116,7 @@ def fit_data(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFi
     log.info(f"Fitted {len(results)} results, alpha: {rb_fit.fit[0]['params'][1]}, EPC: {rb_fit.fit[0]['epc']}")
     return rb_fit
 
-def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
+def process_data(results:List[Result], rb_opts:Dict, xdata:List, backend_name:str, log:Logger):
     half = len(results)//2
     no_agg_results = results[:half] 
     agg_results = results[half:]
@@ -128,7 +128,11 @@ def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_n
     agg_fit = fit_data(agg_results, rb_opts, xdata, log)
     n_sizes = len(rb_opts['length_vector'])
     n_qubits = results[0]._get_experiment(0).header.memory_slots
-    plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB for {backend_name} with {int(len(agg_results)/n_sizes)} circuit per length", log)
+    return no_agg_fit, agg_fit, n_sizes, n_qubits, int(len(agg_results)/n_sizes)
+
+def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
+    no_agg_fit, agg_fit, n_sizes, n_qubits, n_circuits = process_data(results, rb_opts, xdata, backend_name, log)
+    plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB for {backend_name} with {n_circuits} circuit per length", log)
     
 
 def get_general_data(path:str):
@@ -147,6 +151,32 @@ def evaluate_dir(path:str, log:Logger):
     for backend_name in backend_names:
         log.info(f"Evaluate backend {backend_name}")
         evaluate_files(path, backend_name, log)
+
+def all_backends_mean_graph(path:str, log:Logger):
+    plt.figure(figsize=(8, 6))
+    ax = plt.subplot(1, 1, 1)
+    backend_names = get_backends_in_dir(path)
+    for backend_name in backend_names:
+        _, rb_opts, xdata = get_general_data(path)
+        _, results = get_backend_data(path, backend_name)
+        no_agg_fit, agg_fit, _, _, _ = process_data(results, rb_opts, xdata, backend_name, log)
+        no_agg_mean = no_agg_fit.ydata[0]['mean']
+        agg_mean = agg_fit.ydata[0]['mean']
+        mean_diff = no_agg_mean-agg_mean
+        x = agg_fit.cliff_lengths[0]
+        ax.plot(x, mean_diff, linewidth=2, label=backend_name)
+        log.info(f"Added {backend_name} to mean diff plot")
+    ax.tick_params(labelsize=16)
+    ax.set_xlabel('Clifford Length', fontsize=18)
+    ax.set_ylabel('Mean difference', fontsize=20)
+    ax.grid(True)
+
+    plt.legend()
+    
+    plt.title("Mean diff", fontsize=18)
+    plt.savefig(f"{path}/mean_diff.pdf", format="pdf")
+
+
 
 def evaluate_files(path:str, backend_name:str, log:Logger):
     rb_circs, rb_opts, xdata = get_general_data(path)
@@ -279,7 +309,8 @@ if __name__ == "__main__":
             "rb_data/2021-03-13-16-38-24", "rb_data/2021-03-15-15-00-03", "rb_data/2021-03-15-16-32-00"]
     paths_2 = ["rb_data/2021-03-31-07-04-14", "rb_data/2021-03-31-09-04-34", "rb_data/2021-03-31-11-01-49"]
     # merge_separate_result_files_all_backends(path, log)
-    evaluate_dir(path, log)
+    # evaluate_dir(path, log)
+    all_backends_mean_graph(path, log)
     # merge(paths_2, "./rb_data", log)
     
 
