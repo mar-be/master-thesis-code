@@ -116,15 +116,15 @@ if __name__ == "__main__":
     # backend_names = ['ibmq_qasm_simulator']
     shots = 8192
 
-    n_circuits = 10
+    n_circuits = 50
     n_qubits = 5
-    subcircuit_max_qubits = 4
-    circuit_type = "adder"
+    subcircuit_max_qubits = 3
+    circuit_type = "supremacy_linear"
     permute = False
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    dir_path = f"part_data/{circuit_type}_{now_str}"
+    dir_path = f"part_data/{circuit_type}_{n_qubits}_{subcircuit_max_qubits}_{now_str}"
 
     os.makedirs(dir_path)
 
