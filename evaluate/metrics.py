@@ -21,6 +21,9 @@ def bhattacharyya_difference(dist_1:np.ndarray, dist_2:np.ndarray) -> float:
         return np.inf
     return - np.log(bc)
 
+def fidelity(dist_1:np.ndarray, dist_2:np.ndarray) -> float:
+    return np.power(np.sum(np.sqrt(dist_1*dist_2)), 2)
+
 def metric_diff(result_dist_1:np.ndarray, result_dist_2:np.ndarray, expected_dist:np.ndarray, metric:Callable[[np.ndarray, np.ndarray], float]) -> float:
     m_1 = metric(result_dist_1, expected_dist)
     m_2 = metric(result_dist_2, expected_dist)

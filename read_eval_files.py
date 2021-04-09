@@ -1,7 +1,7 @@
 import json
 import os
 import numpy as np
-from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square
+from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square, fidelity
 from evaluate.util import round, reject_outliers
 import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
@@ -59,12 +59,15 @@ def evaluate_file(file_path):
     c2_list = []
     agg_bc_list = []
     bc_list = []
+    agg_fid_list = []
+    fid_list = []
     for i in range(n_data):
         item = obj["data"][i]
-        agg_res_prob = np.array(item["agg-result"])
-        res_prob = np.array(item["result"])
         sv_res_prob = np.array(item["sv-result"])
         sv_res_prob = round(sv_res_prob, 1/shots)
+        length = len(sv_res_prob)
+        agg_res_prob = np.array(item["part-result"][:length])
+        res_prob = np.array(item["result"][:length])
         c2_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, chi_square)
         cutqc_agg_c2_list.append(metrics.chi2_distance(agg_res_prob, sv_res_prob, True))
         agg_c2_list.append(chi_square(agg_res_prob, sv_res_prob))
@@ -73,6 +76,8 @@ def evaluate_file(file_path):
         bc_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, bhattacharyya_difference)
         bc_list.append(bhattacharyya_difference(res_prob, sv_res_prob))
         agg_bc_list.append(bhattacharyya_difference(agg_res_prob, sv_res_prob))
+        fid_list.append(fidelity(res_prob, sv_res_prob))
+        agg_fid_list.append(fidelity(agg_res_prob, sv_res_prob))
         if c2_diff < 0:
             count_better_c2 += 1
         if bc_diff < 0:
@@ -124,8 +129,10 @@ def evaluate_file(file_path):
     histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/hist_bc.png")
     # histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", (0.0, 0.1))
 
+    histogram(fid_list, agg_fid_list, "Fidelity", dir_path+"/hist_fid.png")
+
 if __name__ == "__main__":
-    path = "./agg_data/uccsd_2021-02-23-10-48-56"
+    path = "./part_data/qft_5_4_2021-04-09-09-36-41"
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)

@@ -4,6 +4,8 @@ import math
 import os
 from datetime import date, datetime
 from logging import raiseExceptions
+
+from qiskit.circuit.library.grover_operator import GroverOperator
 from partitioner.partition_result_processing import ResultProcessing, ResultWriter
 from partitioner.partitioner import Partitioner
 from queue import Queue
@@ -25,7 +27,7 @@ from evaluate.metrics import (chi_square, kullback_leibler_divergence,
 from evaluate.util import counts_to_probability, dict_to_array, sv_to_probability
 from execution_handler.execution_handler import ExecutionHandler
 import logger
-from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd, gen_supremacy
+from quantum_circuit_generator.generators import gen_BV, gen_adder, gen_grover, gen_hwea, gen_uccsd, gen_supremacy
 from quantum_job import QuantumJob
 import ibmq_account
 import config.load_config as cfg
@@ -71,9 +73,20 @@ def aqft(n_qubits, n_circuits):
 def supremacy_linear(n_qubits, n_circuits, depth=8):
     return [gen_supremacy(1, n_qubits, depth, regname='q') for i in range(n_circuits)], n_circuits
 
+def gen_secret(n_qubit):
+    num_digit = n_qubit-1
+    num = 2**num_digit-1
+    num = bin(num)[2:]
+    num_with_zeros = str(num).zfill(num_digit)
+    return num_with_zeros
+
+def bv(n_qubits, n_circuits, depth=8):
+    return [gen_BV(gen_secret(n_qubits), barriers=False, regname='q') for i in range(n_circuits)], n_circuits
+
 
 def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
+
 
 def write_file(dir_path, backend, results, part_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute, shots):
     res_prob = [dict_to_array(r, n_qubits) for r in results]
@@ -112,14 +125,14 @@ if __name__ == "__main__":
     log = logger.get_logger("Evaluate")
 
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
-    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
-    # backend_names = ['ibmq_qasm_simulator']
+    # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
+    backend_names = ['ibmq_qasm_simulator']
     shots = 8192
 
-    n_circuits = 50
+    n_circuits = 1
     n_qubits = 5
-    subcircuit_max_qubits = 3
-    circuit_type = "supremacy_linear"
+    subcircuit_max_qubits = 4
+    circuit_type = "bv"
     permute = False
 
     now = datetime.now()
@@ -146,10 +159,14 @@ if __name__ == "__main__":
         circuits, n_circuits = aqft(n_qubits, n_circuits)
     elif circuit_type == 'supremacy_linear':
         circuits, n_circuits = supremacy_linear(n_qubits, n_circuits)
+    elif circuit_type == 'bv':
+        circuits, n_circuits = bv(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
 
     log.info(f"Generated {n_circuits} circuits")
+
+    print(circuits[0])
 
     statevector_backend = Aer.get_backend('statevector_simulator')
 
