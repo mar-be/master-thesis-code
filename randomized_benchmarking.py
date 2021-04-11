@@ -17,6 +17,7 @@ from qiskit import IBMQ
 import matplotlib.pyplot as plt
 from qiskit.result import Result
 import pickle
+from threading import Timer
 
 def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
     half = len(results)//2
@@ -96,6 +97,7 @@ if __name__ == "__main__":
     dir_path = "./rb_data"
 
     different_length = True
+    delay_time_different_length = 60*1 
 
     # number of qubits
     nQ = 2 
@@ -140,18 +142,23 @@ if __name__ == "__main__":
         backend_data_list.append(backend_data)
         backends[backend_name] = {"backend":backend, "backend_data":backend_data}
 
-    if different_length:
-        for backend_data in backend_data_list:
-            for rb_seed, rb_circ_seed in enumerate(rb_circs):
-                for circ in rb_circ_seed:
-                    input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
-
     for backend_data in backend_data_list:
         for length_idx in range(len(rb_opts['length_vector'])):
             for rb_seed, rb_circ_seed in enumerate(rb_circs):
                 circ = rb_circ_seed[length_idx]
                 input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
                 input_exec.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+
+    if different_length:
+        log.info(f"delay differnt length circuit aggregation by {delay_time_different_length}s")
+        def different_length_circuits():
+            log.info(f"start differnt length circuit aggregation")
+            for backend_data in backend_data_list:
+                for rb_seed, rb_circ_seed in enumerate(rb_circs):
+                    for circ in rb_circ_seed:
+                        input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+        
+        Timer(delay_time_different_length, function=different_length_circuits).start()
 
 
     agg_job_dict = {}
@@ -191,6 +198,7 @@ if __name__ == "__main__":
 
     store_general_data(rb_circs, rb_opts, xdata, dir_path, log)
 
+
     for backend_name in backend_names:
         backend = backends[backend_name]["backend"]
         backend_dict = {"name":backend.name()}
@@ -217,12 +225,9 @@ if __name__ == "__main__":
         r = job.result
         backend_name = job.backend_data.name
         if job.type == Modification_Type.aggregation:
-            if different_length:
+            pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
+            if different_length and os.path.isfile(pickle_path):
                 pickle_path = f"{dir_path}/{backend_name}/data/res_agg_diff/{r._get_experiment(0).header.name}.pkl"
-                if os.path.isfile(pickle_path):
-                    pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
-            else:   
-                pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
         else:
             pickle_path = f"{dir_path}/{backend_name}/data/res_no_agg/{r._get_experiment(0).header.name}.pkl"
         pickle_dump(r, pickle_path)

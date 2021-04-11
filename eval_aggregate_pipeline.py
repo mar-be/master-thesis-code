@@ -148,7 +148,7 @@ if __name__ == "__main__":
     elif circuit_type == "aqft":
         circuits, n_circuits = aqft(n_qubits, n_circuits)
     elif circuit_type == "qft":
-        circuits, n_circuits = aqft(n_qubits, n_circuits)
+        circuits, n_circuits = qft(n_qubits, n_circuits)
     elif circuit_type == 'supremacy_linear':
         circuits, n_circuits = supremacy_linear(n_qubits, n_circuits)
     else:

@@ -66,7 +66,7 @@ def evaluate_file(file_path):
         sv_res_prob = np.array(item["sv-result"])
         sv_res_prob = round(sv_res_prob, 1/shots)
         length = len(sv_res_prob)
-        agg_res_prob = np.array(item["part-result"][:length])
+        agg_res_prob = np.array(item["agg-result"][:length])
         res_prob = np.array(item["result"][:length])
         c2_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, chi_square)
         cutqc_agg_c2_list.append(metrics.chi2_distance(agg_res_prob, sv_res_prob, True))
@@ -132,7 +132,7 @@ def evaluate_file(file_path):
     histogram(fid_list, agg_fid_list, "Fidelity", dir_path+"/hist_fid.png")
 
 if __name__ == "__main__":
-    path = "./part_data/qft_5_4_2021-04-09-09-36-41"
+    path = "./agg_data/hwea_2021-02-23-11-45-44"
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
