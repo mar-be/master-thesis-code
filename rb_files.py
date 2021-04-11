@@ -302,14 +302,14 @@ def merge_separate_result_files_all_backends(path:str, log:Logger):
 
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-04-07-18-00-41_merged_3"
+    path = "rb_data/2021-04-11-09-28-57"
     paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", \
             "rb_data/2021-03-12-08-38-08", "rb_data/2021-03-12-09-32-49", "rb_data/2021-03-12-10-42-06", "rb_data/2021-03-12-11-20-39", \
             "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43", "rb_data/2021-03-13-15-46-28", \
             "rb_data/2021-03-13-16-38-24", "rb_data/2021-03-15-15-00-03", "rb_data/2021-03-15-16-32-00"]
-    paths_2 = ["rb_data/2021-03-31-07-04-14", "rb_data/2021-03-31-09-04-34", "rb_data/2021-03-31-11-01-49"]
-    # merge_separate_result_files_all_backends(path, log)
-    # evaluate_dir(path, log)
+    paths_2 = ["rb_data/2021-03-31-07-04-14", "rb_data/2021-03-31-09-04-34", "rb_data/2021-03-31-11-01-49", "rb_data/2021-04-08-06-57-10", "rb_data/2021-04-08-09-09-29", "rb_data/2021-04-08-11-37-57"]
+    merge_separate_result_files_all_backends(path, log)
+    evaluate_dir(path, log)
     all_backends_mean_graph(path, log)
     # merge(paths_2, "./rb_data", log)
     

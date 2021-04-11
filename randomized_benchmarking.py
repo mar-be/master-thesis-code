@@ -95,6 +95,8 @@ if __name__ == "__main__":
     
     dir_path = "./rb_data"
 
+    different_length = True
+
     # number of qubits
     nQ = 2 
     rb_opts = {}
@@ -138,11 +140,11 @@ if __name__ == "__main__":
         backend_data_list.append(backend_data)
         backends[backend_name] = {"backend":backend, "backend_data":backend_data}
 
-    # for backend_data in backend_data_list:
-    #     for rb_seed, rb_circ_seed in enumerate(rb_circs):
-    #         for circ in rb_circ_seed:
-    #             input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
-    #             input_exec.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+    if different_length:
+        for backend_data in backend_data_list:
+            for rb_seed, rb_circ_seed in enumerate(rb_circs):
+                for circ in rb_circ_seed:
+                    input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
 
     for backend_data in backend_data_list:
         for length_idx in range(len(rb_opts['length_vector'])):
@@ -168,7 +170,9 @@ if __name__ == "__main__":
 
     log.info("Started the Aggrgator pipeline")
 
-    n_results = 2*rb_opts['nseeds']*len(rb_opts['length_vector'])*len(backend_names)
+    n_circuits = rb_opts['nseeds']*len(rb_opts['length_vector'])
+    results_per_backend = 3*n_circuits if different_length else 2*n_circuits
+    n_results = results_per_backend*len(backend_names)
     results_counter = {}
     for backend_name in backend_names:
         results_counter[backend_name] = 0
@@ -202,6 +206,9 @@ if __name__ == "__main__":
 
         agg_path = f"{dir_path}/{backend_name}/data/res_agg"
         no_agg_path = f"{dir_path}/{backend_name}/data/res_no_agg"
+        if different_length:
+            agg_diff_path = f"{dir_path}/{backend_name}/data/res_agg_diff"
+            os.mkdir(agg_diff_path)
         os.mkdir(agg_path)
         os.mkdir(no_agg_path)
 
@@ -210,14 +217,19 @@ if __name__ == "__main__":
         r = job.result
         backend_name = job.backend_data.name
         if job.type == Modification_Type.aggregation:
-            pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
+            if different_length:
+                pickle_path = f"{dir_path}/{backend_name}/data/res_agg_diff/{r._get_experiment(0).header.name}.pkl"
+                if os.path.isfile(pickle_path):
+                    pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
+            else:   
+                pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
         else:
             pickle_path = f"{dir_path}/{backend_name}/data/res_no_agg/{r._get_experiment(0).header.name}.pkl"
         pickle_dump(r, pickle_path)
         
         log.debug(f"{i}: Got result {r._get_experiment(0).header.name}, type {job.type}, from backend {backend_name}, success: {r.success}")
         results_counter[backend_name] += 1
-        if results_counter[backend_name] == 2*rb_opts['nseeds']*len(rb_opts['length_vector']):
+        if results_counter[backend_name] == results_per_backend:
             log.info(f"Got all results for {backend_name}")
 
     log.info("Finished")
