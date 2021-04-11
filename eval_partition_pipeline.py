@@ -125,11 +125,11 @@ if __name__ == "__main__":
     log = logger.get_logger("Evaluate")
 
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
-    # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
-    backend_names = ['ibmq_qasm_simulator']
+    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
+    # backend_names = ['ibmq_qasm_simulator']
     shots = 8192
 
-    n_circuits = 1
+    n_circuits = 50
     n_qubits = 5
     subcircuit_max_qubits = 4
     circuit_type = "bv"

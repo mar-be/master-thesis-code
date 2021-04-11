@@ -116,7 +116,7 @@ class ResultProcessing(Thread):
             job.result_prob = self._createResult(job, reconstructed_prob)
             job.type = Modification_Type.partition
             self._output.put(job)
-            self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
+            # self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)
             self._clean_all_files(job)
 
