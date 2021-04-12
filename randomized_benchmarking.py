@@ -166,7 +166,7 @@ if __name__ == "__main__":
     aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
     aggregator.start()
 
-    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec)
+    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec, batch_timeout=60, max_transpile_batch_size=float('inf'))
     exec_handler.start()
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)

@@ -5,7 +5,7 @@ import time
 from collections import Counter
 from queue import Empty, Queue
 from threading import Lock, Thread
-from typing import Dict
+from typing import Dict, List, Union
 import logger
 from qiskit import QuantumCircuit, assemble, transpile
 from qiskit.providers import Backend
@@ -90,12 +90,13 @@ class BackendControl():
 
 class Transpiler():
 
-    def __init__(self, input:Queue, output:Queue, backend_look_up:BackendLookUp, timeout:int) -> None:
+    def __init__(self, input:Queue, output:Queue, backend_look_up:BackendLookUp, timeout:int, max_transpile_batch_size:Union[float, int]=float('inf')) -> None:
         self._log = logger.get_logger(type(self).__name__)
         self._input = input
         self._output = output
         self._backend_look_up = backend_look_up
         self._timeout = timeout
+        self._max_transpile_batch_size = max_transpile_batch_size
         self._jobs_to_transpile = {}
         self._timers = {}
         self._pending_transpilation = {}
@@ -139,7 +140,7 @@ class Transpiler():
                 return False
         except KeyError:
             pass
-        n_jobs = min(len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name))
+        n_jobs = min([len(self._jobs_to_transpile[backend_name]), self._backend_look_up.max_experiments(backend_name), self._max_transpile_batch_size])
         self._log.debug(f"Prepared {n_jobs} circuits for the transpilation for backend {backend_name}")
         jobs = self._jobs_to_transpile[backend_name][:n_jobs]
         self._jobs_to_transpile[backend_name] = self._jobs_to_transpile[backend_name][n_jobs:]
@@ -588,7 +589,7 @@ class ResultProcessor(Thread):
 
 class ExecutionHandler():
     
-    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_interval:int = 30, transpile_timeout=20, submitter_defer_interval=30, provide_memory:bool=False) -> None:
+    def __init__(self, provider:AccountProvider, input:Queue, output:Queue, batch_timeout:int = 60, retrieve_interval:int = 30, transpile_timeout=20, max_transpile_batch_size=float('inf'),  submitter_defer_interval=30, provide_memory:bool=False) -> None:
         transpiler_batcher = Queue()
         batcher_submitter = Queue()
         submitter_retrieber = Queue()
@@ -596,7 +597,7 @@ class ExecutionHandler():
         quantum_job_table = {}
         backend_look_up = BackendLookUp(provider)
         backend_control = BackendControl()
-        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = transpile_timeout)
+        self._transpiler = Transpiler(input=input, output=transpiler_batcher, backend_look_up=backend_look_up, timeout = transpile_timeout, max_transpile_batch_size=max_transpile_batch_size)
         self._batcher = Batcher(input=transpiler_batcher, output=batcher_submitter, quantum_job_table=quantum_job_table, backend_look_up=backend_look_up, batch_timeout=batch_timeout)
         self._submitter = Submitter(input=batcher_submitter, output=submitter_retrieber, backend_look_up=backend_look_up, backend_control=backend_control, defer_interval=submitter_defer_interval)
         self._retriever = Retriever(input=submitter_retrieber, output=retriever_processor, wait_time=retrieve_interval, backend_control=backend_control)
