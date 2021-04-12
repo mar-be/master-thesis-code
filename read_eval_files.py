@@ -117,19 +117,19 @@ def evaluate_file(file_path):
 
 
 
-    line_plot(c2_list, agg_c2_list, "Chi Squared", dir_path + "/line_chi_2.png")
-    line_plot(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/line_cutqc_chi_2.png")
-    line_plot(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/line_bc.png")
+    line_plot(c2_list, agg_c2_list, "Chi Squared", dir_path + "/line_chi_2.pdf")
+    line_plot(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/line_cutqc_chi_2.pdf")
+    line_plot(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/line_bc.pdf")
 
 
-    histogram(c2_list, agg_c2_list, "Chi Squared", dir_path + "/hist_chi_2.png")
+    histogram(c2_list, agg_c2_list, "Chi Squared", dir_path + "/hist_chi_2.pdf")
     # histogram(c2_list, agg_c2_list, "Chi Squared", (0.0, 1.0))
-    histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/hist_cutqc_chi_2.png")
+    histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", dir_path + "/hist_cutqc_chi_2.pdf")
     # histogram(cutqc_c2_list, cutqc_agg_c2_list, "CutQC Chi Squared", (0.0, 1.0))
-    histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/hist_bc.png")
+    histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", dir_path + "/hist_bc.pdf")
     # histogram(bc_list, agg_bc_list, "Bhattacharyya Difference", (0.0, 0.1))
 
-    histogram(fid_list, agg_fid_list, "Fidelity", dir_path+"/hist_fid.png")
+    histogram(fid_list, agg_fid_list, "Fidelity", dir_path+"/hist_fid.pdf")
 
 if __name__ == "__main__":
     path = "./agg_data/hwea_2021-02-23-11-45-44"
@@ -139,6 +139,8 @@ if __name__ == "__main__":
         break
     print(f"found the following files {files}")
     for file in files:
+        if file == ".DS_Store":
+            continue
         print(f"Evaluate file {file}")
         evaluate_file(file_path=path + "/" + file)
     
