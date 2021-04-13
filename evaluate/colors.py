@@ -1,0 +1,6 @@
+BLUE_COLOR_LIST = ["#8080ff", "#0000ff", "#000080" ]
+RED_COLOR_LIST = ["#ff8080", "#ff0000", "#800000" ]
+LIGHT_BLUE_COLOR_LIST = ["#80ccff", "#0099ff", "#004c80" ]
+GREEN_COLOR_LIST = ["#80ff80", "#00ff00", "#008000" ]
+LIGHT_GREEN_COLOR_LIST = ["#80ffcc", "#00ff99", "#00804d" ]
+ORANGE_COLOR_LIST = ["#ffcc80", "#ff9900", "#804d00" ]

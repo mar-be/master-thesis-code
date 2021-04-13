@@ -16,12 +16,7 @@ import numpy as np
 
 from qiskit.result.result import Result
 
-BLUE_COLOR_LIST = ["#8080ff", "#0000ff", "#000080" ]
-RED_COLOR_LIST = ["#ff8080", "#ff0000", "#800000" ]
-LIGHT_BLUE_COLOR_LIST = ["#80ccff", "#0099ff", "#004c80" ]
-GREEN_COLOR_LIST = ["#80ff80", "#00ff00", "#008000" ]
-LIGHT_GREEN_COLOR_LIST = ["#80ffcc", "#00ff99", "#00804d" ]
-ORANGE_COLOR_LIST = ["#ffcc80", "#ff9900", "#804d00" ]
+from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST
 
 def pickle_load(filename:str) -> Any:
     with open(filename,'rb') as f:
@@ -105,7 +100,7 @@ def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes], color:List, patter
     # ax.errorbar(xdata_shift, ydata['mean'], yerr=ydata['std'], color=color[0], linestyle='', linewidth=4, label=f"{name} std dev")
 
     # Plot the mean
-    ax.plot(xdata, ydata['mean'], color=color[2], linestyle='-', linewidth=2, label=f"{name} mean")
+    ax.plot(xdata, ydata['mean'], color=color[2], linestyle='-', linewidth=2, label=f"{name}")
 
     return ax
 
@@ -330,13 +325,13 @@ def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fi
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
 
-    ax = fitter_plot(agg_fit, "agg", ax, agg_color, mode="agg")
-    ax = fitter_plot(agg_diff_fit, "agg diff", ax, agg_diff_color, mode="agg diff")
+    ax = fitter_plot(agg_fit, "agg same length", ax, agg_color, mode="agg")
+    ax = fitter_plot(agg_diff_fit, "agg different length", ax, agg_diff_color, mode="agg diff")
 
     xdata = no_agg_fit.cliff_lengths[0]
     ydata = no_agg_fit.ydata[0]
     # Plot the mean
-    #ax.plot(xdata, ydata['mean'], color=no_agg_color[2], linestyle='-', linewidth=2, label=f"no agg mean")
+    ax.plot(xdata, ydata['mean'], color=no_agg_color[2], linestyle='--', linewidth=2, label=f"no aggregation")
 
     ax.tick_params(labelsize=16)
     ax.set_xlabel('Clifford Length', fontsize=18)
@@ -352,7 +347,7 @@ def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fi
     
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-04-11-20-25-56"
+    path = "rb_data/2021-04-13-08-29-24"
     paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", \
             "rb_data/2021-03-12-08-38-08", "rb_data/2021-03-12-09-32-49", "rb_data/2021-03-12-10-42-06", "rb_data/2021-03-12-11-20-39", \
             "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43", "rb_data/2021-03-13-15-46-28", \

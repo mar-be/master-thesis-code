@@ -6,6 +6,8 @@ from evaluate.util import round, reject_outliers
 import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
 
+from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST
+
 def line_plot(values, agg_values, name, filename):
     plt.plot(values, label="no aggregation")
     plt.plot(agg_values, label="aggregation")
