@@ -13,11 +13,11 @@ def histogram(values, agg_values, name, filename, range=None):
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
     ax.hist([values, agg_values], range=range, histtype="bar", color=[BLUE_COLOR_LIST[1], RED_COLOR_LIST[1]], label=["no aggregation", "aggregation"])
-    ax.tick_params(labelsize=16)
+    ax.tick_params(labelsize=13)
     ax.set_xlabel('Fidelity',  fontsize=20)
     ax.set_ylabel('Count', fontsize=20)
     plt.title(name, fontsize=20)
-    plt.legend(fontsize=20)
+    plt.legend(fontsize=16)
     plt.savefig(filename, bbox_inches = 'tight')
     plt.close()
 
@@ -120,7 +120,7 @@ def evaluate_file(file_path):
     histogram(fid_list, agg_fid_list, f"{n_data} {circuit_type} circuits on {backend_name}", f"{dir_path}/{backend_name}_{circuit_type}_hist_fid.pdf")
 
 if __name__ == "__main__":
-    path = "./agg_data_circ/2021-04-13-14-01-03/ibmq_santiago"
+    path = "./agg_data_circ/2021-04-14-08-00-16/ibmq_quito"
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
