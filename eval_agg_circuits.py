@@ -65,7 +65,7 @@ if __name__ == "__main__":
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
     backend_names = ['ibmq_qasm_simulator']
-    circuit_types = ["bv", "qft", "hwea", "uccsd", "aqft", "supremacy_linear"]
+    circuit_types = ["grover", "bv", "qft", "hwea", "uccsd", "supremacy_linear"]
 
     shots = 8192
     n_circuits = 2
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     aggregator = Aggregator(input=input_pipeline, output=input_exec, job_dict=agg_job_dict, timeout=10)
     aggregator.start()
 
-    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec)
+    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec, batch_timeout=5)
     exec_handler.start()
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=agg_results, output_part=None)

@@ -1,9 +1,23 @@
 
 import math
-from quantum_circuit_generator.generators import gen_BV, gen_adder, gen_grover, gen_hwea, gen_uccsd, gen_supremacy
+
+from qiskit.circuit.library.grover_operator import GroverOperator
+from quantum_circuit_generator.generators import gen_BV, gen_adder, gen_hwea, gen_uccsd, gen_supremacy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QFT
+
+def gen_grover(n_qubits):    
+    oracle = QuantumCircuit(2,name='q')
+    for q in range(n_qubits):
+        oracle.h(q)
+    oracle.cz(0,n_qubits-1)
+    oracle.x(n_qubits-1)
+    return GroverOperator(oracle, insert_barriers=True, name='q')
+
+def grover(n_qubits, n_circuits):
+    return [gen_grover(n_qubits) for i in range(n_circuits)], n_circuits
+
 
 def random_circuits(n_qubits, n_circuits, depth=5):
     return [random_circuit(n_qubits, depth, measure=False) for i in range(n_circuits)], n_circuits
@@ -66,6 +80,8 @@ def circ_gen(circuit_type, n_qubits, n_circuits):
         circuits, n_circuits = supremacy_linear(n_qubits, n_circuits)
     elif circuit_type == 'bv':
         circuits, n_circuits = bv(n_qubits, n_circuits)
+    elif circuit_type == 'grover':
+        circuits, n_circuits = grover(n_qubits, n_circuits)
     else:
         raise ValueError("Inappropiate circuit_type")
     return circuits, n_circuits
