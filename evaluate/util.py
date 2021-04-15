@@ -52,7 +52,7 @@ def _round(number:np.float, tol=None):
     else:
         return number
 
-def round(array:np.ndarray, tol=None)-> np.ndarray:
+def round_array(array:np.ndarray, tol=None)-> np.ndarray:
     if tol:
         return np.vectorize(lambda x :_round(x, tol))(array)
     else:

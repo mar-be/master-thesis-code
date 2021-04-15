@@ -2,7 +2,7 @@ import json
 import os
 import numpy as np
 from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square, fidelity
-from evaluate.util import round, reject_outliers
+from evaluate.util import round_array, reject_outliers
 import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
 
@@ -66,7 +66,7 @@ def evaluate_file(file_path):
     for i in range(n_data):
         item = obj["data"][i]
         sv_res_prob = np.array(item["sv-result"])
-        sv_res_prob = round(sv_res_prob, 1/shots)
+        sv_res_prob = round_array(sv_res_prob, 1/shots)
         length = len(sv_res_prob)
         agg_res_prob = np.array(item["agg-result"][:length])
         res_prob = np.array(item["result"][:length])

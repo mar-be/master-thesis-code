@@ -35,7 +35,7 @@ def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger,
 
     ax.tick_params(labelsize=16)
     ax.set_xlabel('Clifford Length', fontsize=18)
-    ax.set_ylabel('Ground State Population', fontsize=20)
+    ax.set_ylabel('Ground State Population', fontsize=18)
     ax.grid(True)
 
     handles, labels = ax.get_legend_handles_labels()
