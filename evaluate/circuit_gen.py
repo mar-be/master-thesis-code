@@ -8,7 +8,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QFT
 
 def gen_grover(n_qubits):    
-    oracle = QuantumCircuit(2,name='q')
+    oracle = QuantumCircuit(n_qubits,name='q')
     for q in range(n_qubits):
         oracle.h(q)
     oracle.cz(0,n_qubits-1)
@@ -26,6 +26,10 @@ def adder_circuits(n_qubits):
     nbits=int((n_qubits-2)/2)
     n_circuits = 2**(2*nbits)
     return [gen_adder(nbits=nbits, a=a, b=b) for a in range(2**nbits) for b in range(2**nbits)], n_circuits
+
+def adder_circuit_a_b(n_qubits, n_circuits, a=0, b=1):
+    nbits=int((n_qubits-2)/2)
+    return [gen_adder(nbits=nbits, a=a, b=b) for i in range(n_circuits)], n_circuits
 
 def growing_depth(n_qubits, n_circuits):
     circuits = []
@@ -65,7 +69,7 @@ def circ_gen(circuit_type, n_qubits, n_circuits):
     if circuit_type == "random":
         circuits, n_circuits = random_circuits(n_qubits, n_circuits)
     elif circuit_type == "adder":
-        circuits, n_circuits = adder_circuits(n_qubits)
+        circuits, n_circuits = adder_circuit_a_b(n_qubits, n_circuits)
     elif circuit_type == "growing_depth":
         circuits, n_circuits = growing_depth(n_qubits, n_circuits)
     elif circuit_type == "hwea":

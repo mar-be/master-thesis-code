@@ -1,20 +1,21 @@
 import json
 import os
 import numpy as np
-from numpy.core.fromnumeric import clip
-from qiskit import circuit
-from evaluate.metrics import metric_diff, kullback_leibler_divergence, bhattacharyya_difference, same_order, same_max, chi_square, fidelity
-from evaluate.util import round_array, reject_outliers
+from evaluate.metrics import metric_diff, bhattacharyya_difference, same_order, same_max, chi_square, fidelity
+from evaluate.util import round_array
 import qiskit_helper_functions.metrics as metrics
 import matplotlib.pyplot as plt
 from evaluate.half_violins import draw_violins
+import matplotlib.patches as mpatches
+import seaborn as sns
+import pandas as pd
 
 from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST
 
-def histogram(values, agg_values, name, filename, range=None):
+def histogram(values, agg_values, name, filename, labels, range=None):
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
-    ax.hist([values, agg_values], range=range, histtype="bar", color=[BLUE_COLOR_LIST[1], RED_COLOR_LIST[1]], label=["no aggregation", "aggregation"])
+    ax.hist([values, agg_values], range=range, histtype="bar", color=[BLUE_COLOR_LIST[1], RED_COLOR_LIST[1]], label=labels)
     ax.tick_params(labelsize=13)
     ax.set_xlabel('Fidelity',  fontsize=20)
     ax.set_ylabel('Count', fontsize=20)
@@ -32,23 +33,59 @@ def set_axis_style(ax, labels):
     ax.set_xticklabels(labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
-def violin_plot(values, agg_values, labels, title, filename):
+def violin_plot_agg(values, agg_values, labels, title, filename):
     data = list(zip(values, agg_values, labels))
     data.sort(key=lambda item : item[2])
 
     values, agg_values, labels = list(zip(*data))
 
+    data = []
+
+    for i, label in enumerate(labels):
+        for no_agg, agg in zip(values[i], agg_values[i]):
+            data.append({"Quantum Circuit":label, "Fidelity":agg, "Execution Type":"aggregation"})
+            data.append({"Quantum Circuit":label, "Fidelity":no_agg, "Execution Type":"no aggregation"})
+
+
+    df = pd.DataFrame.from_dict(data)
+    print(df)
+
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
-    draw_violins(ax, values, None, BLUE_COLOR_LIST, widths=0.95, alpha=1, showmeans=True, mode="right")
-    draw_violins(ax, agg_values, None, RED_COLOR_LIST, widths=0.95, alpha=1, showmeans=True, mode="left")
-    set_axis_style(ax, labels)
-    ax.set_xlabel('Quantum Circuit', fontsize=18)
-    ax.set_ylabel('Fidelity', fontsize=18)
+    sns.violinplot(x="Quantum Circuit", y="Fidelity", hue="Execution Type", data=df, inner=None, linewidth=1 ,palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],scale_hue=True, ax=ax, scale="area", split=True)
+    plt.legend(loc='upper left')
+    ax.set_xlabel('Quantum Circuit', fontsize=14)
+    ax.set_ylabel('Fidelity', fontsize=14)
     plt.title(title, fontsize=18)
     plt.savefig(filename, bbox_inches = 'tight')
     plt.close()
     
+def violin_plot_part(values, part_values, labels, title, filename):
+    data = list(zip(values, part_values, labels))
+    data.sort(key=lambda item : item[2])
+
+    values, part_values, labels = list(zip(*data))
+
+    data = []
+
+    for i, label in enumerate(labels):
+        for no_agg, agg in zip(values[i], part_values[i]):
+            data.append({"QPU":label, "Fidelity":agg, "Execution Type":"partition"})
+            data.append({"QPU":label, "Fidelity":no_agg, "Execution Type":"no partition"})
+
+
+    df = pd.DataFrame.from_dict(data)
+    print(df)
+
+    plt.figure(figsize=(8, 6))
+    ax = plt.subplot(1, 1, 1)
+    sns.violinplot(x="QPU", y="Fidelity", hue="Execution Type", data=df, inner=None, linewidth=1 ,palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],scale_hue=True, ax=ax, scale="area", split=True)
+    plt.legend(loc='upper center')
+    ax.set_xlabel('QPU', fontsize=14)
+    ax.set_ylabel('Fidelity', fontsize=14)
+    plt.title(title, fontsize=18)
+    plt.savefig(filename, bbox_inches = 'tight')
+    plt.close()
 
 def print_eval(data_list, digits=4):
     print(f"min {round(min(data_list), digits)}")
@@ -58,7 +95,7 @@ def print_eval(data_list, digits=4):
 def print_latex(data_list, agg_data_list, digits=4):
     print(f"& {round(min(data_list), digits)} & {round(max(data_list), digits)} & {round(np.mean(data_list), digits)} & {round(min(agg_data_list), digits)} & {round(max(agg_data_list), digits)} & {round(np.mean(agg_data_list), digits)} \\\\")
 
-def evaluate_file(file_path):
+def evaluate_file(file_path, mode="agg"):
     # read file
     with open(file_path, 'r') as myfile:
         data=myfile.read()
@@ -72,7 +109,12 @@ def evaluate_file(file_path):
     except FileExistsError:
         print(f"Directory {dir_path} already exists")
 
-    
+    if mode == "agg":
+        with_modification = "aggregation"
+        without_modification = "no aggregation"
+    else:
+        with_modification = "partition"
+        without_modification = "no partition"
     
 
     # parse file
@@ -102,7 +144,7 @@ def evaluate_file(file_path):
         sv_res_prob = np.array(item["sv-result"])
         sv_res_prob = round_array(sv_res_prob, 1/shots)
         length = len(sv_res_prob)
-        agg_res_prob = np.array(item["agg-result"][:length])
+        agg_res_prob = np.array(item[f"{mode}-result"][:length])
         res_prob = np.array(item["result"][:length])
         c2_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, chi_square)
         cutqc_agg_c2_list.append(metrics.chi2_distance(agg_res_prob, sv_res_prob, True))
@@ -135,31 +177,15 @@ def evaluate_file(file_path):
         if not same_order(res_prob, sv_res_prob) and same_order(agg_res_prob, sv_res_prob):
             count_order_errors += 1
     
-    
-    # print("#"*20+"Aggregation"+"#"*20)
-    # print(f"Chi-squared: Better in {count_better_c2} of {n_data} cases")
-    # print(f"Bhattacharyya: Better in {count_better_bc} of {n_data} cases")
-    # print(f"Same max value in {agg_count_max} of {n_data} cases")
-    # print(f"Relative max errors {agg_count_max_errors}")
-    # print(f"Same order in {agg_count_order} of {n_data} cases")
-    # print(f"Relative order errors {agg_count_order_errors}")
-    # print("#"*20+"No Aggregation"+"#"*20)
-    # print(f"Chi-squared: Better in {n_data - count_better_c2} of {n_data} cases")
-    # print(f"Bhattacharyya: Better in {n_data - count_better_bc} of {n_data} cases")
-    # print(f"Same max value in {count_max} of {n_data} cases")
-    # print(f"Relative max errors {count_max_errors}")
-    # print(f"Same order in {count_order} of {n_data} cases")
-    # print(f"Relative order errors {count_order_errors}")
-
 
     backend_name = obj['backend']['name']
     circuit_type = obj['circuit_type']
-    histogram(fid_list, agg_fid_list, f"{n_data} {circuit_type} circuits on {backend_name}", f"{dir_path}/{backend_name}_{circuit_type}_hist_fid.pdf")
+    histogram(fid_list, agg_fid_list, f"{n_data} {circuit_type} circuits on {backend_name}", f"{dir_path}/{backend_name}_{circuit_type}_hist_fid.pdf", [without_modification, with_modification])
 
     print("\n")
-    print("#"*5 + f" {backend_name}//{circuit_type} no aggregation:")
+    print("#"*5 + f" {backend_name}//{circuit_type} {without_modification}:")
     print_eval(fid_list)
-    print("#"*5 + f" {backend_name}//{circuit_type} aggregation:")
+    print("#"*5 + f" {backend_name}//{circuit_type} {with_modification}:")
     print_eval(agg_fid_list)
     print_latex(fid_list, agg_fid_list)
     print("\n")
@@ -167,26 +193,42 @@ def evaluate_file(file_path):
     return backend_name, circuit_type, fid_list, agg_fid_list
 
 
-
-
-if __name__ == "__main__":
-    path = "./agg_data_circ/2021-04-14-14-30-09/ibmq_athens"
+def eval_dir(path, mode="agg"):
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
         break
     print(f"found the following files {files}")
     fid_lists = []
-    agg_fid_lists = []
-    labels = []
+    mod_fid_lists = []
+    type_labels = []
+    qpu_labels = []
     for file in files:
         if file == ".DS_Store":
             continue
         print(f"Evaluate file {file}")
-        backend_name, circuit_type, fid_list, agg_fid_list = evaluate_file(file_path=path + "/" + file)
+        backend_name, circuit_type, fid_list, agg_fid_list = evaluate_file(file_path=path + "/" + file, mode=mode)
+        if backend_name == "ibmq_qasm_simulator":
+            continue
         fid_lists.append(fid_list)
-        agg_fid_lists.append(agg_fid_list)
-        labels.append(circuit_type)
+        mod_fid_lists.append(agg_fid_list)
+        type_labels.append(circuit_type)
+        qpu_labels.append(backend_name)
     
+    if mode == "agg":
+        violin_plot_agg(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf")
+    else:
+        violin_plot_part(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_fidelity_overview.pdf")
+
+
+if __name__ == "__main__":
+    eval_dir("./part_data/adder_2021-04-07-14-07-21", "part")
+    eval_dir("./part_data/bv_5_4_2021-04-10-10-35-59", "part")
+    eval_dir("./part_data/qft_5_4_2021-04-09-09-36-41", "part")
+    eval_dir("./part_data/supremacy_linear_5_3_2021-04-08-13-51-08", "part")
+    eval_dir("./part_data/supremacy_linear_5_4_2021-04-08-15-55-46", "part")
+    # eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
+    # eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
+    # eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
+    # eval_dir("./agg_data_circ/2021-04-14-15-50-01/ibmq_lima")
     
-    violin_plot(fid_lists, agg_fid_lists, labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf")

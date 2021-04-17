@@ -46,7 +46,7 @@ def get_all_permutations(input_list):
     return list(itertools.chain(*itertools.permutations(input_list)))
 
 
-def write_file(dir_path, backend, results, part_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, permute, shots):
+def write_file(dir_path, backend, results, part_results, sv_res_prob: List[np.ndarray], n_qubits: int, circuits, circuit_type, shots):
     res_prob = [dict_to_array(r, n_qubits) for r in results]
     part_res_prob = [dict_to_array(r, n_qubits) for r in part_results]
 
@@ -67,8 +67,8 @@ def write_file(dir_path, backend, results, part_results, sv_res_prob: List[np.nd
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    with open(f'{dir_path}/{backend.name()}.json', 'w') as f:
-        json.dump({"date":now_str, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "permute":permute, "shots":shots, "backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
+    with open(f'{dir_path}/{backend.name()}/{backend.name()}_{circuit_type}.json', 'w') as f:
+        json.dump({"date":now_str, "circuit_type":circuit_type, "n_circuits":n_circuits, "n_qubits":n_qubits, "shots":shots, "backend":backend_dict, "data":data}, f, indent=4, default=json_serial)
 
     log.info("Wrote results to file.")
 
@@ -84,43 +84,43 @@ if __name__ == "__main__":
 
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
-    backend_names = ['ibmq_qasm_simulator']
+    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_lima', 'ibmq_belem']
+    # backend_names = ['ibmq_qasm_simulator']
+    circuit_types = ['adder', 'bv']
     shots = 8192
 
-    n_circuits = 50
+    n_circuits = 20
     n_qubits = 5
     subcircuit_max_qubits = 4
-    circuit_type = "adder"
-    permute = False
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
-    dir_path = f"part_data/{circuit_type}_{n_qubits}_{subcircuit_max_qubits}_{now_str}"
+    dir_path = f"part_data/{now_str}"
 
     os.makedirs(dir_path)
 
     log.info(f"Created directory {dir_path}")
 
-    circuits, n_circuits = circ_gen(circuit_type, n_qubits, n_circuits)
+    circuits = {}
 
-    log.info(f"Generated {n_circuits} circuits")
+    for type in circuit_types:
+        circ, _ = circ_gen(type, n_qubits, 1)
+        circ = circ[0]
+        circuits[type] = circ
 
-    print(circuits[0])
+    log.info(f"Generated circuits for the types: {circuit_types}")
 
     statevector_backend = Aer.get_backend('statevector_simulator')
 
-    sv_job:AerJob = execute(circuits, statevector_backend)
-    sv_res = sv_job.result()
-    sv_results = [sv_res.get_statevector(circ) for circ in circuits]
-    sv_res_prob = [sv_to_probability(sv) for sv in sv_results]
+    sv_results = {}
+    for type, circ in circuits.items():
+        sv_job:AerJob = execute(circ, statevector_backend)
+        sv_res = sv_job.result()
+        sv_result = sv_res.get_statevector(circ)
+        sv_results[type] = sv_to_probability(sv_result)
+
     log.info("Executed the circuits with local statevector simulator")
 
-
-    if permute:
-        circuits = get_all_permutations(circuits)
-        sv_res_prob = get_all_permutations(sv_res_prob)
-        n_circuits = len(circuits)
-        log.info(f"Generated all permutations. Now there are {n_circuits} circuits")
 
     backend_data_list = []
     backends = {}
@@ -129,6 +129,11 @@ if __name__ == "__main__":
         backend_data = Backend_Data(backend)
         backend_data_list.append(backend_data)
         backends[backend_name] = {"backend":backend, "backend_data":backend_data}
+        os.makedirs(f"{dir_path}/{backend.name()}")
+
+    for type in circuit_types:
+        circuits[type] = [circuits[type]]*n_circuits
+        sv_results[type] = [sv_results[type]]*n_circuits
 
     input_pipeline = Queue()
     input_exec = Queue()
@@ -139,9 +144,10 @@ if __name__ == "__main__":
     errors = Queue()
 
     for backend_data in backend_data_list:
-        for circ in circuits:
-            input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":subcircuit_max_qubits}}))
-            input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+        for type in circuit_types:
+            for circ in circuits[type]:
+                input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":subcircuit_max_qubits}}))
+                input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
 
 
 
@@ -163,31 +169,41 @@ if __name__ == "__main__":
 
     log.info("Started the partition pipeline")
 
+    result_counter = {}
     results = {}
     part_results = {}
 
 
-    n_results = 2*n_circuits*len(backend_names)
-    for backend_name in backend_names:
-        results[backend_name] = []
-        part_results[backend_name] = []
+    n_results = 2*n_circuits*len(backend_names)*len(circuits)
 
-    i = 0
-    while i < n_results:
+    for backend_name in backend_names:
+        result_counter[backend_name] = 0
+        results[backend_name] = {}
+        part_results[backend_name] = {}
+        for type in circuit_types:
+            results[backend_name][type] = []
+            part_results[backend_name][type] = []
+
+
+    for i in range(n_results):
         job = output_pipline.get()
-        i+=1
         r = job.result_prob
         backend_name = job.backend_data.name
         log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}")
-        if len(results[backend_name]) < n_circuits:
-            results[backend_name].append(r)
+        count = result_counter[backend_name]
+        count = count % (len(circuit_types)*n_circuits)
+        type_index = int(count/n_circuits)
+        type = circuit_types[type_index]
+        result_counter[backend_name] += 1
+        if len(results[backend_name][type]) < n_circuits:
+            results[backend_name][type].append(r)
         else:
-            part_results[backend_name].append(r)
-        if len(results[backend_name]) == n_circuits and len(part_results[backend_name]) == 0:
-            log.info(f"All results for not partitioned circuits are available for backend {backend_name}")
-        elif len(part_results[backend_name]) == n_circuits:
-            log.info(f"All results for partitioned circuits are available for backend {backend_name}")
-            write_file(dir_path, backends[backend_name]["backend"], results.pop(backend_name), part_results.pop(backend_name), sv_res_prob, n_qubits, circuits, circuit_type, permute, shots)
+            part_results[backend_name][type].append(r)
+        if len(results[backend_name][type]) == n_circuits and len(part_results[backend_name][type]) == 0:
+            log.info(f"All results for not partitioned circuits {type} are available for backend {backend_name}")
+        elif len(part_results[backend_name][type]) == n_circuits:
+            log.info(f"All results for partitioned circuits {type} are available for backend {backend_name}")
+            write_file(dir_path, backends[backend_name]["backend"], results[backend_name].pop(type), part_results[backend_name].pop(type), sv_results[type], n_qubits, circuits[type], type, shots)
 
 
 
