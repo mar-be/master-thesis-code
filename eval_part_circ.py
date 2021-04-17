@@ -1,3 +1,4 @@
+import time
 from evaluate.circuit_gen import circ_gen
 import itertools
 import json
@@ -84,12 +85,12 @@ if __name__ == "__main__":
 
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
-    backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_lima', 'ibmq_belem']
-    # backend_names = ['ibmq_qasm_simulator']
-    circuit_types = ['adder', 'bv']
+    # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_lima', 'ibmq_belem']
+    backend_names = ['ibmq_qasm_simulator']
+    circuit_types = ['bv', 'supremacy_linear','adder']
     shots = 8192
 
-    n_circuits = 20
+    n_circuits = 25
     n_qubits = 5
     subcircuit_max_qubits = 4
 
@@ -156,6 +157,10 @@ if __name__ == "__main__":
     partitioner = Partitioner(input=input_pipeline, output=input_exec, partition_dict=partition_dict, error_queue=errors, **config["partitioner"])
     partitioner.start()
 
+    while not input_pipeline.empty():
+        time.sleep(10)
+    log.info("Partitioned all circuits")
+
     exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec)
     exec_handler.start()
 
@@ -204,6 +209,7 @@ if __name__ == "__main__":
         elif len(part_results[backend_name][type]) == n_circuits:
             log.info(f"All results for partitioned circuits {type} are available for backend {backend_name}")
             write_file(dir_path, backends[backend_name]["backend"], results[backend_name].pop(type), part_results[backend_name].pop(type), sv_results[type], n_qubits, circuits[type], type, shots)
+
 
 
 

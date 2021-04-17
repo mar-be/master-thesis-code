@@ -33,18 +33,25 @@ def set_axis_style(ax, labels):
     ax.set_xticklabels(labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
-def violin_plot_agg(values, agg_values, labels, title, filename):
-    data = list(zip(values, agg_values, labels))
+def violin_plot_qc(values, mod_values, labels, title, filename, mode="agg"):
+    data = list(zip(values, mod_values, labels))
     data.sort(key=lambda item : item[2])
 
-    values, agg_values, labels = list(zip(*data))
+    values, mod_values, labels = list(zip(*data))
+
+    if mode == "agg":
+        with_modification = "aggregation"
+        without_modification = "no aggregation"
+    else:
+        with_modification = "partition"
+        without_modification = "no partition"
 
     data = []
 
     for i, label in enumerate(labels):
-        for no_agg, agg in zip(values[i], agg_values[i]):
-            data.append({"Quantum Circuit":label, "Fidelity":agg, "Execution Type":"aggregation"})
-            data.append({"Quantum Circuit":label, "Fidelity":no_agg, "Execution Type":"no aggregation"})
+        for value, mod_value in zip(values[i], mod_values[i]):
+            data.append({"Quantum Circuit":label, "Fidelity":mod_value, "Execution Type":with_modification})
+            data.append({"Quantum Circuit":label, "Fidelity":value, "Execution Type":without_modification})
 
 
     df = pd.DataFrame.from_dict(data)
@@ -60,18 +67,25 @@ def violin_plot_agg(values, agg_values, labels, title, filename):
     plt.savefig(filename, bbox_inches = 'tight')
     plt.close()
     
-def violin_plot_part(values, part_values, labels, title, filename):
-    data = list(zip(values, part_values, labels))
+def violin_plot_qpu(values, mod_values, labels, title, filename, mode="agg"):
+    data = list(zip(values, mod_values, labels))
     data.sort(key=lambda item : item[2])
 
-    values, part_values, labels = list(zip(*data))
+    values, mod_values, labels = list(zip(*data))
+
+    if mode == "agg":
+        with_modification = "aggregation"
+        without_modification = "no aggregation"
+    else:
+        with_modification = "partition"
+        without_modification = "no partition"
 
     data = []
 
     for i, label in enumerate(labels):
-        for no_agg, agg in zip(values[i], part_values[i]):
-            data.append({"QPU":label, "Fidelity":agg, "Execution Type":"partition"})
-            data.append({"QPU":label, "Fidelity":no_agg, "Execution Type":"no partition"})
+        for value, mod_value in zip(values[i], mod_values[i]):
+            data.append({"QPU":label, "Fidelity":mod_value, "Execution Type":with_modification})
+            data.append({"QPU":label, "Fidelity":value, "Execution Type":without_modification})
 
 
     df = pd.DataFrame.from_dict(data)
@@ -216,17 +230,19 @@ def eval_dir(path, mode="agg"):
         qpu_labels.append(backend_name)
     
     if mode == "agg":
-        violin_plot_agg(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf")
+        violin_plot_qc(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf", mode)
     else:
-        violin_plot_part(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_fidelity_overview.pdf")
+        violin_plot_qpu(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_qpu_fidelity_overview.pdf", mode)
 
 
 if __name__ == "__main__":
-    eval_dir("./part_data/adder_2021-04-07-14-07-21", "part")
-    eval_dir("./part_data/bv_5_4_2021-04-10-10-35-59", "part")
-    eval_dir("./part_data/qft_5_4_2021-04-09-09-36-41", "part")
-    eval_dir("./part_data/supremacy_linear_5_3_2021-04-08-13-51-08", "part")
-    eval_dir("./part_data/supremacy_linear_5_4_2021-04-08-15-55-46", "part")
+    eval_dir("part_data/2021-04-17-11-49-50/qpu_adder", "part")
+    eval_dir("part_data/2021-04-17-11-49-50/qpu_bv", "part")
+    # eval_dir("./part_data/adder_2021-04-07-14-07-21", "part")
+    # eval_dir("./part_data/bv_5_4_2021-04-10-10-35-59", "part")
+    # eval_dir("./part_data/qft_5_4_2021-04-09-09-36-41", "part")
+    # eval_dir("./part_data/supremacy_linear_5_3_2021-04-08-13-51-08", "part")
+    # eval_dir("./part_data/supremacy_linear_5_4_2021-04-08-15-55-46", "part")
     # eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
     # eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
     # eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
