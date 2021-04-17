@@ -162,7 +162,21 @@ if __name__ == "__main__":
     log.info("Partitioned all circuits")
 
     exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec)
-    exec_handler.start()
+    
+
+    exec_handler._transpiler.start()
+
+    time.sleep(5)
+
+    while exec_handler._transpiler._any_pending_transpilation() or len(exec_handler._transpiler._timers)>0:
+        time.sleep(10)
+    log.info("Transpiled all circuits")
+
+    exec_handler._batcher.start()
+    exec_handler._submitter.start()
+    exec_handler._retriever.start()
+    exec_handler._processor.start()
+
 
     result_analyzer = ResultAnalyzer(input=output_exec, output=output_pipline, output_agg=None, output_part=part_results)
     result_analyzer.start()
