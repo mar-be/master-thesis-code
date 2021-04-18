@@ -189,9 +189,9 @@ class Transpiler():
         while True:
             for i in range(1000):
                 try:
-                    timeout = 1
+                    timeout = 0.1
                     if i == 0:
-                        timeout = 5
+                        timeout = 0.1
                     # only block in the first iteration
                     job = self._input.get(timeout=timeout)
                     self._add_job(job)
@@ -366,6 +366,8 @@ class Submitter(Thread):
         self._log.info("Started")
         batch: Batch
         qobj: Qobj
+        submit_interval = 30
+        last_time = 0
         while True:
             try:
                 batch = self._input.get(timeout=self._defer_interval)
@@ -373,18 +375,21 @@ class Submitter(Thread):
                 self._internal_jobs_queue.append((batch, qobj))
             except Empty:
                 pass
-            deferred_jobs = []
-            for batch, qobj in self._internal_jobs_queue:
-                backend_name = batch.backend_name
-                backend = self._backend_look_up.get(backend_name)
-                if self._backend_control.try_to_enter(backend_name, backend):
-                    job = backend.run(qobj)
-                    self._log.info(f"Submitted batch {batch.backend_name}/{batch.batch_number}")
-                    self._output.put((batch, job))
-                else:
-                    # self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
-                    deferred_jobs.append((batch, qobj))
-            self._internal_jobs_queue = deferred_jobs
+            current = time.time()
+            if current - last_time > submit_interval:
+                last_time = current
+                deferred_jobs = []
+                for batch, qobj in self._internal_jobs_queue:
+                    backend_name = batch.backend_name
+                    backend = self._backend_look_up.get(backend_name)
+                    if self._backend_control.try_to_enter(backend_name, backend):
+                        job = backend.run(qobj)
+                        self._log.info(f"Submitted batch {batch.backend_name}/{batch.batch_number}")
+                        self._output.put((batch, job))
+                    else:
+                        # self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
+                        deferred_jobs.append((batch, qobj))
+                self._internal_jobs_queue = deferred_jobs
 
             
 class Retriever(Thread):

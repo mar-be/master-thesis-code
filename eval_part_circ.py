@@ -181,12 +181,12 @@ if __name__ == "__main__":
 
 
     exec_handler._submitter.start()
+    exec_handler._retriever.start()
 
     while not exec_handler._submitter._input.empty():
         time.sleep(10)
     log.info("All circuits ready to submit")
 
-    exec_handler._retriever.start()
     exec_handler._processor.start()
 
 
