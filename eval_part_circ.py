@@ -90,7 +90,7 @@ if __name__ == "__main__":
     circuit_types = ['bv', 'supremacy_linear']
     shots = 8192
 
-    n_circuits = 1
+    n_circuits = 2
     n_qubits = 5
     subcircuit_max_qubits = [4, 3, 2]
 
@@ -148,8 +148,8 @@ if __name__ == "__main__":
         for type in circuit_types:
             for qubits in subcircuit_max_qubits:
                 for circ in circuits[type]:
-                    input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":qubits}}))
-                    input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+                    input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":qubits}}, circ_info={"type":type, "qubits":qubits}))
+                    input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, circ_info={"type":type, "qubits":qubits}))
 
 
 
@@ -223,14 +223,11 @@ if __name__ == "__main__":
     for i in range(n_results):
         job = output_pipline.get()
         r = job.result_prob
+        info = job.circ_info
         backend_name = job.backend_data.name
         count = result_counter[backend_name]
-        count_qubits = count % (len(subcircuit_max_qubits)*n_circuits)
-        qubits_index = int(count_qubits/n_circuits)
-        qubits = subcircuit_max_qubits[qubits_index]
-        count_type = count % (len(circuit_types)*len(subcircuit_max_qubits)*n_circuits)
-        type_index = int(count_type/(n_circuits*len(subcircuit_max_qubits)))
-        type = circuit_types[type_index]
+        qubits = info["qubits"]
+        type = info["type"]
         log.debug(f"{i}: Got job {job.id},type {job.type}, from backend {backend_name}, circuit type {type}, qubits {qubits}")
         result_counter[backend_name] += 1
         if len(results[backend_name][type][qubits]) < n_circuits:
