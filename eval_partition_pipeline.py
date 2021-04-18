@@ -87,7 +87,7 @@ if __name__ == "__main__":
     backend_names = ['ibmq_qasm_simulator']
     shots = 8192
 
-    n_circuits = 50
+    n_circuits = 1
     n_qubits = 5
     subcircuit_max_qubits = 4
     circuit_type = "adder"

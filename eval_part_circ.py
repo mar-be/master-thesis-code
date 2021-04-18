@@ -90,7 +90,7 @@ if __name__ == "__main__":
     circuit_types = ['bv', 'supremacy_linear','adder']
     shots = 8192
 
-    n_circuits = 25
+    n_circuits = 2
     n_qubits = 5
     subcircuit_max_qubits = 4
 
@@ -173,7 +173,18 @@ if __name__ == "__main__":
     log.info("Transpiled all circuits")
 
     exec_handler._batcher.start()
+
+    while not exec_handler._batcher._input.empty():
+        time.sleep(10)
+    log.info("Added all circuits to batches")
+
+
     exec_handler._submitter.start()
+
+    while not exec_handler._submitter._input.empty():
+        time.sleep(10)
+    log.info("All circuits ready to submit")
+
     exec_handler._retriever.start()
     exec_handler._processor.start()
 

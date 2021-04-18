@@ -7,6 +7,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.library import QFT
 
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+
 def gen_grover(n_qubits):    
     oracle = QuantumCircuit(n_qubits,name='q')
     for q in range(n_qubits):
@@ -28,8 +30,21 @@ def adder_circuits(n_qubits):
     return [gen_adder(nbits=nbits, a=a, b=b) for a in range(2**nbits) for b in range(2**nbits)], n_circuits
 
 def adder_circuit_a_b(n_qubits, n_circuits, a=0, b=1):
-    nbits=int((n_qubits-2)/2)
-    return [gen_adder(nbits=nbits, a=a, b=b) for i in range(n_circuits)], n_circuits
+    if n_qubits % 2 == 0:
+        nbits=int((n_qubits-2)/2)
+        return [gen_adder(nbits=nbits, a=a, b=b) for i in range(n_circuits)], n_circuits
+    else:
+        nbits=int((n_qubits-1)/2)
+        circ = gen_adder(nbits=nbits, a=a, b=b)
+        dag = circuit_to_dag(circ)
+        wire = dag.wires[n_qubits]
+        nodes = list(dag.nodes_on_wire(wire, only_ops=True))
+        for node in nodes:
+            dag.remove_op_node(node)
+        circ = dag_to_circuit(dag)
+        circ = QuantumCircuit.from_qasm_str(circ.qasm().replace(f"qreg q0[{n_qubits+1}];", f"qreg q0[{n_qubits}];"))
+        return [circ for i in range(n_circuits)], n_circuits
+
 
 def growing_depth(n_qubits, n_circuits):
     circuits = []

@@ -135,22 +135,6 @@ def evaluate_file(file_path, mode="agg"):
     obj = json.loads(data)
     n_data = len(obj['data'])
     shots = obj['shots']
-    count_better_c2 = 0
-    count_better_bc = 0
-    agg_count_max_errors = 0
-    agg_count_max = 0
-    agg_count_order_errors = 0
-    agg_count_order = 0
-    count_max_errors = 0
-    count_max = 0
-    count_order_errors = 0
-    count_order = 0
-    cutqc_agg_c2_list = []
-    cutqc_c2_list = []
-    agg_c2_list = []
-    c2_list = []
-    agg_bc_list = []
-    bc_list = []
     agg_fid_list = []
     fid_list = []
     for i in range(n_data):
@@ -160,36 +144,9 @@ def evaluate_file(file_path, mode="agg"):
         length = len(sv_res_prob)
         agg_res_prob = np.array(item[f"{mode}-result"][:length])
         res_prob = np.array(item["result"][:length])
-        c2_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, chi_square)
-        cutqc_agg_c2_list.append(metrics.chi2_distance(agg_res_prob, sv_res_prob, True))
-        agg_c2_list.append(chi_square(agg_res_prob, sv_res_prob))
-        c2_list.append(chi_square(res_prob, sv_res_prob))
-        cutqc_c2_list.append(metrics.chi2_distance(res_prob, sv_res_prob, True))
-        bc_diff = metric_diff(agg_res_prob, res_prob, sv_res_prob, bhattacharyya_difference)
-        bc_list.append(bhattacharyya_difference(res_prob, sv_res_prob))
-        agg_bc_list.append(bhattacharyya_difference(agg_res_prob, sv_res_prob))
         fid_list.append(fidelity(res_prob, sv_res_prob))
         agg_fid_list.append(fidelity(agg_res_prob, sv_res_prob))
-        if c2_diff < 0:
-            count_better_c2 += 1
-        if bc_diff < 0:
-            count_better_bc += 1
-        if same_max(agg_res_prob, sv_res_prob):
-            agg_count_max += 1
-        if same_order(agg_res_prob, sv_res_prob):
-            agg_count_order += 1
-        if not same_max(agg_res_prob, sv_res_prob) and same_max(res_prob, sv_res_prob):
-            agg_count_max_errors += 1
-        if not same_order(agg_res_prob, sv_res_prob) and same_order(res_prob, sv_res_prob):
-            agg_count_order_errors += 1
-        if same_max(res_prob, sv_res_prob):
-            count_max += 1
-        if same_order(res_prob, sv_res_prob):
-            count_order += 1
-        if not same_max(res_prob, sv_res_prob) and same_max(agg_res_prob, sv_res_prob):
-            count_max_errors += 1
-        if not same_order(res_prob, sv_res_prob) and same_order(agg_res_prob, sv_res_prob):
-            count_order_errors += 1
+        
     
 
     backend_name = obj['backend']['name']
@@ -207,7 +164,7 @@ def evaluate_file(file_path, mode="agg"):
     return backend_name, circuit_type, fid_list, agg_fid_list
 
 
-def eval_dir(path, mode="agg"):
+def eval_dir(path, mode="agg", diagram="circuits"):
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
@@ -229,15 +186,24 @@ def eval_dir(path, mode="agg"):
         type_labels.append(circuit_type)
         qpu_labels.append(backend_name)
     
-    if mode == "agg":
+    if diagram == "circuits":
         violin_plot_qc(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf", mode)
     else:
         violin_plot_qpu(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_qpu_fidelity_overview.pdf", mode)
 
 
 if __name__ == "__main__":
-    eval_dir("part_data/2021-04-17-11-49-50/qpu_adder", "part")
-    eval_dir("part_data/2021-04-17-11-49-50/qpu_bv", "part")
+    eval_dir("part_data/2021-04-17-16-01-48/qpu_bv", "part", "qpu")
+    eval_dir("part_data/2021-04-17-16-01-48/qpu_supremacy_linear", "part", "qpu")
+    # eval_dir("part_data/2021-04-17-13-21-39/qpu_adder", "part", "qpu")
+    # eval_dir("part_data/2021-04-17-13-21-39/qpu_bv", "part", "qpu")
+    # eval_dir("part_data/2021-04-17-13-21-39/qpu_supremacy_linear", "part", "qpu")
+    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_athens", "part", "circuits")
+    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_belem", "part", "circuits")
+    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_lima", "part", "circuits")
+    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_santiago", "part", "circuits")
+    # eval_dir("part_data/2021-04-17-11-49-50/qpu_adder", "part", "qpu")
+    # eval_dir("part_data/2021-04-17-11-49-50/qpu_bv", "part", "qpu")
     # eval_dir("./part_data/adder_2021-04-07-14-07-21", "part")
     # eval_dir("./part_data/bv_5_4_2021-04-10-10-35-59", "part")
     # eval_dir("./part_data/qft_5_4_2021-04-09-09-36-41", "part")
