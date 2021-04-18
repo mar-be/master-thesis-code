@@ -77,7 +77,7 @@ def gen_secret(n_qubit):
     num_with_zeros = str(num).zfill(num_digit)
     return num_with_zeros
 
-def bv(n_qubits, n_circuits, depth=8):
+def bv(n_qubits, n_circuits):
     return [gen_BV(gen_secret(n_qubits), barriers=False, regname='q') for i in range(n_circuits)], n_circuits
 
 def circ_gen(circuit_type, n_qubits, n_circuits):

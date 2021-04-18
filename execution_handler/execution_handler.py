@@ -377,7 +377,6 @@ class Submitter(Thread):
                 pass
             current = time.time()
             if current - last_time > submit_interval:
-                last_time = current
                 deferred_jobs = []
                 for batch, qobj in self._internal_jobs_queue:
                     backend_name = batch.backend_name
@@ -390,6 +389,7 @@ class Submitter(Thread):
                         # self._log.debug(f"Reached limit of queued jobs for backend {backend_name} -> defer job for batch {batch.batch_number}")
                         deferred_jobs.append((batch, qobj))
                 self._internal_jobs_queue = deferred_jobs
+                last_time = time.time()
 
             
 class Retriever(Thread):

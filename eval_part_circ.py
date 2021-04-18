@@ -146,8 +146,8 @@ if __name__ == "__main__":
 
     for backend_data in backend_data_list:
         for type in circuit_types:
-            for circ in circuits[type]:
-                for qubits in subcircuit_max_qubits:
+            for qubits in subcircuit_max_qubits:
+                for circ in circuits[type]:
                     input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":qubits}}))
                     input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
 
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         time.sleep(10)
     log.info("Partitioned all circuits")
 
-    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec, batch_timeout=5)
+    exec_handler = ExecutionHandler(provider, input=input_exec, output=output_exec, batch_timeout=5, transpile_timeout=1)
     
 
     exec_handler._transpiler.start()
