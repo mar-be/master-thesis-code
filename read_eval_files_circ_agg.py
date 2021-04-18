@@ -33,41 +33,8 @@ def set_axis_style(ax, labels):
     ax.set_xticklabels(labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
-def violin_plot_qc(values, mod_values, labels, title, filename, mode="agg"):
-    data = list(zip(values, mod_values, labels))
-    data.sort(key=lambda item : item[2])
-
-    values, mod_values, labels = list(zip(*data))
-
-    if mode == "agg":
-        with_modification = "aggregation"
-        without_modification = "no aggregation"
-    else:
-        with_modification = "partition"
-        without_modification = "no partition"
-
-    data = []
-
-    for i, label in enumerate(labels):
-        for value, mod_value in zip(values[i], mod_values[i]):
-            data.append({"Quantum Circuit":label, "Fidelity":mod_value, "Execution Type":with_modification})
-            data.append({"Quantum Circuit":label, "Fidelity":value, "Execution Type":without_modification})
-
-
-    df = pd.DataFrame.from_dict(data)
-    print(df)
-
-    plt.figure(figsize=(8, 6))
-    ax = plt.subplot(1, 1, 1)
-    sns.violinplot(x="Quantum Circuit", y="Fidelity", hue="Execution Type", data=df, inner=None, linewidth=1 ,palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],scale_hue=True, ax=ax, scale="area", split=True)
-    plt.legend(loc='upper left')
-    ax.set_xlabel('Quantum Circuit', fontsize=14)
-    ax.set_ylabel('Fidelity', fontsize=14)
-    plt.title(title, fontsize=18)
-    plt.savefig(filename, bbox_inches = 'tight')
-    plt.close()
     
-def violin_plot_qpu(values, mod_values, labels, title, filename, mode="agg"):
+def violin_plot(values, mod_values, labels, title, filename, mode="agg", diagram="circuits"):
     data = list(zip(values, mod_values, labels))
     data.sort(key=lambda item : item[2])
 
@@ -80,12 +47,17 @@ def violin_plot_qpu(values, mod_values, labels, title, filename, mode="agg"):
         with_modification = "partition"
         without_modification = "no partition"
 
+    if diagram == "circuits":
+        x_axis_label = "Quantum Circuit"
+    else:
+        x_axis_label = "QPU"
+
     data = []
 
     for i, label in enumerate(labels):
         for value, mod_value in zip(values[i], mod_values[i]):
-            data.append({"QPU":label, "Fidelity":mod_value, "Execution Type":with_modification})
-            data.append({"QPU":label, "Fidelity":value, "Execution Type":without_modification})
+            data.append({x_axis_label:label, "Fidelity":mod_value, "Execution Type":with_modification})
+            data.append({x_axis_label:label, "Fidelity":value, "Execution Type":without_modification})
 
 
     df = pd.DataFrame.from_dict(data)
@@ -93,11 +65,16 @@ def violin_plot_qpu(values, mod_values, labels, title, filename, mode="agg"):
 
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
-    sns.violinplot(x="QPU", y="Fidelity", hue="Execution Type", data=df, inner=None, linewidth=1 ,palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],scale_hue=True, ax=ax, scale="area", split=True)
-    plt.legend(loc='upper center')
-    ax.set_xlabel('QPU', fontsize=14)
+    sns.violinplot(x=x_axis_label, y="Fidelity", hue="Execution Type", data=df, inner=None, linewidth=1 ,palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],scale_hue=True, ax=ax, scale="area", split=True)
+    if mode=="agg":
+        plt.legend(loc='upper left')
+    else:
+        plt.legend(loc='upper center')
+    ax.set_xlabel(x_axis_label, fontsize=14)
     ax.set_ylabel('Fidelity', fontsize=14)
+    ax.set_axisbelow(True)
     plt.title(title, fontsize=18)
+    plt.grid()
     plt.savefig(filename, bbox_inches = 'tight')
     plt.close()
 
@@ -187,30 +164,25 @@ def eval_dir(path, mode="agg", diagram="circuits"):
         qpu_labels.append(backend_name)
     
     if diagram == "circuits":
-        violin_plot_qc(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf", mode)
+        violin_plot(fid_lists, mod_fid_lists, type_labels, f"Fidelity Distributions for {backend_name}", f"{path}/plots/{backend_name}_fidelity_overview.pdf", mode, diagram)
     else:
-        violin_plot_qpu(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_qpu_fidelity_overview.pdf", mode)
+        violin_plot(fid_lists, mod_fid_lists, qpu_labels, f"Fidelity Distributions for {circuit_type}", f"{path}/plots/{circuit_type}_qpu_fidelity_overview.pdf", mode, diagram)
 
 
 if __name__ == "__main__":
-    eval_dir("part_data/2021-04-17-16-01-48/qpu_bv", "part", "qpu")
-    eval_dir("part_data/2021-04-17-16-01-48/qpu_supremacy_linear", "part", "qpu")
-    # eval_dir("part_data/2021-04-17-13-21-39/qpu_adder", "part", "qpu")
-    # eval_dir("part_data/2021-04-17-13-21-39/qpu_bv", "part", "qpu")
-    # eval_dir("part_data/2021-04-17-13-21-39/qpu_supremacy_linear", "part", "qpu")
-    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_athens", "part", "circuits")
-    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_belem", "part", "circuits")
-    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_lima", "part", "circuits")
-    # eval_dir("part_data/2021-04-17-11-49-50/ibmq_santiago", "part", "circuits")
-    # eval_dir("part_data/2021-04-17-11-49-50/qpu_adder", "part", "qpu")
-    # eval_dir("part_data/2021-04-17-11-49-50/qpu_bv", "part", "qpu")
-    # eval_dir("./part_data/adder_2021-04-07-14-07-21", "part")
-    # eval_dir("./part_data/bv_5_4_2021-04-10-10-35-59", "part")
-    # eval_dir("./part_data/qft_5_4_2021-04-09-09-36-41", "part")
-    # eval_dir("./part_data/supremacy_linear_5_3_2021-04-08-13-51-08", "part")
-    # eval_dir("./part_data/supremacy_linear_5_4_2021-04-08-15-55-46", "part")
-    # eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
-    # eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
-    # eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
-    # eval_dir("./agg_data_circ/2021-04-14-15-50-01/ibmq_lima")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
+
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_athens", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_belem", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_lima", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_quito", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_santiago", "part", "circuits")
+
+    eval_dir("./agg_data_circ/2021-04-14-14-30-09/ibmq_athens")
+    eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
+    eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
+    eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
+    eval_dir("./agg_data_circ/2021-04-14-15-50-01/ibmq_lima")
     

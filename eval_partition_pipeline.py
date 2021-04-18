@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
     n_circuits = 1
     n_qubits = 5
-    subcircuit_max_qubits = 4
+    subcircuit_max_qubits = 3
     circuit_type = "adder"
     permute = False
 
