@@ -90,7 +90,7 @@ if __name__ == "__main__":
     circuit_types = ['bv', 'supremacy_linear']
     shots = 8192
 
-    n_circuits = 2
+    n_circuits = 5
     n_qubits = 5
     subcircuit_max_qubits = [4, 3, 2]
 

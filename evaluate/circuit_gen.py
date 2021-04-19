@@ -68,7 +68,10 @@ def aqft(n_qubits, n_circuits):
     return [QFT(num_qubits=n_qubits, approximation_degree=n_qubits-approximation_degree,do_swaps=False) for i in range(n_circuits)], n_circuits
 
 def supremacy_linear(n_qubits, n_circuits, depth=8):
-    return [gen_supremacy(1, n_qubits, depth, regname='q') for i in range(n_circuits)], n_circuits
+    # return [gen_supremacy(1, n_qubits, depth, regname='q') for i in range(n_circuits)], n_circuits
+    # TODO remove hardcoded circuit
+    circ = QuantumCircuit.from_qasm_str("OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[5];\nh q[0];\nh q[1];\nh q[2];\nh q[3];\nh q[4];\ncz q[0],q[1];\nt q[2];\nt q[3];\nt q[4];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\ncz q[1],q[2];\nt q[0];\nry(pi/2) q[1];\nrx(pi/2) q[2];\ncz q[2],q[3];\nt q[1];\nrx(pi/2) q[2];\nrx(pi/2) q[3];\ncz q[3],q[4];\nt q[2];\nry(pi/2) q[3];\nry(pi/2) q[4];\nh q[0];\nh q[1];\nh q[2];\nh q[3];\nh q[4];\n")
+    return [circ for i in range(n_circuits)], n_circuits
 
 def gen_secret(n_qubit):
     num_digit = n_qubit-1
