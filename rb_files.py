@@ -30,21 +30,22 @@ def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger,
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
 
-    ax = fitter_plot(agg_fit, "agg", ax, agg_color, x_shift=-1, mode="agg")
-    ax = fitter_plot(no_agg_fit, "no agg", ax, no_agg_color, x_shift=1, mode="no agg")
+    ax = fitter_plot(agg_fit, "aggregation", ax, agg_color, x_shift=-1, mode="agg")
+    ax = fitter_plot(no_agg_fit, "no aggregation", ax, no_agg_color, x_shift=1, mode="no agg")
 
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Clifford Length', fontsize=18)
-    ax.set_ylabel('Ground State Population', fontsize=18)
+    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_ylabel('Fidelity', fontsize=18)
     ax.grid(True)
+    ax.set_ylim([0.2,1])
 
     handles, labels = ax.get_legend_handles_labels()
     order = [0,1,2,3,4,5]
     #plt.legend([handles[idx] for idx in order],[labels[idx] for idx in order], fontsize=16)
-    plt.legend()
+    plt.legend(fontsize=16)
     
     plt.title(title, fontsize=18)
-    plt.savefig(path, format="pdf")
+    plt.savefig(path, format="pdf", bbox_inches = 'tight')
     log.info(f"Created plot {path}")
         
 def draw_violins(ax, data, positions, color, widths=12, alpha = 0.5, showmeans=False, mode="agg"):
@@ -127,7 +128,7 @@ def process_data(results:List[Result], rb_opts:Dict, xdata:List, backend_name:st
 
 def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
     no_agg_fit, agg_fit, n_sizes, n_qubits, n_circuits = process_data(results, rb_opts, xdata, backend_name, log)
-    plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB for {backend_name} with {n_circuits} circuit per length", log)
+    plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB {backend_name}: {n_circuits} circuits per length", log)
     
 
 def get_general_data(path:str):
@@ -162,13 +163,13 @@ def all_backends_mean_graph(path:str, log:Logger):
         ax.plot(x, mean_diff, linewidth=2, label=backend_name)
         log.info(f"Added {backend_name} to mean diff plot")
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Clifford Length', fontsize=18)
-    ax.set_ylabel('Mean difference', fontsize=20)
+    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_ylabel('Mean fidelity difference', fontsize=18)
     ax.grid(True)
 
-    plt.legend()
+    plt.legend(fontsize=16)
     
-    plt.title("Mean diff", fontsize=18)
+    plt.title("Fidelity gap between aggregated and non-aggregated \nexecution", fontsize=18)
     plt.savefig(f"{path}/mean_diff.pdf", format="pdf")
 
 
@@ -319,7 +320,7 @@ def evaluate_different_length_agg_files(path:str, backend_name:str, log:Logger):
     n_sizes = len(rb_opts['length_vector'])
     n_circuits = int(len(agg_results)/n_sizes)
     n_qubits = no_agg_results[0]._get_experiment(0).header.memory_slots
-    plot_different_length_agg(no_agg_fit, agg_fit, agg_diff_fit, f"{path}/{backend_name}/{backend_name}_diff_plot.pdf", f"{n_qubits} Qubit RB for {backend_name} with {n_circuits} circuit per length")
+    plot_different_length_agg(no_agg_fit, agg_fit, agg_diff_fit, f"{path}/{backend_name}/{backend_name}_diff_plot.pdf", f"{n_qubits} Qubit RB {backend_name}: {n_circuits} circuits per length")
     
 def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fit:RBFitter, path, title:str, no_agg_color: List = BLUE_COLOR_LIST, agg_color: List = RED_COLOR_LIST, agg_diff_color: List = GREEN_COLOR_LIST):
     plt.figure(figsize=(8, 6))
@@ -334,30 +335,36 @@ def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fi
     ax.plot(xdata, ydata['mean'], color=no_agg_color[2], linestyle='--', linewidth=2, label=f"no aggregation")
 
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Clifford Length', fontsize=18)
-    ax.set_ylabel('Ground State Population', fontsize=20)
+    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_ylabel('Fidelity', fontsize=18)
     ax.grid(True)
+    ax.set_ylim([0.17,1])
 
-    plt.legend()
+    plt.legend(fontsize=16)
     
     plt.title(title, fontsize=18)
-    plt.savefig(path, format="pdf")
+    plt.savefig(path, format="pdf", bbox_inches = 'tight')
     log.info(f"Created plot {path}")
 
     
 if __name__ == "__main__":
     log = get_logger("Evaluate")
-    path = "rb_data/2021-04-13-08-29-24"
+    path = "rb_data/2021-04-07-18-00-41_merged_3"
+    path_time_1 = "rb_data/2021-03-31-07-04-14"
+    path_time_2 = "rb_data/2021-04-08-09-09-29"
+    path_time_3 = "rb_data/2021-04-08-11-37-57"
+    path_diff = "rb_data/2021-04-11-15-07-26"
     paths = ["rb_data/2021-03-10-10-13-47", "rb_data/2021-03-10-09-15-05", "rb_data/2021-03-09-19-01-22", "rb_data/2021-03-09-17-47-34", \
             "rb_data/2021-03-12-08-38-08", "rb_data/2021-03-12-09-32-49", "rb_data/2021-03-12-10-42-06", "rb_data/2021-03-12-11-20-39", \
             "rb_data/2021-03-12-12-03-05", "rb_data/2021-03-12-12-55-45", "rb_data/2021-03-12-13-40-43", "rb_data/2021-03-13-15-46-28", \
             "rb_data/2021-03-13-16-38-24", "rb_data/2021-03-15-15-00-03", "rb_data/2021-03-15-16-32-00"]
     paths_2 = ["rb_data/2021-03-31-07-04-14", "rb_data/2021-03-31-09-04-34", "rb_data/2021-03-31-11-01-49", "rb_data/2021-04-08-06-57-10", "rb_data/2021-04-08-09-09-29", "rb_data/2021-04-08-11-37-57"]
     # merge_separate_result_files_all_backends(path, log)
-    # evaluate_dir(path, log)
+    evaluate_dir(path_time_2, log)
+    evaluate_dir(path_time_3, log)
     # all_backends_mean_graph(path, log)
     # merge(paths_2, "./rb_data", log)
-    evaluate_different_length_agg_dir(path, log)
+    # evaluate_different_length_agg_dir(path_diff, log)
     
 
     

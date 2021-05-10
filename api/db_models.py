@@ -9,7 +9,7 @@ from quantum_job import QuantumJob
 
 class Task(Document):
     qasm = StringField(required=True)
-    shots = IntField(min_value=0)
+    shots = IntField(min_value=0, default=8192)
     qjob_id = StringField(null=True)
     status = StringField(default="created")
     config = DictField(default={})

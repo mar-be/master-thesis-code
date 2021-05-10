@@ -59,6 +59,7 @@ class Partitioner(Thread):
     def _cut_job(self, qJob:QuantumJob):
         subcircuit_max_qubits, max_separate_circuits, max_cuts = self._get_cutting_parameters(qJob)
         cut_solution, circ_dict, all_indexed_combinations = self._cut(qJob.circuit.remove_final_measurements(inplace=False), subcircuit_max_qubits, max_separate_circuits, max_cuts)
+        self._log.debug(f"Cut contains {len(circ_dict)} different sub-circuits")
         sub_jobs = []
         for key, circ_info in circ_dict.items():
             circ = circ_info["circuit"]
