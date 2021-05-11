@@ -11,12 +11,12 @@ from matplotlib.patches import PathPatch
 import seaborn as sns
 import pandas as pd
 from matplotlib.transforms import Bbox
-from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST
+from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST, RED_COLOR, BLUE_COLOR
 
 def histogram(values, agg_values, name, filename, labels, range=None):
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
-    ax.hist([values, agg_values], range=range, histtype="bar", color=[BLUE_COLOR_LIST[1], RED_COLOR_LIST[1]], label=labels)
+    ax.hist([values, agg_values], range=range, histtype="bar", color=[BLUE_COLOR, RED_COLOR], label=labels)
     ax.xaxis.get_major_formatter().set_useOffset(False)
     ax.tick_params(labelsize=13)
     ax.set_xlabel('Fidelity',  fontsize=20)
@@ -35,7 +35,7 @@ def set_axis_style(ax, labels):
     ax.set_xticklabels(labels)
     ax.set_xlim(0.25, len(labels) + 0.75)
 
-def violin_plot_df(df, x_axis_label, title, filename, hue="Execution Type", inner=None, split=True, palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]], order=None, mode="agg", mean=True):
+def violin_plot_df(df, x_axis_label, title, filename, hue="Execution Type", inner=None, split=True, palette=[RED_COLOR, BLUE_COLOR], order=None, mode="agg", mean=False):
 
     figure = plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
@@ -81,16 +81,16 @@ def violin_plot_df(df, x_axis_label, title, filename, hue="Execution Type", inne
                 line.set_clip_path(mask)
 
     else:
-        ax = sns.violinplot(x=x_axis_label, y="Fidelity", hue=hue, data=df, inner=inner, linewidth=1 ,palette=palette, scale_hue=False, order=order, ax=ax, scale="area", split=split, width=1)
+        ax = sns.violinplot(x=x_axis_label, y="Fidelity", hue=hue, data=df, inner=inner, linewidth=1 ,palette=palette, scale_hue=True, order=order, ax=ax, scale="area", split=split, width=0.95)
         if mode=="agg":
             plt.legend(loc='upper left')
         elif mode == "part":
             plt.legend(loc='upper center')
-    ax.set_xlabel(x_axis_label, fontsize=20)
-    ax.set_ylabel('Fidelity', fontsize=20)
-    ax.tick_params(labelsize=18)
+    ax.set_xlabel(x_axis_label, fontsize=16)
+    ax.set_ylabel('Fidelity', fontsize=16)
+    ax.tick_params(labelsize=11)
     ax.set_axisbelow(True)
-    plt.title(title, fontsize=22)
+    plt.title(title, fontsize=18)
     plt.grid()
     plt.savefig(filename, bbox_inches = 'tight')
     plt.close()
@@ -346,7 +346,7 @@ def overall_plot(path, mode="part"):
             data = df_without_sim,
             kind = "violin",
             split = True,
-            palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],
+            palette=[RED_COLOR, BLUE_COLOR],
             inner = None,
             legend_out = False,
             width=0.95,
@@ -368,7 +368,7 @@ def overall_plot(path, mode="part"):
             y = "Fidelity",
             hue = "Execution Type",
             data = mean_df,
-            palette=[RED_COLOR_LIST[1], BLUE_COLOR_LIST[1]],
+            palette=[RED_COLOR, BLUE_COLOR],
             hue_order=[with_modification, without_modification])
     for p in bar_plot.patches:
         bar_plot.annotate(format(p.get_height(), '.3f'), 
@@ -423,17 +423,17 @@ def overall_plot(path, mode="part"):
 
 if __name__ == "__main__":
     # overall_plot("./part_data/2021-04-18-07-11-18-test")
-    eval_dir_cuts("part_data/2021-04-20-06-05-22")
+    # eval_dir_cuts("part_data/2021-04-20-06-05-22")
     #eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
 
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_qasm_simulator", "part", "circuits")
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_athens", "part", "circuits")
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_belem", "part", "circuits")
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_lima", "part", "circuits")
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_quito", "part", "circuits")
-    # eval_dir("part_data/2021-04-18-07-11-18/ibmq_santiago", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_qasm_simulator", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_athens", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_belem", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_lima", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_quito", "part", "circuits")
+    eval_dir("part_data/2021-04-18-07-11-18/ibmq_santiago", "part", "circuits")
 
     # eval_dir("./agg_data_circ/2021-04-14-14-30-09/ibmq_athens")
     # eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
