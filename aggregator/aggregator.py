@@ -10,7 +10,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.providers import backend
 from qiskit.result import Result
 
-from quantum_job import QuantumExecutionJob, Execution_Type
+from quantum_execution_job import QuantumExecutionJob, Execution_Type
 
 
 import logger
