@@ -1,11 +1,11 @@
-from virtualization_layer import Virtualization_Layer
+from virtualization_layer import Virtual_Execution_Environment
 
 from qiskit import IBMQ
 from qiskit.circuit.random.utils import random_circuit
 
 import logger
 
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 import config.load_config as cfg
 import ibmq_account
 
@@ -16,18 +16,18 @@ if __name__ == "__main__":
     log = logger.get_logger(__name__)
     provider = ibmq_account.get_provider(config)
 
-    vl = Virtualization_Layer(provider, config)
+    vl = Virtual_Execution_Environment(provider, config)
 
     input = vl.input
     output = vl.output
 
     vl.start()
 
-    input.put(QuantumJob(random_circuit(6, 5, 2, measure=True), shots=10000))
-    input.put(QuantumJob(random_circuit(5, 5, 2, measure=True), shots=10000))
-    input.put(QuantumJob(random_circuit(5, 5, 2, measure=True), shots=10000))
-    input.put(QuantumJob(random_circuit(2, 5, 2, measure=True), shots=10000))
-    input.put(QuantumJob(random_circuit(2, 5, 2, measure=True), shots=10000))
+    input.put(QuantumExecutionJob(random_circuit(6, 5, 2, measure=True), shots=10000))
+    input.put(QuantumExecutionJob(random_circuit(5, 5, 2, measure=True), shots=10000))
+    input.put(QuantumExecutionJob(random_circuit(5, 5, 2, measure=True), shots=10000))
+    input.put(QuantumExecutionJob(random_circuit(2, 5, 2, measure=True), shots=10000))
+    input.put(QuantumExecutionJob(random_circuit(2, 5, 2, measure=True), shots=10000))
 
     i = 0
     while True:

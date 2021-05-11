@@ -11,7 +11,7 @@ class Execution_Type(Enum):
     aggregation = 1
     partition = 2
 
-class QuantumJob():
+class QuantumExecutionJob():
 
     def __init__(self, circuit:QuantumCircuit, shots:int, type:Execution_Type=Execution_Type.raw, config:Dict={}, **kwargs) -> None:
         self.id = uuid4().hex
@@ -40,7 +40,7 @@ class QuantumJob():
     
 
 if __name__ == "__main__":
-    vJob = QuantumJob(None, test = "test")
+    vJob = QuantumExecutionJob(None, test = "test")
 
     print(vJob.test)
     vJob.hallo = 1234

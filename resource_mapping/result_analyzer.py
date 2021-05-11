@@ -1,4 +1,4 @@
-from quantum_job import Execution_Type, QuantumJob
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
 from queue import Queue
 from threading import Thread
 import logger
@@ -17,7 +17,7 @@ class ResultAnalyzer(Thread):
     def run(self) -> None:
         self._log.info("Started ResultAnalyzer")
         while True:
-            job:QuantumJob = self._input.get()
+            job:QuantumExecutionJob = self._input.get()
             #self._log.debug(f"Got job {job.id}")
             if job.type == Execution_Type.raw:
                 #self._log.debug(f"Put job {job.id} in output queue")

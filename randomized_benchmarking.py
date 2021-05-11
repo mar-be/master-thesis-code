@@ -5,11 +5,11 @@ import os
 from typing import Any, Dict, List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
-from analyzer.backend_chooser import Backend_Data
-from quantum_job import Execution_Type, QuantumJob
+from resource_mapping.backend_chooser import Backend_Data
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
 from logger import get_logger
 from queue import Queue
-from analyzer.result_analyzer import ResultAnalyzer
+from resource_mapping.result_analyzer import ResultAnalyzer
 from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
 import qiskit.ignis.verification.randomized_benchmarking as rb
@@ -146,8 +146,8 @@ if __name__ == "__main__":
         for length_idx in range(len(rb_opts['length_vector'])):
             for rb_seed, rb_circ_seed in enumerate(rb_circs):
                 circ = rb_circ_seed[length_idx]
-                input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
-                input_exec.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+                input_pipeline.put(QuantumExecutionJob(circuit=circ, shots=shots, backend_data=backend_data))
+                input_exec.put(QuantumExecutionJob(circuit=circ, shots=shots, backend_data=backend_data))
 
     if different_length:
         log.info(f"delay differnt length circuit aggregation by {delay_time_different_length}s")
@@ -156,7 +156,7 @@ if __name__ == "__main__":
             for backend_data in backend_data_list:
                 for rb_seed, rb_circ_seed in enumerate(rb_circs):
                     for circ in rb_circ_seed:
-                        input_pipeline.put(QuantumJob(circuit=circ, shots=shots, backend_data=backend_data))
+                        input_pipeline.put(QuantumExecutionJob(circuit=circ, shots=shots, backend_data=backend_data))
         
         Timer(delay_time_different_length, function=different_length_circuits).start()
 

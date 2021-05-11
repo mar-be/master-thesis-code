@@ -22,15 +22,15 @@ from qiskit.providers.models import backendproperties
 from qiskit.circuit.library import QFT
 
 from aggregator.aggregator import Aggregator, AggregatorResults
-from analyzer.backend_chooser import Backend_Data
-from analyzer.result_analyzer import ResultAnalyzer
+from resource_mapping.backend_chooser import Backend_Data
+from resource_mapping.result_analyzer import ResultAnalyzer
 from evaluate.metrics import (chi_square, kullback_leibler_divergence,
                               metric_diff)
 from evaluate.util import counts_to_probability, dict_to_array, sv_to_probability
 from execution_handler.execution_handler import ExecutionHandler
 import logger
 from quantum_circuit_generator.generators import gen_BV, gen_adder, gen_grover, gen_hwea, gen_uccsd, gen_supremacy
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 import ibmq_account
 import config.load_config as cfg
 
@@ -148,8 +148,8 @@ if __name__ == "__main__":
         for type in circuit_types:
             for qubits in subcircuit_max_qubits:
                 for circ in circuits[type]:
-                    input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":qubits}}, circ_info={"type":type, "qubits":qubits}))
-                    input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, circ_info={"type":type, "qubits":qubits}))
+                    input_pipeline.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, config={"partitioner":{"subcircuit_max_qubits":qubits}}, circ_info={"type":type, "qubits":qubits}))
+                    input_exec.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data, circ_info={"type":type, "qubits":qubits}))
 
 
 

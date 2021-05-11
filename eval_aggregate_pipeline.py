@@ -17,15 +17,15 @@ from qiskit.providers.models import backendproperties
 from qiskit.circuit.library import QFT
 
 from aggregator.aggregator import Aggregator, AggregatorResults
-from analyzer.backend_chooser import Backend_Data
-from analyzer.result_analyzer import ResultAnalyzer
+from resource_mapping.backend_chooser import Backend_Data
+from resource_mapping.result_analyzer import ResultAnalyzer
 from evaluate.metrics import (chi_square, kullback_leibler_divergence,
                               metric_diff)
 from evaluate.util import counts_to_probability, sv_to_probability
 from execution_handler.execution_handler import ExecutionHandler
 from logger import get_logger
 from quantum_circuit_generator.generators import gen_adder, gen_hwea, gen_uccsd, gen_supremacy
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 
 
 def json_serial(obj):
@@ -134,8 +134,8 @@ if __name__ == "__main__":
 
     for backend_data in backend_data_list:
         for circ in circuits:
-            input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
-            input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+            input_pipeline.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+            input_exec.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
 
 
 

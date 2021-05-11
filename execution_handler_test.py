@@ -1,6 +1,6 @@
-from analyzer.backend_chooser import Backend_Data
+from resource_mapping.backend_chooser import Backend_Data
 from execution_handler.execution_handler import ExecutionHandler
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 
 from queue import Queue
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     exec_handler.start()
 
     for i in range(400):
-        input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend_data=backend_data))
+        input.put(QuantumExecutionJob(random_circuit(5, 5, measure=True), shots=10000, backend_data=backend_data))
         # if i % 2 == 0:
         #     input.put(QuantumJob(random_circuit(5, 5, measure=True), shots=10000, backend="ibmq_athens"))
         # else:

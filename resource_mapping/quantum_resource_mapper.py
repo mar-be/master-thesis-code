@@ -1,9 +1,9 @@
 import copy
 from typing import Dict, Tuple
-from quantum_job import QuantumJob, Execution_Type
+from quantum_execution_job import QuantumExecutionJob, Execution_Type
 from queue import Queue
 from threading import Thread
-from analyzer.backend_chooser import Backend_Chooser, Backend_Data
+from resource_mapping.backend_chooser import Backend_Chooser, Backend_Data
 import logger
 
 class NoSuitableModification(Exception):
@@ -32,7 +32,7 @@ class QuantumResourceMapper(Thread):
         Thread.__init__(self)
         self._log.info("Init QuantumResourceMapper")
 
-    def decide_action(self, job:QuantumJob) -> Tuple[Execution_Type, Backend_Data]:
+    def decide_action(self, job:QuantumExecutionJob) -> Tuple[Execution_Type, Backend_Data]:
         config = copy.deepcopy(self._config_dict)
         if "quantum_resource_mapper" in job.config.keys():
             if "execution_types" in job.config["quantum_resource_mapper"].keys():
@@ -92,7 +92,7 @@ class QuantumResourceMapper(Thread):
     def run(self) -> None:
         self._log.info("Started QuantumResourceMapper")
         while True:
-            job:QuantumJob = self._input.get()
+            job:QuantumExecutionJob = self._input.get()
             self._log.debug(f"Got job {job.id}")
             try:
                 mod_type, backend_data = self.decide_action(job)

@@ -1,10 +1,10 @@
-from analyzer.backend_chooser import Backend_Data
+from resource_mapping.backend_chooser import Backend_Data
 from logger import get_logger
 from queue import Queue
 from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
 from qiskit import IBMQ
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 from qiskit.circuit.random import random_circuit
 
 if __name__ == "__main__":
@@ -40,7 +40,7 @@ if __name__ == "__main__":
             backend_data = backend_data_1
         else:
             backend_data = backend_data_2
-        input.put(QuantumJob(random_circuit(2, 5, measure=True), shots=10000, backend_data=backend_data))
+        input.put(QuantumExecutionJob(random_circuit(2, 5, measure=True), shots=10000, backend_data=backend_data))
     
     i = 0
     while True:

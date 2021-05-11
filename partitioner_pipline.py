@@ -1,10 +1,10 @@
-from analyzer.backend_chooser import Backend_Data
+from resource_mapping.backend_chooser import Backend_Data
 from queue import Queue
 from execution_handler.execution_handler import ExecutionHandler
 from partitioner.partitioner import Partitioner
 from partitioner.partition_result_processing import ResultWriter, ResultProcessing
 from qiskit import IBMQ
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 from qiskit.circuit.random import random_circuit
 import logger
 
@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     backend_data = Backend_Data(backend)
     
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
-    input.put(QuantumJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
+    input.put(QuantumExecutionJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
+    input.put(QuantumExecutionJob(random_circuit(6, 5, 2), shots=10000, backend_data=backend_data))
 
     log = logger.get_logger("Pipeline")
     i = 0

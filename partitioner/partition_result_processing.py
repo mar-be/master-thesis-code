@@ -19,7 +19,7 @@ from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.result.result import Result
 from qiskit_helper_functions.conversions import dict_to_array
 from qiskit_helper_functions.non_ibmq_functions import find_process_jobs
-from quantum_job import Execution_Type, QuantumJob
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
 
 
 class ResultWriter(Thread):
@@ -43,7 +43,7 @@ class ResultWriter(Thread):
                 self._log.info(f"All results are available for job {job.parent}")
                 self._completed_jobs.put(self._partition_dict[job.parent]["job"])
 
-    def _results_complete(self, job:QuantumJob):
+    def _results_complete(self, job:QuantumExecutionJob):
         parent_id = job.parent
         try: 
             self._result_count[parent_id] += 1
@@ -57,11 +57,11 @@ class ResultWriter(Thread):
         
         
 
-    def _get_prob_dist(self, job:QuantumJob) -> np.ndarray:
+    def _get_prob_dist(self, job:QuantumExecutionJob) -> np.ndarray:
         counts = job.result.get_counts()
         return dict_to_array(counts, self._force_prob)
 
-    def _write(self, job:QuantumJob):
+    def _write(self, job:QuantumExecutionJob):
         subcircuit_idx, inits, meas = job.key
         cut_solution = self._partition_dict[job.parent]["cut_solution"]
         all_indexed_combinations = self._partition_dict[job.parent]["all_indexed_combinations"]
@@ -368,7 +368,7 @@ class ResultProcessing(Thread):
         pickle.dump({'zoomed_ctr':0,'max_states':max_states,'reconstructed_prob':reconstructed_prob},open('%s/build_output.pckl'%(dynamic_definition_folder),'wb'))
         return reconstructed_prob
 
-    def _createResult(self, job: QuantumJob, prob: np.ndarray) -> Result:
+    def _createResult(self, job: QuantumExecutionJob, prob: np.ndarray) -> Result:
         prob_dict = {}
         for i, p in enumerate(prob):
             if p != 0:

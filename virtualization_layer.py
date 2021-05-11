@@ -1,17 +1,17 @@
 from typing import Dict
 from partitioner.partition_result_processing import ResultProcessing, ResultWriter
-from analyzer.result_analyzer import ResultAnalyzer
+from resource_mapping.result_analyzer import ResultAnalyzer
 from execution_handler.execution_handler import ExecutionHandler
 from partitioner.partitioner import Partitioner
 from aggregator.aggregator import Aggregator, AggregatorResults
-from analyzer.circuit_analyzer import QuantumResourceMapper
-from analyzer.backend_chooser import Backend_Chooser
+from resource_mapping.quantum_resource_mapper import QuantumResourceMapper
+from resource_mapping.backend_chooser import Backend_Chooser
 from queue import Queue
 
 from qiskit.providers.provider import Provider
 import logger
 
-class Virtualization_Layer():
+class Virtual_Execution_Environment():
 
     def __init__(self, provider: Provider, config:Dict) -> None:
         self._log = logger.get_logger(type(self).__name__)

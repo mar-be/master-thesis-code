@@ -1,10 +1,10 @@
 import json
 from typing import List
-from analyzer.result_analyzer import ResultAnalyzer
+from resource_mapping.result_analyzer import ResultAnalyzer
 from execution_handler.execution_handler import ExecutionHandler
 from aggregator.aggregator import Aggregator, AggregatorResults
 from datetime import datetime, date
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 from queue import Queue
 from evaluate.util import counts_to_probability, sv_to_probability
 
@@ -15,7 +15,7 @@ from evaluate.circuit_gen import circ_gen
 import os
 import ibmq_account
 import config.load_config as cfg
-from analyzer.backend_chooser import Backend_Data
+from resource_mapping.backend_chooser import Backend_Data
 import logger 
 from qiskit.providers.aer import Aer, AerJob   
 
@@ -121,8 +121,8 @@ if __name__ == "__main__":
     for backend_data in backend_data_list:
         for type in circuit_types:
             for circ in circuits[type]:
-                input_pipeline.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
-                input_exec.put(QuantumJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+                input_pipeline.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
+                input_exec.put(QuantumExecutionJob(circuit=circ.measure_all(inplace=False), shots=shots, backend_data=backend_data))
 
     agg_job_dict = {}
 

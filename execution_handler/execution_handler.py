@@ -15,7 +15,7 @@ from qiskit.providers.provider import Provider
 from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 import qiskit.tools.parallel
 from concurrent.futures.process import BrokenProcessPool
 import qiskit.providers.ibmq.job.exceptions
@@ -151,7 +151,7 @@ class Transpiler():
         return True
 
     
-    def _add_job(self, job:QuantumJob):
+    def _add_job(self, job:QuantumExecutionJob):
         backend_name = job.backend_data.name
         try:
             self._jobs_to_transpile[backend_name].append(job)
@@ -290,7 +290,7 @@ class Batcher(Thread):
         return batch
         
 
-    def _add_to_batch(self, transpiled_circuit:QuantumCircuit, job:QuantumJob):
+    def _add_to_batch(self, transpiled_circuit:QuantumCircuit, job:QuantumExecutionJob):
         backend_name = job.backend_data.name
         if not backend_name in self._batch_timers.keys():
             self._batch_timers[backend_name] = time.time()

@@ -10,7 +10,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.providers import backend
 from qiskit.result import Result
 
-from quantum_job import QuantumJob, Execution_Type
+from quantum_job import QuantumExecutionJob, Execution_Type
 
 
 import logger
@@ -58,7 +58,7 @@ class Aggregator(Thread):
                 if len(jobs_to_aggregate) > 1:
                     agg_circ, agg_info = aggregate([job.circuit for job in jobs_to_aggregate])
                     agg_shots = max([job.shots for job in jobs_to_aggregate])
-                    agg_job = QuantumJob(agg_circ, shots = agg_shots, type=Execution_Type.aggregation, backend_data = jobs_to_aggregate[0].backend_data)
+                    agg_job = QuantumExecutionJob(agg_circ, shots = agg_shots, type=Execution_Type.aggregation, backend_data = jobs_to_aggregate[0].backend_data)
                     self._job_dict[agg_job.id] = {"jobs":copy.deepcopy(jobs_to_aggregate), "agg_info":agg_info}
                     self._output.put(agg_job)
                 else:

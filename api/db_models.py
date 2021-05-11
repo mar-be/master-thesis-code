@@ -4,7 +4,7 @@ from mongoengine.fields import DictField, IntField, StringField
 
 from qiskit import QuantumCircuit
 
-from quantum_job import QuantumJob
+from quantum_execution_job import QuantumExecutionJob
 
 
 class Task(Document):
@@ -25,10 +25,10 @@ class Task(Document):
             d["result"] = self.result
         return d
 
-    def update_results(self, job:QuantumJob):
+    def update_results(self, job:QuantumExecutionJob):
         self.result = job.result_prob
 
     def create_qjob(self):
-        qjob = QuantumJob(QuantumCircuit.from_qasm_str(self.qasm), shots=self.shots, config=self.config)
+        qjob = QuantumExecutionJob(QuantumCircuit.from_qasm_str(self.qasm), shots=self.shots, config=self.config)
         self.qjob_id = qjob.id
         return qjob

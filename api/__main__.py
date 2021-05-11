@@ -5,7 +5,7 @@ import ibmq_account
 import logger
 from flask import Flask
 from flask_mongoengine import MongoEngine
-from virtualization_layer import Virtualization_Layer
+from virtualization_layer import Virtual_Execution_Environment
 
 from api.resources import HelloWorld, Task_API, TaskCreation_API, Task_Result, Task_Status
 from api.results import ResultFetcher
@@ -62,13 +62,13 @@ if __name__ == '__main__':
     logger.set_log_level_from_config(config)
     provider = ibmq_account.get_provider(config)
 
-    vl = Virtualization_Layer(provider, config)
-    vl.start()
+    vee = Virtual_Execution_Environment(provider, config)
+    vee.start()
 
-    Task_API.set_run_queue(vl.input)
+    Task_API.set_run_queue(vee.input)
 
 
-    result_updater = ResultFetcher(vl.output, vl.errors)
+    result_updater = ResultFetcher(vee.output, vee.errors)
     result_updater.start()
 
     app = create_app()
