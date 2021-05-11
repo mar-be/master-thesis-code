@@ -11,7 +11,7 @@ headers = {'Content-Type': 'application/json'}
 tasks = []
 circuits = []
 for i in range(20):
-    circuits.append({"qasm":random_circuit(5, 5, 2, measure=True).qasm(), "shots":8192})
+    circuits.append({"qasm":random_circuit(5, 5, 2, measure=True).qasm(), "config":{ "quantum_resource_mapper": {"backend_chooser":{"allow_simulator":True}, "execution_types":{"aggregation":False}}}})
 
 print("Send request")
 response = requests.request("POST", url_creation, json={"circuits":circuits}, headers=headers)

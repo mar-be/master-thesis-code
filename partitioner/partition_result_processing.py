@@ -19,7 +19,7 @@ from qiskit.result.models import ExperimentResult, ExperimentResultData
 from qiskit.result.result import Result
 from qiskit_helper_functions.conversions import dict_to_array
 from qiskit_helper_functions.non_ibmq_functions import find_process_jobs
-from quantum_job import Modification_Type, QuantumJob
+from quantum_job import Execution_Type, QuantumJob
 
 
 class ResultWriter(Thread):
@@ -114,7 +114,7 @@ class ResultProcessing(Thread):
             self._write_all_files(job, eval_mode)
             reconstructed_prob = self.post_process(job, eval_mode, num_threads, early_termination, qubit_limit, recursion_depth)
             job.result_prob = self._createResult(job, reconstructed_prob)
-            job.type = Modification_Type.partition
+            job.type = Execution_Type.partition
             self._output.put(job)
             # self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)

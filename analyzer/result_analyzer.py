@@ -1,4 +1,4 @@
-from quantum_job import Modification_Type, QuantumJob
+from quantum_job import Execution_Type, QuantumJob
 from queue import Queue
 from threading import Thread
 import logger
@@ -19,14 +19,14 @@ class ResultAnalyzer(Thread):
         while True:
             job:QuantumJob = self._input.get()
             #self._log.debug(f"Got job {job.id}")
-            if job.type == Modification_Type.none:
+            if job.type == Execution_Type.raw:
                 #self._log.debug(f"Put job {job.id} in output queue")
                 self._output.put(job)
-            elif job.type == Modification_Type.aggregation:
+            elif job.type == Execution_Type.aggregation:
                 #self._log.debug(f"Put job {job.id} in aggregation queue")
                 self._output_agg.put(job)
-            elif job.type == Modification_Type.partition:
+            elif job.type == Execution_Type.partition:
                 #self._log.debug(f"Put job {job.id} in partition queue")
                 self._output_part.put(job)
             else:
-                self._log.error("Unkown Modification_Type")
+                self._log.error("Unkown Execution_Type")

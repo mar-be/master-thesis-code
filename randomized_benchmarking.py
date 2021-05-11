@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
 from analyzer.backend_chooser import Backend_Data
-from quantum_job import Modification_Type, QuantumJob
+from quantum_job import Execution_Type, QuantumJob
 from logger import get_logger
 from queue import Queue
 from analyzer.result_analyzer import ResultAnalyzer
@@ -224,7 +224,7 @@ if __name__ == "__main__":
         job = output_pipline.get()
         r = job.result
         backend_name = job.backend_data.name
-        if job.type == Modification_Type.aggregation:
+        if job.type == Execution_Type.aggregation:
             pickle_path = f"{dir_path}/{backend_name}/data/res_agg/{r._get_experiment(0).header.name}.pkl"
             if different_length and os.path.isfile(pickle_path):
                 pickle_path = f"{dir_path}/{backend_name}/data/res_agg_diff/{r._get_experiment(0).header.name}.pkl"

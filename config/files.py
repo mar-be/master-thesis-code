@@ -10,27 +10,26 @@ example_config = {
     "logger":{
         "level":"INFO"
     },
-    "backend_chooser":{
-        "backend_black_list":["simulator_mps", "simulator_extended_stabilizer", "simulator_statevector", "simulator_stabilizer"],
-        "backend_white_list":[],
-        "allow_simulator":False,
-        "number_of_qubits":{
-            "min":None,
-            "max":None
+    "quantum_resource_mapper":{
+        "backend_chooser":{
+            "backend_black_list":["simulator_mps", "simulator_extended_stabilizer", "simulator_statevector", "simulator_stabilizer"],
+            "backend_white_list":[],
+            "allow_simulator":False,
+            "number_of_qubits":{
+                "min":None,
+                "max":None
+            },
+            "quantum_volume":{
+                "min":None,
+                "max":None
+            }
         },
-        "quantum_volume":{
-            "min":None,
-            "max":None
-        }
-
-    },
-    "circuit_analyzer":{
-        "modification_types":{
-            "none":True,
+        "execution_types":{
+            "raw":True,
             "aggregation":True,
             "partition":True
         },
-        "optimization_goal":"Either pick: 'least_busy' or 'efficient_qubit_usage'. The default value 'least_busy' gets chosen, if the given value does not match."
+        "optimization_goal":"Either pick: 'high_throughput' or 'low_waiting_time'. The default value 'high_throughput' gets chosen, if the given value does not match."
     },
     "aggregator":{
         "timeout":10

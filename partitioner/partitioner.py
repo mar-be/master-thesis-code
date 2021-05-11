@@ -9,7 +9,7 @@ from cutqc.evaluator import generate_subcircuit_instances
 
 from qiskit_helper_functions.non_ibmq_functions import apply_measurement
 
-from quantum_job import Modification_Type, QuantumJob
+from quantum_job import Execution_Type, QuantumJob
 
 import logger
 
@@ -65,7 +65,7 @@ class Partitioner(Thread):
             circ = circ_info["circuit"]
             shots = circ_info["shots"]
             qc=apply_measurement(circuit=circ,qubits=circ.qubits)
-            sub_jobs.append(QuantumJob(qc, type=Modification_Type.partition, parent=qJob.id, shots=qJob.shots, key=key, backend_data=qJob.backend_data))
+            sub_jobs.append(QuantumJob(qc, type=Execution_Type.partition, parent=qJob.id, shots=qJob.shots, key=key, backend_data=qJob.backend_data))
         self._partition_dict[qJob.id] = {"cut_solution":cut_solution, "all_indexed_combinations":all_indexed_combinations, "job":qJob, "num_sub_jobs":len(sub_jobs)}
         return sub_jobs
 

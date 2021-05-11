@@ -4,7 +4,7 @@ from analyzer.result_analyzer import ResultAnalyzer
 from execution_handler.execution_handler import ExecutionHandler
 from partitioner.partitioner import Partitioner
 from aggregator.aggregator import Aggregator, AggregatorResults
-from analyzer.circuit_analyzer import CircuitAnalyzer
+from analyzer.circuit_analyzer import QuantumResourceMapper
 from analyzer.backend_chooser import Backend_Chooser
 from queue import Queue
 
@@ -16,8 +16,6 @@ class Virtualization_Layer():
     def __init__(self, provider: Provider, config:Dict) -> None:
         self._log = logger.get_logger(type(self).__name__)
 
-        num_subcircuits=[2,3] 
-        max_cuts=10
 
         self.input = Queue()
         self.output = Queue()
@@ -38,8 +36,8 @@ class Virtualization_Layer():
         aggregation_dict = {}
         partition_dict = {}
 
-        self.backend_chooser = Backend_Chooser(provider, config["backend_chooser"])
-        self.circuit_analyzer = CircuitAnalyzer(input=self.input, output=input_execution, output_agg=input_aggregation, output_part=input_partition, backend_chooser=self.backend_chooser, config=config["circuit_analyzer"])
+        self.backend_chooser = Backend_Chooser(provider, config["quantum_resource_mapper"]["backend_chooser"])
+        self.quantum_resource_mapper = QuantumResourceMapper(input=self.input, output=input_execution, output_agg=input_aggregation, output_part=input_partition, backend_chooser=self.backend_chooser, config=config["quantum_resource_mapper"])
         self.aggregator = Aggregator(input=input_aggregation, output=input_execution, job_dict=aggregation_dict, timeout=config["aggregator"]["timeout"])
         self.partitioner = Partitioner(input=input_partition, output=input_execution, partition_dict=partition_dict, error_queue=self.errors, **config["partitioner"])
         self.execution_handler = ExecutionHandler(provider, input=input_execution, output=output_execution, **config["execution_handler"])
@@ -50,7 +48,7 @@ class Virtualization_Layer():
 
     
     def start(self):
-        self.circuit_analyzer.start()
+        self.quantum_resource_mapper.start()
         self.aggregator.start()
         self.partitioner.start()
         self.execution_handler.start()
