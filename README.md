@@ -1,9 +1,7 @@
 # Bringing the Concepts of Virtualization to Gate-based Quantum Computing
 
-## CutQC
-A Python package for CutQC
 
-### Installation
+## Installation
 1. Make a virtual environment and install required packages:
 ```
 conda create -n qc_virt python=3.8.5
@@ -25,3 +23,12 @@ conda install -c intel mkl
 ```
 source /opt/intel/oneapi/setvars.sh intel64 
 ```
+
+## Run
+
+### As a service with API
+1. Start a MongoDB. Here is a [Docker Compose File](api/docker-compose.yaml).
+2. Configure the API to use the database in the following [file](api/__main__.py).
+3. Run: ```python -m api```
+
+### import locally 
