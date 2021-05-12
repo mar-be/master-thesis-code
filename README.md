@@ -29,6 +29,25 @@ source /opt/intel/oneapi/setvars.sh intel64
 ### As a service with API
 1. Start a MongoDB. Here is a [Docker Compose File](api/docker-compose.yaml).
 2. Configure the API to use the database in the following [file](api/__main__.py).
-3. Run: ```python -m api```
+3. Customize the ```config.json``` in the root directory (If it is not present, it will be generated at the first startup)
+4. Run: ```python -m api```
+5. Send requests to http://localhost:5000
 
 ### import locally 
+Import the [Virtual_Execution_Environment](virtualization.py) and initialize it as following:
+
+```
+import config.load_config as cfg
+import ibmq_account
+from virtualization import Virtual_Execution_Environment
+
+config = cfg.load_or_create()
+provider = ibmq_account.get_provider(config)
+
+vee = Virtual_Execution_Environment(provider, config)
+vee.start()
+
+input_queue = vee.input
+output_queue = vee.output
+error_queue = vee.errors
+```
