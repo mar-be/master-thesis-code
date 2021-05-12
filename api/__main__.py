@@ -5,7 +5,7 @@ import ibmq_account
 import logger
 from flask import Flask
 from flask_mongoengine import MongoEngine
-from virtualization_layer import Virtual_Execution_Environment
+from virtualization import Virtual_Execution_Environment
 
 from api.resources import HelloWorld, Task_API, TaskCreation_API, Task_Result, Task_Status
 from api.results import ResultFetcher

@@ -13,9 +13,9 @@ conda install gurobi
 ```
 2. Set up a Gurobi license: https://www.gurobi.com.
 3. Install Intel compiler:
-Included in Intel oneAPI HPC Toolkit (https://software.intel.com/content/www/us/en/develop/tools/oneapi/hpc-toolkit.html) for example
-4. Install Intel MKL(https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html): 
-Via anaconda
+Included in Intel oneAPI HPC Toolkit (https://software.intel.com/content/www/us/en/develop/tools/oneapi/hpc-toolkit.html)
+1. Install Intel MKL(https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html) 
+Via anaconda:
 ```
 conda install -c intel mkl
 ```
