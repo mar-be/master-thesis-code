@@ -1,9 +1,13 @@
-from quantum_execution_job import Execution_Type, QuantumExecutionJob
 from queue import Queue
 from threading import Thread
+
 import logger
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
+
 
 class ResultAnalyzer(Thread):
+    """Routes the results based on their execution type
+    """
     
     def __init__(self, input:Queue, output:Queue, output_agg:Queue, output_part:Queue) -> None:
         self._log = logger.get_logger(type(self).__name__)

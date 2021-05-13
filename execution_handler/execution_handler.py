@@ -1,12 +1,16 @@
 import copy
 import math
-import psutil
 import time
 from collections import Counter
+from concurrent.futures.process import BrokenProcessPool
 from queue import Empty, Queue
 from threading import Lock, Thread
 from typing import Dict, List, Union
+
 import logger
+import psutil
+import qiskit.providers.ibmq.job.exceptions
+import qiskit.tools.parallel
 from qiskit import QuantumCircuit, assemble, transpile
 from qiskit.providers import Backend
 from qiskit.providers.ibmq.accountprovider import AccountProvider
@@ -16,9 +20,7 @@ from qiskit.qobj import Qobj
 from qiskit.result.models import ExperimentResultData
 from qiskit.result.result import Result
 from quantum_execution_job import QuantumExecutionJob
-import qiskit.tools.parallel
-from concurrent.futures.process import BrokenProcessPool
-import qiskit.providers.ibmq.job.exceptions
+
 
 def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_processes=qiskit.tools.parallel.CPU_COUNT):
     if num_processes == psutil.cpu_count(logical=True) and num_processes > 1:
@@ -27,9 +29,12 @@ def new_parallel_map(task, values, task_args=tuple(), task_kwargs={}, num_proces
     print(f"num_processes={num_processes}")
     return qiskit.tools.parallel.parallel_map(task, values, task_args, task_kwargs, num_processes)
 
+# overwrite the parallel_map function to enable the usage of more CPU cores
 transpile.__globals__["parallel_map"] = new_parallel_map
 
 class BackendLookUp():
+    """Look up information about the remote backends
+    """
 
     def __init__(self, provider:Provider) -> None:
         self._log = logger.get_logger(type(self).__name__)
@@ -37,6 +42,15 @@ class BackendLookUp():
         self._backends = {}
 
     def get(self, backend_name:str, exclusiv=False) -> Backend:
+        """Get the corresponding backend
+
+        Args:
+            backend_name (str)
+            exclusiv (bool, optional): If true, return a new exlusive object. Defaults to False.
+
+        Returns:
+            Backend: representing the remote QPU
+        """
         if exclusiv:
             return self._provider.get_backend(backend_name)
         try:
@@ -64,7 +78,16 @@ class BackendControl():
         self._locks = {}
         self._counters = {}
         
-    def try_to_enter(self, backend_name, backend):
+    def try_to_enter(self, backend_name:str, backend:Backend) -> bool:
+        """Try to enter the lock of the backend
+
+        Args:
+            backend_name (str)
+            backend (Backend)
+
+        Returns:
+            bool: True, if successfully entered the lock. False, otherwise
+        """
         try:
             lock = self._locks[backend_name]
             counter = self._counters[backend_name]
@@ -83,7 +106,12 @@ class BackendControl():
                     return True
             return False
 
-    def leave(self, backend_name):
+    def leave(self, backend_name:str):
+        """Leave the lock of the backend
+
+        Args:
+            backend_name (str)
+        """
         with self._locks[backend_name]:
             self._counters[backend_name] -= 1
 
@@ -111,6 +139,11 @@ class Transpiler():
 
 
     def _transpile(self):
+        """Function that transpiles the pending transpilation Batches 
+
+        Raises:
+            e: BrokenProcessPool
+        """
         while True:
             backend_name, jobs = self._pending.get()
             backend = self._backend_look_up.get(backend_name)
@@ -135,6 +168,14 @@ class Transpiler():
             
             
     def _create_transpilation_batch(self, backend_name:str) -> bool:
+        """Creates a batch for the transpilation for the given backend, if there is not already a pending transpilation for the backend
+
+        Args:
+            backend_name (str)
+
+        Returns:
+            bool: True, if a batch was created
+        """
         try:
             if self._pending_transpilation[backend_name]:
                 return False
@@ -152,6 +193,12 @@ class Transpiler():
 
     
     def _add_job(self, job:QuantumExecutionJob):
+        """Add an incoming job to the internal data structure in order to transpile it for the given backend.
+        Checks if there are enough jobs to create a full transpilation batch.
+
+        Args:
+            job (QuantumExecutionJob): job to transpile
+        """
         backend_name = job.backend_data.name
         try:
             self._jobs_to_transpile[backend_name].append(job)
@@ -165,6 +212,8 @@ class Transpiler():
                 self._timers.pop(backend_name)
 
     def _check_timers(self):
+        """Check the timers. If an timeout occurs, try to create a transpilation batch.
+        """
         timers_to_clear = []
         for backend_name in self._timers.keys():
             time_diff = time.time() - self._timers[backend_name]
@@ -180,18 +229,24 @@ class Transpiler():
 
 
     def _any_pending_transpilation(self) -> bool:
+        """
+        Returns:
+            bool: True if there are any pending transpilation batches
+        """
         if len(self._pending_transpilation) == 0:
             return False
         else:
             return any(self._pending_transpilation.values())
 
     def _route_job(self):
+        """Function that processes incoming jobs, periodically chechs the timers, and forwards transpiled jobs to the output
+        """
         while True:
             for i in range(1000):
                 try:
                     timeout = 0.1
                     if i == 0:
-                        timeout = 0.1
+                        timeout = 1
                     # only block in the first iteration
                     job = self._input.get(timeout=timeout)
                     self._add_job(job)
@@ -291,6 +346,12 @@ class Batcher(Thread):
         
 
     def _add_to_batch(self, transpiled_circuit:QuantumCircuit, job:QuantumExecutionJob):
+        """Add the circuit to the batch. Automatically forwards full batches and creates new batches.
+
+        Args:
+            transpiled_circuit (QuantumCircuit)
+            job (QuantumExecutionJob): corresponding job to the transpiled circuit containing the shot number and the backend
+        """
         backend_name = job.backend_data.name
         if not backend_name in self._batch_timers.keys():
             self._batch_timers[backend_name] = time.time()
@@ -309,6 +370,8 @@ class Batcher(Thread):
         
     
     def _check_timers(self):
+        """Checks if an timeout occured for a batch and then forward it.
+        """
         timers_to_clear = []
         for backend_name in self._batch_timers.keys():
             time_diff = time.time() - self._batch_timers[backend_name]
@@ -348,6 +411,14 @@ class Submitter(Thread):
         self._log.info("Init")
 
     def _assemble(self, batch:Batch) -> Qobj:
+        """Assemble a Qobj from a Batch.
+
+        Args:
+            batch (Batch)
+
+        Returns:
+            Qobj
+        """
         backend_name = batch.backend_name
         backend = self._backend_look_up.get(backend_name)
         circuits = list([circuit_item["circuit"] for circuit_item in batch.experiments])
@@ -480,7 +551,16 @@ class ResultProcessor(Thread):
         c.update(d2)
         return dict(c)
 
-    def _process_job_result(self, job_result:Result, batch:Batch):
+    def _process_job_result(self, job_result:Result, batch:Batch) -> Dict[str, Result]:
+        """Post-process the job result corresponding to a batch. Recreate the single results by adding up the shots of multiple executions
+
+        Args:
+            job_result (Result)
+            batch (Batch): corresponding batch to the job_result
+
+        Returns:
+            Dict[str, Result]: Maps the keys of the initial QuantumExecutionJobs to their Results
+        """
         results = {}
         exp_number = 0
         # get the Result as dict and delete the results 

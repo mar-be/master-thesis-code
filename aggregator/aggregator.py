@@ -1,20 +1,14 @@
 import copy
 import time
-
-from typing import Dict, List, Any, Tuple
 from queue import Empty, Queue
 from threading import Thread
-
-from qiskit import QuantumCircuit, circuit
-from qiskit.circuit.random import random_circuit
-from qiskit.providers import backend
-from qiskit.result import Result
-
-from quantum_execution_job import QuantumExecutionJob, Execution_Type
-
+from typing import Any, Dict, List, Tuple
 
 import logger
-
+from qiskit import QuantumCircuit
+from qiskit.circuit.random import random_circuit
+from qiskit.result import Result
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
 
 
 class Aggregator(Thread):
@@ -39,6 +33,7 @@ class Aggregator(Thread):
             except Empty:
                 q_job = None
             if q_job:
+                # append job
                 backend_name = q_job.backend_data.name
                 try:
                     self._jobs_to_aggregate[backend_name].append(q_job)
@@ -46,10 +41,7 @@ class Aggregator(Thread):
                     self._jobs_to_aggregate[backend_name] = [q_job]
                     self._timers[backend_name] = time.time()
             
-                # if len(jobs_to_aggregate) == 0:
-                #     continue
-                # elif len(jobs_to_aggregate) == 1:
-                #     self._output.put(jobs_to_aggregate.pop())
+            # check timers and the number of waiting jobs
             clear = []
             for backend_name, jobs_to_aggregate in self._jobs_to_aggregate.items():
                 if len(jobs_to_aggregate) < 2 and time.time() - self._timers[backend_name] < self._timeout:
@@ -100,6 +92,13 @@ class AggregatorResults(Thread):
 
 
 def aggregate(list_of_circuits: List[QuantumCircuit]) -> Tuple[QuantumCircuit, Dict[Any, Any]]:
+    """Generate a aggregated QuantumCircuit
+
+    Args:
+        list_of_circuits (List[QuantumCircuit]): List of QuantumCircuit to aggregate
+    Returns:
+        Tuple[QuantumCircuit, Dict[Any, Any]]: Returns aggregated QuantumCircuit and aggregation information as Dict
+    """
     agg_circuit = QuantumCircuit()
     agg_info = {}
     qreg_count = 0
@@ -145,6 +144,15 @@ def aggregate(list_of_circuits: List[QuantumCircuit]) -> Tuple[QuantumCircuit, D
     return agg_circuit, agg_info
 
 def split_results(result: Result, agg_info:Dict[Any, Any]) -> List[Result]:
+    """Retrieve the results of the initial quantum circuits from the aggregated result
+
+    Args:
+        result (Result): Result of the aggregated QuantumCircuit
+        agg_info (Dict[Any, Any]): aggregation information as Dict
+
+    Returns:
+        List[Result]: Returns the Results of the initial QuantumCircuits
+    """
     results = []
     for index in agg_info["circuits"]:
         job_result = __calc_result(index, agg_info, result)
@@ -152,6 +160,19 @@ def split_results(result: Result, agg_info:Dict[Any, Any]) -> List[Result]:
     return results
 
 def __calc_result(index:int, agg_info:Dict[Any, Any], result:Result) -> Result:
+    """Get one result of the aggregated result
+
+    Args:
+        index (int): the index of the result
+        agg_info (Dict[Any, Any]): aggregation information as Dict
+        result (Result): Result of the aggregated QuantumCircuit
+
+    Raises:
+        Exception: Multiple results are stored in one Result objext
+
+    Returns:
+        Result: the inital result for the given index
+    """
     result_dict = result.to_dict()
     result_dict_copy = copy.deepcopy(result_dict)
     qubits_start = agg_info["circuits"][index]["qubits"]["start"]

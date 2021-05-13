@@ -4,7 +4,6 @@ import pickle
 import shutil
 import subprocess
 import time
-from os import write
 from queue import Queue
 from threading import Thread
 from typing import Dict
@@ -15,14 +14,14 @@ from cutqc.distributor import distribute
 from cutqc.evaluator import mutate_measurement_basis
 from cutqc.helper_fun import get_dirname
 from cutqc.post_process import build, get_combinations
-from qiskit.result.models import ExperimentResult, ExperimentResultData
-from qiskit.result.result import Result
 from qiskit_helper_functions.conversions import dict_to_array
 from qiskit_helper_functions.non_ibmq_functions import find_process_jobs
 from quantum_execution_job import Execution_Type, QuantumExecutionJob
 
 
 class ResultWriter(Thread):
+    """Stores the results of the sub-circuits of a partitioned execution on the disk and checks if the results are complete
+    """
 
     def __init__(self, input:Queue, completed_jobs:Queue, partition_dict:Dict, force_prob:bool=True) -> None:
         self._log = logger.get_logger(type(self).__name__)
@@ -43,7 +42,15 @@ class ResultWriter(Thread):
                 self._log.info(f"All results are available for job {job.parent}")
                 self._completed_jobs.put(self._partition_dict[job.parent]["job"])
 
-    def _results_complete(self, job:QuantumExecutionJob):
+    def _results_complete(self, job:QuantumExecutionJob) -> bool:
+        """Counts the number of sub-circuit results and checks if they are complete
+
+        Args:
+            job (QuantumExecutionJob): of the sub-circuit
+
+        Returns:
+            bool: True if complete
+        """
         parent_id = job.parent
         try: 
             self._result_count[parent_id] += 1
@@ -58,10 +65,23 @@ class ResultWriter(Thread):
         
 
     def _get_prob_dist(self, job:QuantumExecutionJob) -> np.ndarray:
+        """Transforms the counts of a result into an array containing the probability distribution
+
+        Args:
+            job (QuantumExecutionJob): with the result
+
+        Returns:
+            np.ndarray: probability distribution
+        """
         counts = job.result.get_counts()
         return dict_to_array(counts, self._force_prob)
 
     def _write(self, job:QuantumExecutionJob):
+        """Write all information of a job to the disk for the post-processing
+
+        Args:
+            job (QuantumExecutionJob)
+        """
         subcircuit_idx, inits, meas = job.key
         cut_solution = self._partition_dict[job.parent]["cut_solution"]
         all_indexed_combinations = self._partition_dict[job.parent]["all_indexed_combinations"]
@@ -90,6 +110,9 @@ class ResultWriter(Thread):
 
 
 class ResultProcessing(Thread):
+    """Post-processing for the results of the sub-circuits of partitioned quantum circuits
+
+    """
 
     def __init__(self, input:Queue, output:Queue, partition_dict:Dict, verbose=False) -> None:
         self._log = logger.get_logger(type(self).__name__)
@@ -113,14 +136,20 @@ class ResultProcessing(Thread):
             self._vertical_collapse(job, early_termination, eval_mode)
             self._write_all_files(job, eval_mode)
             reconstructed_prob = self.post_process(job, eval_mode, num_threads, early_termination, qubit_limit, recursion_depth)
-            job.result_prob = self._createResult(job, reconstructed_prob)
+            job.result_prob = self._createResult(reconstructed_prob)
             job.type = Execution_Type.partition
             self._output.put(job)
             # self.verify(job, early_termination, num_threads, qubit_limit, eval_mode)
             self._partition_dict.pop(job.id)
             self._clean_all_files(job)
 
-    def _write_all_files(self, job, eval_mode):
+    def _write_all_files(self, job:QuantumExecutionJob, eval_mode:str):
+        """Create all missing files for the post-processing of the CutQC framework
+
+        Args:
+            job (QuantumExecutionJob): the partitioned QuantumExecutionJob
+            eval_mode (str)
+        """
 
         circuit_name = job.id
         cut_solution = self._partition_dict[job.id]["cut_solution"]
@@ -140,11 +169,23 @@ class ResultProcessing(Thread):
         all_indexed_combinations = self._partition_dict[job.id]["all_indexed_combinations"]
         pickle.dump(all_indexed_combinations, open('%s/all_indexed_combinations.pckl'%(eval_folder),'wb'))
 
-    def _clean_all_files(self, job):
+    def _clean_all_files(self, job:QuantumExecutionJob):
+        """Delete all stored files on the disk for the given job
+
+        Args:
+            job (QuantumExecutionJob)
+        """
         dirname = f'./cutqc_data/{job.id}'
         shutil.rmtree(dirname)
 
-    def _measure(self, job, eval_mode, num_threads):
+    def _measure(self, job:QuantumExecutionJob, eval_mode:str, num_threads:int):
+        """Calls the measure routine of the CutQC framework
+
+        Args:
+            job (QuantumExecutionJob): Job to be measured
+            eval_mode (str)
+            num_threads (int)
+        """
         subprocess.run(['rm','./cutqc/measure'])
         subprocess.run(['icc','./cutqc/measure.c','-o','./cutqc/measure','-lm'])
 
@@ -170,10 +211,14 @@ class ResultProcessing(Thread):
                 child_processes.append(p)
             [cp.wait() for cp in child_processes]
 
-    def _organize(self, job, eval_mode, num_threads):
-        '''
-        Organize parallel processing for the subsequent vertical collapse procedure
-        '''
+    def _organize(self, job:QuantumExecutionJob, eval_mode:str, num_threads:int):
+        """Organize parallel processing for the subsequent vertical collapse procedure
+
+        Args:
+            job (QuantumExecutionJob)
+            eval_mode (str)
+            num_threads (int)
+        """
         cut_solution = self._partition_dict[job.id]["cut_solution"]
         max_subcircuit_qubit = cut_solution['max_subcircuit_qubit']
         full_circuit = cut_solution['circuit']
@@ -211,7 +256,17 @@ class ResultProcessing(Thread):
                         job.id,subcircuit_idx,rank,num_threads,len(rank_subcircuit_kron_terms),len(kronecker_terms[subcircuit_idx])))
             subcircuit_kron_terms_file.close()
     
-    def _vertical_collapse(self, job, early_termination, eval_mode):
+    def _vertical_collapse(self, job:QuantumExecutionJob, early_termination:int, eval_mode:str):
+        """Calls the vertical collapse routine of the CutQC framework 
+
+        Args:
+            job (QuantumExecutionJob)
+            early_termination (int)
+            eval_mode (str)
+
+        Raises:
+            Exception: If the necassary files are missing
+        """
         subprocess.run(['rm','./cutqc/vertical_collapse'])
         subprocess.run(['icc','-mkl','./cutqc/vertical_collapse.c','-o','./cutqc/vertical_collapse','-lm'])
 
@@ -247,7 +302,21 @@ class ResultProcessing(Thread):
             [subprocess.run(['rm','%s/subcircuit_kron_terms_%d.txt'%(eval_folder,rank)]) for rank in range(len(rank_files))]
 
     
-    def post_process(self,job,eval_mode,num_threads,early_termination,qubit_limit,recursion_depth):
+    def post_process(self, job:QuantumExecutionJob, eval_mode:str, num_threads:int, early_termination:int, qubit_limit:int, recursion_depth:int)->np.ndarray:
+        """Calculates the probability distribution of the partitioned quantum circuit via the post-processing of the CutQc framework
+
+        Args:
+            job (QuantumExecutionJob)
+            eval_mode (str)
+            num_threads (int)
+            early_termination (int)
+            qubit_limit (int)
+            recursion_depth (int)
+
+        Returns:
+            np.ndarray: probability distribution
+        """
+
         self._log.debug('Postprocess, job = %s'%job.id)
         subprocess.run(['rm','./cutqc/merge'])
         subprocess.run(['icc','-mkl','./cutqc/merge.c','-o','./cutqc/merge','-lm'])
@@ -321,7 +390,12 @@ class ResultProcessing(Thread):
         # pickle.dump({'merge_time_%d'%recursion_layer:elapsed}, open('%s/summary.pckl'%(dest_folder),'ab'))
         return False
     
-    def _build(self, circuit_case, dest_folder, recursion_layer, eval_mode):
+    def _build(self, circuit_case, dest_folder, recursion_layer, eval_mode)->np.ndarray:
+        """ Builds the result
+
+        Returns:
+            np.ndarray: probability distribution
+        """
         dynamic_definition_folder = '%s/dynamic_definition_%d'%(dest_folder,recursion_layer)
         build_files = glob.glob('%s/build_*.txt'%dynamic_definition_folder)
         num_threads = len(build_files)
@@ -368,7 +442,15 @@ class ResultProcessing(Thread):
         pickle.dump({'zoomed_ctr':0,'max_states':max_states,'reconstructed_prob':reconstructed_prob},open('%s/build_output.pckl'%(dynamic_definition_folder),'wb'))
         return reconstructed_prob
 
-    def _createResult(self, job: QuantumExecutionJob, prob: np.ndarray) -> Result:
+    def _createResult(self, prob: np.ndarray) -> Dict:
+        """Creates a dict from the array containing only non-zero probabilities
+
+        Args:
+            prob (np.ndarray)
+
+        Returns:
+            Dict
+        """
         prob_dict = {}
         for i, p in enumerate(prob):
             if p != 0:
@@ -376,6 +458,8 @@ class ResultProcessing(Thread):
         return prob_dict
 
     def verify(self, job, early_termination, num_threads, qubit_limit, eval_mode):
+        """Call the verify function of the CutQC framework
+        """
         circuit_name = job.id
         max_subcircuit_qubit = self._partition_dict[job.id]["cut_solution"]['max_subcircuit_qubit']
         subprocess.run(['python','-m','cutqc.verify',

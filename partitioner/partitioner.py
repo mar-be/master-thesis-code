@@ -2,16 +2,14 @@ from queue import Queue
 from threading import Thread
 from typing import Dict, List, Tuple
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
+import logger
 from cutqc.cutter import find_cuts
-from cutqc.helper_fun import check_valid
 from cutqc.evaluator import generate_subcircuit_instances
-
+from cutqc.helper_fun import check_valid
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit_helper_functions.non_ibmq_functions import apply_measurement
-
 from quantum_execution_job import Execution_Type, QuantumExecutionJob
 
-import logger
 
 class NoFeasibleCut(Exception):
     pass
@@ -46,7 +44,21 @@ class Partitioner(Thread):
                 else:
                     self._log.exception(e)
 
-    def _cut(self, circuit:QuantumCircuit, subcircuit_max_qubits, max_separate_circuits, max_cuts):
+    def _cut(self, circuit:QuantumCircuit, subcircuit_max_qubits:int, max_separate_circuits:int, max_cuts:int) -> Tuple[Dict, Dict, Dict]:
+        """Partitions a quantum circuit with the given parameters
+
+        Args:
+            circuit (QuantumCircuit)
+            subcircuit_max_qubits (int): maximal qubits for the sub-circuits
+            max_separate_circuits (int): maximal separate circuit parts
+            max_cuts (int): maximal number of cuts
+
+        Raises:
+            NoFeasibleCut: There is no solution with the given parameters
+
+        Returns:
+            Tuple[Dict, Dict, Dict]: Returns three Dicts containing the cut solution, an sub-circuit index and all combinations 
+        """
         assert(check_valid(circuit=circuit))
         self._log.debug('*'*20+'Cut'+'*'*20)
         cut_solution = find_cuts(circuit, subcircuit_max_qubits, range(2, max_separate_circuits+1), max_cuts, self._log.level==logger.logging.DEBUG)
@@ -56,7 +68,15 @@ class Partitioner(Thread):
         circ_dict, all_indexed_combinations = generate_subcircuit_instances(subcircuits=cut_solution["subcircuits"], complete_path_map=cut_solution["complete_path_map"])
         return cut_solution, circ_dict, all_indexed_combinations
 
-    def _cut_job(self, qJob:QuantumExecutionJob):
+    def _cut_job(self, qJob:QuantumExecutionJob) -> List[QuantumExecutionJob]:
+        """Partitions the quantum circuit of a QuantumExecutionJob
+
+        Args:
+            qJob (QuantumExecutionJob): the job to partition
+
+        Returns:
+            List[QuantumExecutionJob]: List of QuantumExecutionJobs containing the sub-circuits that result from the partition
+        """
         subcircuit_max_qubits, max_separate_circuits, max_cuts = self._get_cutting_parameters(qJob)
         cut_solution, circ_dict, all_indexed_combinations = self._cut(qJob.circuit.remove_final_measurements(inplace=False), subcircuit_max_qubits, max_separate_circuits, max_cuts)
         self._log.debug(f"Cut contains {len(circ_dict)} different sub-circuits")
@@ -70,7 +90,14 @@ class Partitioner(Thread):
         return sub_jobs
 
     def _get_cutting_parameters(self, qJob:QuantumExecutionJob) -> Tuple[int, int, int]:
-      
+        """Get the cutting parameters for the given QuantumExecutionJob
+
+        Args:
+            qJob (QuantumExecutionJob)
+
+        Returns:
+            Tuple[int, int, int]: Returns the maximal qubits for the sub-circuits, the maximal separate circuit parts and the maximal number of cuts
+        """
         try:
             subcircuit_max_qubits = min(qJob.config["partitioner"]["subcircuit_max_qubits"], qJob.backend_data.n_qubits)
         except KeyError:

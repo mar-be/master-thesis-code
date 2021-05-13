@@ -1,12 +1,15 @@
 import copy
-from typing import Dict, Tuple
-from quantum_execution_job import QuantumExecutionJob, Execution_Type
 from queue import Queue
 from threading import Thread
-from resource_mapping.backend_chooser import Backend_Chooser, Backend_Data
-import logger
+from typing import Dict, Tuple
 
-class NoSuitableModification(Exception):
+import logger
+from quantum_execution_job import Execution_Type, QuantumExecutionJob
+
+from resource_mapping.backend_chooser import Backend_Chooser, Backend_Data
+
+
+class NoSuitableMapping(Exception):
     pass
 
 class QuantumResourceMapper(Thread):
@@ -33,6 +36,17 @@ class QuantumResourceMapper(Thread):
         self._log.info("Init QuantumResourceMapper")
 
     def decide_action(self, job:QuantumExecutionJob) -> Tuple[Execution_Type, Backend_Data]:
+        """Map a QuantumExecutionJob to a Execution_Type and a backend
+
+        Args:
+            job (QuantumExecutionJob): the job that should get mapped
+
+        Raises:
+            NoSuitableMapping: raised when there is no suitable mapping for the job
+
+        Returns:
+            Tuple[Execution_Type, Backend_Data]: Return the selected Execution_Type and Backend_Data
+        """
         config = copy.deepcopy(self._config_dict)
         if "quantum_resource_mapper" in job.config.keys():
             if "execution_types" in job.config["quantum_resource_mapper"].keys():
@@ -68,7 +82,7 @@ class QuantumResourceMapper(Thread):
                         return Execution_Type.partition, backend_data
 
         else:
-            # least_busy: Use the backend which is least busy. If possible aggregate. If aggregation and none is not possible, try partition
+            # low_waiting_time: Use the backend which is least busy. If possible aggregate. If aggregation and raw is not possible, try partition
             backend_record = self._backend_chooser.get_least_busy(filter_dict=config_bc, filter_func=lambda x: x.n_qubits>=n_qubits)
             if backend_record:
                 backend_name, backend_data = backend_record
@@ -84,7 +98,7 @@ class QuantumResourceMapper(Thread):
                     if backend_record:
                         backend_name, backend_data = backend_record
                         return Execution_Type.partition, backend_data
-        raise NoSuitableModification
+        raise NoSuitableMapping
 
 
 
@@ -104,7 +118,7 @@ class QuantumResourceMapper(Thread):
                     self._output_part.put(job)
                 else:
                     self._output.put(job)
-            except NoSuitableModification:
+            except NoSuitableMapping:
                 self._log.debug(f"No suitable modification type for job {job.id}")
                 if self._error_queue is not None:
                     self._error_queue.put(job)
