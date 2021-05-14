@@ -62,3 +62,18 @@ Evaluation of the results and their visualization: [read_eval_files_circ.py](rea
 Evaluation of one partitioned quantum circuit with one specific cut: [eval_partition_pipeline.py](eval_partition_pipeline.py) \
 Evaluation of different partitioned quantum circuit with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)
+
+## License
+The self-produced code is available under the [Apache-2.0 License](LICENSE).
+
+This project includes parts from third party libraries.
+Their use is subject to their license terms.
+The following third party libraries were used:
+
+1. Tang, Wei. (2020). CutQC: Using Small Quantum Computers for Large Quantum Circuit Evaluations. Presented at the Architectural Support for Programming Languages and Operating Systems (ASPLOS), Zenodo. http://doi.org/10.5281/zenodo.4329804 \
+The library is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/) \
+The following directories include their work: [cutqc](cutqc) and [qiskit_helper_functions](qiskit_helper_functions)
+
+1. [quantum-circuit-generator](https://github.com/teaguetomesh/quantum_circuit_generator) Copyright (c) 2021 Teague Tomesh \
+The library is licensed under the [MIT License](quantum_circuit_generator/LICENSE) \
+The following directory includes the library: [quantum_circuit_generator](quantum_circuit_generator)
