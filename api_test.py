@@ -3,6 +3,10 @@ import requests
 import json
 import time
 
+'''
+Python script that sends requests to the api, starts them and retrieves the results
+'''
+
 url_creation = "http://localhost:5000/tasks"
 url_task = "http://localhost:5000/tasks/"
 

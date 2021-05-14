@@ -75,14 +75,9 @@ def write_file(dir_path, backend, results, part_results, sv_res_prob: List[np.nd
 
 
 if __name__ == "__main__":
-
-
-    config = cfg.load_or_create()
-    logger.set_log_level_from_config(config)
-    provider = ibmq_account.get_provider(config)
-
-    log = logger.get_logger("Evaluate")
-
+    """
+    Configure the evaluation here:
+    """
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_lima', 'ibmq_belem']
@@ -93,6 +88,17 @@ if __name__ == "__main__":
     n_circuits = 1
     n_qubits = 5
     subcircuit_max_qubits = [4, 3, 2]
+
+    """
+    Configuruation End
+    """
+
+    config = cfg.load_or_create()
+    logger.set_log_level_from_config(config)
+    provider = ibmq_account.get_provider(config)
+
+    log = logger.get_logger("Evaluate")
+
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')

@@ -91,9 +91,9 @@ def plot(rb_fit:RBFitter, name:str, filename:str, log:Logger):
 
 if __name__ == "__main__":
 
-    log = get_logger("Evaluate")
-    # Generate RB circuits (2Q RB)
-    
+    """
+    Configure the evaluation here:
+    """
     dir_path = "./rb_data"
 
     different_length = True
@@ -115,6 +115,12 @@ if __name__ == "__main__":
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
     backend_names = ['ibmq_qasm_simulator']
 
+    """
+    Configuration End
+    """
+
+    log = get_logger("Evaluate")
+    # Generate RB circuits (2Q RB)
     rb_circs, xdata = rb.randomized_benchmarking_seq(**rb_opts)
 
     count = 0

@@ -56,12 +56,9 @@ def write_file(dir_path, backend, results, agg_results, sv_res_prob: List[np.nda
     log.info("Wrote results to file.")
 
 if __name__ == "__main__":
-    config = cfg.load_or_create()
-    logger.set_log_level_from_config(config)
-    provider = ibmq_account.get_provider(config)
-
-    log = logger.get_logger("Evaluate")
-
+    """
+    Configure the evaluation here:
+    """
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_belem']
     # backend_names = ['ibmq_qasm_simulator' , 'ibmq_athens', 'ibmq_santiago', 'ibmq_quito', 'ibmq_lima', 'ibmq_belem']
     backend_names = ['ibmq_qasm_simulator']
@@ -70,6 +67,18 @@ if __name__ == "__main__":
     shots = 8192
     n_circuits = 2
     n_qubits = 2
+
+    """
+    Configuration End
+    """
+
+
+    config = cfg.load_or_create()
+    logger.set_log_level_from_config(config)
+    provider = ibmq_account.get_provider(config)
+
+    log = logger.get_logger("Evaluate")
+
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d-%H-%M-%S')
