@@ -230,7 +230,14 @@ def evaluate_file(file_path, mode="agg"):
     return backend_name, circuit_type, fid_list, mod_fid_list
 
 
-def eval_dir(path, mode="agg", diagram="circuits"):
+def eval_dir(path:str, mode="agg", diagram="circuits"):
+    """Generate a plots for the given directory containing the evaluation data
+
+    Args:
+        path (str): evaluation directory
+        mode (str, optional): Define if its aggregated ("agg") or partitioned ("part") data. Defaults to "agg".
+        diagram (str, optional): Choose the diagram type. Possible are "circuits" and "qpu". Defaults to "circuits".
+    """
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
@@ -267,7 +274,12 @@ def eval_dir_cuts(path):
     for dir in folders:
         eval_cuts(f"{path}/{dir}")
 
-def eval_cuts(path):
+def eval_cuts(path:str):
+    """Generate plots for the evaluation of the partitioning method with different cuts
+
+    Args:
+        path (str): directory with evaluation data
+    """
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         files.extend(filenames)
@@ -311,7 +323,13 @@ def eval_cuts(path):
 
       
 
-def overall_plot(path, mode="part"):
+def overall_plot(path:str, mode="part"):
+    """Generate one plot containing all data
+
+    Args:
+        path (str): evaluation directory
+        mode (str, optional): Choose between aggregation ("agg") and partitioning ("part") data. Defaults to "part".
+    """
     files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         for file in filenames:
