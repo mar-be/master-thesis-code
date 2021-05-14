@@ -72,7 +72,7 @@ The following third party libraries were used:
 
 1. Tang, Wei. (2020). CutQC: Using Small Quantum Computers for Large Quantum Circuit Evaluations. Presented at the Architectural Support for Programming Languages and Operating Systems (ASPLOS), Zenodo. http://doi.org/10.5281/zenodo.4329804 \
 The library is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/) \
-The following directories include their work: [cutqc](cutqc) and [qiskit_helper_functions](qiskit_helper_functions)
+The following directories include parts of the library: [cutqc](cutqc) and [qiskit_helper_functions](qiskit_helper_functions)
 
 1. [quantum-circuit-generator](https://github.com/teaguetomesh/quantum_circuit_generator) Copyright (c) 2021 Teague Tomesh \
 The library is licensed under the [MIT License](quantum_circuit_generator/LICENSE) \
