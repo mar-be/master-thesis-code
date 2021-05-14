@@ -33,6 +33,8 @@ source /opt/intel/oneapi/setvars.sh intel64
 4. Run: ```python -m api```
 5. Send requests to http://localhost:5000
 
+This [script](api_test.py) sends requests to the API.
+
 ### import locally 
 Import the [Virtual_Execution_Environment](virtualization.py) and initialize it as following:
 
