@@ -58,12 +58,12 @@ Randomized benchmarking of the QPUs with the aggregated quantum circuits: [rando
 Evaluation of the randomized benchmarking results and their visualization: [read_rb_files.py](read_rb_files.py)
 
 ### Evaluation of aggregated quantum circuits
-Evaluation of different aggregated quantum circuits: [eval_agg_circuits.py](eval_agg_circuits.py) \
+Generate evaluation data for different aggregated quantum circuits: [eval_agg_circuits.py](eval_agg_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)
 
 ### Evaluation of Partitioning
-Evaluation of one partitioned quantum circuit with one specific cut: [eval_partition_pipeline.py](eval_partition_pipeline.py) \
-Evaluation of different partitioned quantum circuit with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
+Generate evaluation data for one partitioned quantum circuit with one specific cut: [eval_partition_pipeline.py](eval_partition_pipeline.py) \
+Generate evaluation data for different partitioned quantum circuit with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)
 
 ## License
@@ -77,6 +77,6 @@ The following third party libraries were used:
 The library is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/) \
 The following directories include parts of the library: [cutqc](cutqc) and [qiskit_helper_functions](qiskit_helper_functions)
 
-1. [quantum-circuit-generator](https://github.com/teaguetomesh/quantum_circuit_generator) Copyright (c) 2021 Teague Tomesh \
+2. [quantum-circuit-generator](https://github.com/teaguetomesh/quantum_circuit_generator) Copyright (c) 2021 Teague Tomesh \
 The library is licensed under the [MIT License](quantum_circuit_generator/LICENSE) \
 The following directory includes the library: [quantum_circuit_generator](quantum_circuit_generator)

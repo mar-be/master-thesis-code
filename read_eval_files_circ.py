@@ -1,17 +1,16 @@
 import json
 import os
-import numpy as np
-from seaborn.categorical import _ViolinPlotter
-from evaluate.metrics import metric_diff, bhattacharyya_difference, same_order, same_max, chi_square, fidelity
-from evaluate.util import round_array
-import qiskit_helper_functions.metrics as metrics
+
 import matplotlib.pyplot as plt
-from evaluate.half_violins import draw_violins
-from matplotlib.patches import PathPatch
-import seaborn as sns
+import numpy as np
 import pandas as pd
-from matplotlib.transforms import Bbox
-from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST, RED_COLOR, BLUE_COLOR
+import seaborn as sns
+from matplotlib.patches import PathPatch
+
+from evaluate.colors import BLUE_COLOR, RED_COLOR
+from evaluate.metrics import fidelity
+from evaluate.util import round_array
+
 
 def histogram(values, agg_values, name, filename, labels, range=None):
     plt.figure(figsize=(8, 6))
@@ -424,7 +423,7 @@ def overall_plot(path, mode="part"):
 if __name__ == "__main__":
     # overall_plot("./part_data/2021-04-18-07-11-18-test")
     # eval_dir_cuts("part_data/2021-04-20-06-05-22")
-    #eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
+    # eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
 
