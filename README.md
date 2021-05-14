@@ -53,12 +53,15 @@ error_queue = vee.errors
 ```
 
 ## Evaluation
+### RB for Aggregation
 Randomized benchmarking of the QPUs with the aggregated quantum circuits: [randomized_benchmarking.py](randomized_benchmarking.py) \
 Evaluation of the randomized benchmarking results and their visualization: [read_rb_files.py](read_rb_files.py)
 
+### Evaluation of aggregated quantum circuits
 Evaluation of different aggregated quantum circuits: [eval_agg_circuits.py](eval_agg_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)
 
+### Evaluation of Partitioning
 Evaluation of one partitioned quantum circuit with one specific cut: [eval_partition_pipeline.py](eval_partition_pipeline.py) \
 Evaluation of different partitioned quantum circuit with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)

@@ -1,22 +1,21 @@
-from datetime import datetime
-import os
-from randomized_benchmarking import store_general_data
-from matplotlib.axes import Axes
 import itertools
-
-from qiskit.providers import backend
-from logger import get_logger
-from logging import Logger
-from typing import Any, Dict, List, Optional
+import os
 import pickle
-from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
+from datetime import datetime
+from logging import Logger
+from typing import Any, Dict, List, Tuple
+
 import matplotlib.pyplot as plt
-
 import numpy as np
-
+from matplotlib.axes import Axes
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.ignis.verification.randomized_benchmarking.fitters import RBFitter
 from qiskit.result.result import Result
 
-from evaluate.colors import RED_COLOR_LIST, BLUE_COLOR_LIST, GREEN_COLOR_LIST
+from evaluate.colors import BLUE_COLOR_LIST, GREEN_COLOR_LIST, RED_COLOR_LIST
+from logger import get_logger
+from randomized_benchmarking import store_general_data
+
 
 def pickle_load(filename:str) -> Any:
     with open(filename,'rb') as f:
@@ -27,6 +26,17 @@ def pickle_dump(object, filename):
         pickle.dump(object, f)
 
 def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger, no_agg_color:List = BLUE_COLOR_LIST, agg_color: List = RED_COLOR_LIST):
+    """Create one diagram for the aggregated and non-aggregated RB dat
+
+    Args:
+        no_agg_fit (RBFitter): the fitter object for the non-aggregated data
+        agg_fit (RBFitter): the fitter object for the aggregated data
+        path (str): where to store the file
+        title (str): of the plot
+        log (Logger): logger object
+        no_agg_color (List, optional): Colors for the non-aggregated data. Defaults to BLUE_COLOR_LIST.
+        agg_color (List, optional): Colors for the non-aggregated data. Defaults to RED_COLOR_LIST.
+    """
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
 
@@ -49,8 +59,19 @@ def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger,
     log.info(f"Created plot {path}")
         
 def draw_violins(ax, data, positions, color, widths=12, alpha = 0.5, showmeans=False, mode="agg"):
-    parts = ax.violinplot(data, positions=positions, widths=widths, showmeans=showmeans)
+    """Draw a half violin plot
 
+    Args:
+        ax ([type]): matplotlib axes
+        data ([type]): y-data
+        positions ([type]): x-data
+        color ([type])
+        widths (int, optional): of the violin. Defaults to 12.
+        alpha (float, optional): opacity. Defaults to 0.5.
+        showmeans (bool, optional): Indicate the mean value. Defaults to False.
+        mode (str, optional): If "Agg", it draws violins to the left. Otherwise to the right. Defaults to "agg".
+    """
+    parts = ax.violinplot(data, positions=positions, widths=widths, showmeans=showmeans)
 
     for pc in parts['bodies']:
          # get the center
@@ -75,7 +96,22 @@ def draw_violins(ax, data, positions, color, widths=12, alpha = 0.5, showmeans=F
     parts['cmaxes'].set_color(color[1])
     parts['cmaxes'].set_alpha(alpha)
 
-def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes], color:List, pattern_index=0, x_shift=0, mode="agg"):
+def fitter_plot(rb_fit:RBFitter, name:str, ax:Axes, color:List, pattern_index=0, x_shift=0, mode="agg"):
+    """Visualize the data for one RBFitter object.
+    Draws the violins and the mean line.
+
+    Args:
+        rb_fit (RBFitter): RBFitter object conatining the data
+        name (str): of the data
+        ax (Axes): matplotlib axes to draw 
+        color (List): color theme
+        pattern_index (int, optional): Index of the data in the RBFitter object. Defaults to 0.
+        x_shift (int, optional): apply a shift value to all x-values. Defaults to 0.
+        mode (str, optional): Determines the direction of the violins. Defaults to "agg".
+
+    Returns:
+        [type]: [description]
+    """
     
     fitted_func = rb_fit.rb_fit_fun
     xdata = rb_fit.cliff_lengths[pattern_index]
@@ -106,13 +142,36 @@ def fitter_plot(rb_fit:RBFitter, name:str, ax:Optional[Axes], color:List, patter
     return ax
 
 def fit_data(results:List[Result], rb_opts:Dict, xdata:List, log:Logger) -> RBFitter:
+    """Create a RBFitter object from the data
+
+    Args:
+        results (List[Result]): evaluation results
+        rb_opts (Dict): the configuration
+        xdata (List): the sequences lengths 
+        log (Logger): logger object
+
+    Returns:
+        RBFitter
+    """
     rb_fit = RBFitter(None, xdata, rb_opts['rb_pattern'])
     rb_fit.add_data(results)
     rb_fit._nseeds = range(rb_opts["nseeds"])
     log.info(f"Fitted {len(results)} results, alpha: {rb_fit.fit[0]['params'][1]}, EPC: {rb_fit.fit[0]['epc']}")
     return rb_fit
 
-def process_data(results:List[Result], rb_opts:Dict, xdata:List, backend_name:str, log:Logger):
+def process_data(results:List[Result], rb_opts:Dict, xdata:List, backend_name:str, log:Logger) -> Tuple[RBFitter, RBFitter, int, int, int]:
+    """Process the results and generate two RBFitter objects for the aggregated and non-aggregated data.
+
+    Args:
+        results (List[Result]): evaluation results
+        rb_opts (Dict): the configuration
+        xdata (List): the sequences lengths 
+        backend_name (str)
+        log (Logger): logger object
+
+    Returns:
+        Tuple[RBFitter, RBFitter, int, int, int]: non-aggregated RBFitter, aggregated RB-Fitter, number of different sequence lengths, number of qubits, number of evaluations per sequence length
+    """
     half = len(results)//2
     no_agg_results = results[:half] 
     agg_results = results[half:]
@@ -126,29 +185,98 @@ def process_data(results:List[Result], rb_opts:Dict, xdata:List, backend_name:st
     n_qubits = results[0]._get_experiment(0).header.memory_slots
     return no_agg_fit, agg_fit, n_sizes, n_qubits, int(len(agg_results)/n_sizes)
 
-def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path, backend_name:str, log:Logger):
+def evaluate(results:List[Result], rb_opts:Dict, xdata:List, dir_path:str, backend_name:str, log:Logger):
+    """Process the evaluation data and generate a plot for a backend
+
+    Args:
+        results (List[Result]): evaluation results
+        rb_opts (Dict): the configuration
+        xdata (List): the sequences lengths 
+        dir_path (str): where to store the plot
+        backend_name (str)
+        log (Logger): logger object
+    """
     no_agg_fit, agg_fit, n_sizes, n_qubits, n_circuits = process_data(results, rb_opts, xdata, backend_name, log)
     plot(no_agg_fit, agg_fit, f"{dir_path}/{backend_name}/{backend_name}_together.pdf", f"{n_qubits} Qubit RB {backend_name}: {n_circuits} circuits per length", log)
     
 
-def get_general_data(path:str):
+def get_general_data(path:str) -> Tuple[List[List[QuantumCircuit]], Dict, List[List[int]]]:
+    """Get the general data of the evalution
+
+    Args:
+        path (str): path to the directory with all results
+
+    Returns:
+        Tuple[List[List[QuantumCircuit]], Dict, List[List[int]]]: the QuantumCircuits, the configuration of the RB evaluation, and the sequences lengths 
+    """
     rb_circs = pickle_load(f"{path}/general_data/rb_circs.pkl")
     rb_opts = pickle_load(f"{path}/general_data/rb_opts.pkl")
     xdata = pickle_load(f"{path}/general_data/xdata.pkl")
     return rb_circs, rb_opts, xdata
 
-def get_backend_data(path:str, backend_name:str):
+def get_backend_data(path:str, backend_name:str)->Tuple[Dict, List[Result]]:
+    """Get the stored data for a specific backend in the path
+
+    Args:
+        path (str):  path to the directory with all results
+        backend_name (str): name of the specific backend. It has to coincide with a folder in the path
+
+
+    Returns:
+        Tuple[Dict, List[Result]]: Dict with information about the backend and a list of the results
+    """
     backend_dict = pickle_load(f"{path}/{backend_name}/data/backend_dict.pkl")
     results = pickle_load(f"{path}/{backend_name}/data/results.pkl")
     return backend_dict, results
     
 def evaluate_dir(path:str, log:Logger):
+    """Evaluate a directory with RB results for multiple backends and generate the plots
+
+    Args:
+        path (str): path to the directory
+        log (Logger): logger object
+    """
     backend_names = get_backends_in_dir(path)
     for backend_name in backend_names:
         log.info(f"Evaluate backend {backend_name}")
         evaluate_files(path, backend_name, log)
 
+def evaluate_files(path:str, backend_name:str, log:Logger):
+    """Evaluate the RB results for a single backend and gererate a plot
+
+    Args:
+        path (str): path to the directory with all results
+        backend_name (str): name of the specific backend. It has to coincide with a folder in the path
+        log (Logger): logger object
+    """
+    rb_circs, rb_opts, xdata = get_general_data(path)
+    backend_dict, results = get_backend_data(path, backend_name)
+    evaluate(results, rb_opts, xdata, path, backend_name, log)
+
+def get_backends_in_dir(path:str)-> List[str]:
+    """Get all evaluated backends in the directory
+
+    Args:
+        path (str): to the directory
+
+    Returns:
+        List[str]: backend names
+    """
+    backend_names = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        backend_names.extend(dirnames)
+        break
+    backend_names.remove("general_data")
+    return backend_names
+
+
 def all_backends_mean_graph(path:str, log:Logger):
+    """Generates a graph that visualizes the mean gap between the aggregated and non-aggregated evaluation for all backends
+
+    Args:
+        path (str): directory with the evaluation results for all backends
+        log (Logger): logger object
+    """
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
     backend_names = get_backends_in_dir(path)
@@ -174,20 +302,9 @@ def all_backends_mean_graph(path:str, log:Logger):
 
 
 
-def evaluate_files(path:str, backend_name:str, log:Logger):
-    rb_circs, rb_opts, xdata = get_general_data(path)
-    backend_dict, results = get_backend_data(path, backend_name)
-    evaluate(results, rb_opts, xdata, path, backend_name, log)
-
-def get_backends_in_dir(path:str):
-    backend_names = []
-    for (dirpath, dirnames, filenames) in os.walk(path):
-        backend_names.extend(dirnames)
-        break
-    backend_names.remove("general_data")
-    return backend_names
-
 def check_or_init(var:Any, other_var:Any):
+    """Checks if the variables are compatible. If var is None, it gets initialized
+    """
     if not var is None:
         if isinstance(var, np.ndarray):
             if np.any(var != other_var):
@@ -198,6 +315,13 @@ def check_or_init(var:Any, other_var:Any):
     
 
 def merge(dir_paths: List[str], result_path: str, log:Logger):
+    """Merge the data from multiple evaluations
+
+    Args:
+        dir_paths (List[str]): list of directories to merge
+        result_path (str): path of the merged directory
+        log (Logger): logger object
+    """
     rb_circs_merged = []
     nseeds_merged = 0
     xdata_merged = None
@@ -249,6 +373,14 @@ def merge(dir_paths: List[str], result_path: str, log:Logger):
         log.info(f"Pickeld all files for backend {backend_name}")
 
 def generate_merged_result_names(results:List[Result]) -> List[Result]:
+    """Rename the result names for the merged results
+
+    Args:
+        results (List[Result])
+
+    Returns:
+        List[Result]: renamed results
+    """
     seed_counter = {}
     for result in results:
         name = result._get_experiment(0).header.name
@@ -262,7 +394,15 @@ def generate_merged_result_names(results:List[Result]) -> List[Result]:
         result._get_experiment(0).header.name = name_witout_seed + "_" + str(counter)
     return results
 
-def get_results_from_files(path:str):
+def get_results_from_files(path:str) -> List[Result]:
+    """Get the results from the disk
+
+    Args:
+        path (str): result directory
+
+    Returns:
+        List[Result]: list of the result objects
+    """
     result_files = []
     for (dirpath, dirnames, filenames) in os.walk(path):
         result_files.extend(filenames)
@@ -279,6 +419,12 @@ def get_results_from_files(path:str):
 
 
 def merge_separate_result_files(path:str, backend_name:str):
+    """Merges the single files into one result file for a backend
+
+    Args:
+        path (str): evaluation directory
+        backend_name (str)
+    """
     no_agg_path = f"{path}/{backend_name}/data/res_no_agg"
     agg_path = f"{path}/{backend_name}/data/res_agg"
     
@@ -294,18 +440,38 @@ def merge_separate_result_files(path:str, backend_name:str):
 
     
 def merge_separate_result_files_all_backends(path:str, log:Logger):
+    """Merges the single files into one result file per backend
+
+
+    Args:
+        path (str): evaluation directory
+        log (Logger): logger object
+    """
     backends = get_backends_in_dir(path)
     for backend_name in backends:
         log.info(f"Merge results for backend {backend_name}")
         merge_separate_result_files(path, backend_name)
 
 def evaluate_different_length_agg_dir(path:str, log:Logger):
+    """Evaluate a RB directory for the different length evalution mode
+
+    Args:
+        path (str): evaluation directory
+        log (Logger): logger object
+    """
     backend_names = get_backends_in_dir(path)
     for backend_name in backend_names:
         log.info(f"Evaluate backend {backend_name}")
         evaluate_different_length_agg_files(path, backend_name, log)
 
 def evaluate_different_length_agg_files(path:str, backend_name:str, log:Logger):
+    """Evaluate a RB directory for the different length evalution mode for one backend
+
+    Args:
+        path (str): evaluation directory
+        backend_name (str)
+        log (Logger): logger object
+    """
     rb_circs, rb_opts, xdata = get_general_data(path)
     backend_dict = pickle_load(f"{path}/{backend_name}/data/backend_dict.pkl")
     agg_path = f"{path}/{backend_name}/data/res_agg"
@@ -322,7 +488,19 @@ def evaluate_different_length_agg_files(path:str, backend_name:str, log:Logger):
     n_qubits = no_agg_results[0]._get_experiment(0).header.memory_slots
     plot_different_length_agg(no_agg_fit, agg_fit, agg_diff_fit, f"{path}/{backend_name}/{backend_name}_diff_plot.pdf", f"{n_qubits} Qubit RB {backend_name}: {n_circuits} circuits per length")
     
-def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fit:RBFitter, path, title:str, no_agg_color: List = BLUE_COLOR_LIST, agg_color: List = RED_COLOR_LIST, agg_diff_color: List = GREEN_COLOR_LIST):
+def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fit:RBFitter, path:str, title:str, no_agg_color: List = BLUE_COLOR_LIST, agg_color: List = RED_COLOR_LIST, agg_diff_color: List = GREEN_COLOR_LIST):
+    """Generate a plot for the different length evalution mode for one backend
+
+    Args:
+        no_agg_fit (RBFitter): non-aggregated data
+        agg_fit (RBFitter): aggregated data where circuits of the same lengths got aggregated
+        agg_diff_fit (RBFitter): aggregated data where circuits of the different lengths got aggregated
+        path (str): where to store the plot
+        title (str): plot title
+        no_agg_color (List, optional): Color palette for the non-aggregated data. Defaults to BLUE_COLOR_LIST.
+        agg_color (List, optional): Color palette for the aggregated data (same length). Defaults to RED_COLOR_LIST.
+        agg_diff_color (List, optional): Color palette for the non-aggregated data (different length). Defaults to GREEN_COLOR_LIST.
+    """
     plt.figure(figsize=(8, 6))
     ax = plt.subplot(1, 1, 1)
 
