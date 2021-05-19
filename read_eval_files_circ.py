@@ -158,7 +158,7 @@ def violin_plot_circuits(values, mod_values, labels, title, filename):
         # print(f"{label} mean: {mean}")
     
 
-    violin_plot_df(df, x_axis_label, title, filename, hue=None, split=False, palette=None, order=order, mode=None)
+    violin_plot_df(df, x_axis_label, title, filename, hue=None, split=False, palette=None, order=order, mode=None, mean=True)
 
 
 def print_eval(data_list, digits=4):
