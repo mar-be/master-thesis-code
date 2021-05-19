@@ -1,3 +1,8 @@
+'''
+Parts of the code is adopted from Tang, Wei. (2020). CutQC: Using Small Quantum Computers for Large Quantum Circuit Evaluations. Presented at the Architectural Support for Programming Languages and Operating Systems (ASPLOS), Zenodo. http://doi.org/10.5281/zenodo.4329804
+Espically the parts that interact with their framework are based on their code.
+'''
+
 import glob
 import os
 import pickle
