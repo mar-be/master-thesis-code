@@ -36,7 +36,7 @@ source /opt/intel/oneapi/setvars.sh intel64
 This [script](api_test.py) sends requests to the API.
 
 ### import locally 
-Import the [Virtual_Execution_Environment](virtualization.py) and initialize it as following:
+Import the [Virtual_Execution_Environment](virtualization.py) and initialize it as follows:
 
 ```
 import config.load_config as cfg
@@ -55,13 +55,13 @@ error_queue = vee.errors
 ```
 
 ## Evaluation
-The evaluation data for all visualizations in the thesis is included in the repository.
-To create the visualizations run the following two scripts:
+The evaluation data for all visualizations used in the thesis is included in the repository.
+To create the visualizations, run the following two scripts:
 ```
 python read_rb_files.py  
 python read_eval_files_circ.py
 ```
-The generation and visualization of new data works as follows.
+The generation and visualization of new data work as follows.
 ### RB for Aggregation
 Randomized benchmarking of the QPUs with the aggregated quantum circuits: [randomized_benchmarking.py](randomized_benchmarking.py) \
 Evaluation of the randomized benchmarking results and their visualization: [read_rb_files.py](read_rb_files.py)
@@ -72,15 +72,15 @@ Evaluation of the results and their visualization: [read_eval_files_circ.py](rea
 
 ### Evaluation of Partitioning
 Generate evaluation data for one partitioned quantum circuit with one specific cut: [eval_partition_pipeline.py](eval_partition_pipeline.py) \
-Generate evaluation data for different partitioned quantum circuit with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
+Generate evaluation data for different partitioned quantum circuits with various cuts: [eval_part_circuits.py](eval_part_circuits.py) \
 Evaluation of the results and their visualization: [read_eval_files_circ.py](read_eval_files_circ.py)
 
 ## License
 The self-produced code is available under the [Apache-2.0 License](LICENSE).
 
-This project includes parts from third party libraries.
+This project includes parts from third-party libraries.
 Their use is subject to their license terms.
-The following third party libraries were used:
+The implementation used the following third-party libraries:
 
 1. Tang, Wei. (2020). CutQC: Using Small Quantum Computers for Large Quantum Circuit Evaluations. Presented at the Architectural Support for Programming Languages and Operating Systems (ASPLOS), Zenodo. http://doi.org/10.5281/zenodo.4329804 \
 The library is licensed under the [Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0/) \
