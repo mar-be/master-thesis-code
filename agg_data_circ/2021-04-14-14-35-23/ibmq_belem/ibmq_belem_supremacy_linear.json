@@ -1,0 +1,3767 @@
+{
+    "date": "2021-04-14-15-27-16",
+    "circuit_type": "supremacy_linear",
+    "n_circuits": 100,
+    "n_qubits": 2,
+    "shots": 8192,
+    "backend": {
+        "name": "ibmq_belem",
+        "config": {
+            "backend_name": "ibmq_belem",
+            "backend_version": "1.0.7",
+            "n_qubits": 5,
+            "basis_gates": [
+                "id",
+                "rz",
+                "sx",
+                "x",
+                "cx",
+                "reset"
+            ],
+            "gates": [
+                {
+                    "name": "id",
+                    "parameters": [],
+                    "qasm_def": "gate id q { U(0, 0, 0) q; }",
+                    "coupling_map": [
+                        [
+                            0
+                        ],
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            3
+                        ],
+                        [
+                            4
+                        ]
+                    ]
+                },
+                {
+                    "name": "rz",
+                    "parameters": [
+                        "theta"
+                    ],
+                    "qasm_def": "gate rz(theta) q { U(0, 0, theta) q; }",
+                    "coupling_map": [
+                        [
+                            0
+                        ],
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            3
+                        ],
+                        [
+                            4
+                        ]
+                    ]
+                },
+                {
+                    "name": "sx",
+                    "parameters": [],
+                    "qasm_def": "gate sx q { U(pi/2, 3*pi/2, pi/2) q; }",
+                    "coupling_map": [
+                        [
+                            0
+                        ],
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            3
+                        ],
+                        [
+                            4
+                        ]
+                    ]
+                },
+                {
+                    "name": "x",
+                    "parameters": [],
+                    "qasm_def": "gate x q { U(pi, 0, pi) q; }",
+                    "coupling_map": [
+                        [
+                            0
+                        ],
+                        [
+                            1
+                        ],
+                        [
+                            2
+                        ],
+                        [
+                            3
+                        ],
+                        [
+                            4
+                        ]
+                    ]
+                },
+                {
+                    "name": "cx",
+                    "parameters": [],
+                    "qasm_def": "gate cx q0, q1 { CX q0, q1; }",
+                    "coupling_map": [
+                        [
+                            0,
+                            1
+                        ],
+                        [
+                            1,
+                            0
+                        ],
+                        [
+                            1,
+                            2
+                        ],
+                        [
+                            1,
+                            3
+                        ],
+                        [
+                            2,
+                            1
+                        ],
+                        [
+                            3,
+                            1
+                        ],
+                        [
+                            3,
+                            4
+                        ],
+                        [
+                            4,
+                            3
+                        ]
+                    ]
+                },
+                {
+                    "name": "reset",
+                    "parameters": null,
+                    "qasm_def": null
+                }
+            ],
+            "local": false,
+            "simulator": false,
+            "conditional": false,
+            "open_pulse": false,
+            "memory": true,
+            "max_shots": 8192,
+            "coupling_map": [
+                [
+                    0,
+                    1
+                ],
+                [
+                    1,
+                    0
+                ],
+                [
+                    1,
+                    2
+                ],
+                [
+                    1,
+                    3
+                ],
+                [
+                    2,
+                    1
+                ],
+                [
+                    3,
+                    1
+                ],
+                [
+                    3,
+                    4
+                ],
+                [
+                    4,
+                    3
+                ]
+            ],
+            "dynamic_reprate_enabled": true,
+            "supported_instructions": [
+                "sx",
+                "delay",
+                "measure",
+                "shiftf",
+                "x",
+                "u2",
+                "cx",
+                "reset",
+                "setf",
+                "play",
+                "u3",
+                "acquire",
+                "u1",
+                "rz",
+                "id"
+            ],
+            "rep_delay_range": [
+                0.0,
+                500.0
+            ],
+            "default_rep_delay": 250.0,
+            "max_experiments": 75,
+            "sample_name": "family: Falcon, revision: 4, segment: T",
+            "n_registers": 1,
+            "credits_required": true,
+            "online_date": "2021-01-08T05:00:00+00:00",
+            "description": "5 qubit device Belem",
+            "acquisition_latency": [],
+            "allow_q_object": true,
+            "channels": {
+                "acquire0": {
+                    "operates": {
+                        "qubits": [
+                            0
+                        ]
+                    },
+                    "purpose": "acquire",
+                    "type": "acquire"
+                },
+                "acquire1": {
+                    "operates": {
+                        "qubits": [
+                            1
+                        ]
+                    },
+                    "purpose": "acquire",
+                    "type": "acquire"
+                },
+                "acquire2": {
+                    "operates": {
+                        "qubits": [
+                            2
+                        ]
+                    },
+                    "purpose": "acquire",
+                    "type": "acquire"
+                },
+                "acquire3": {
+                    "operates": {
+                        "qubits": [
+                            3
+                        ]
+                    },
+                    "purpose": "acquire",
+                    "type": "acquire"
+                },
+                "acquire4": {
+                    "operates": {
+                        "qubits": [
+                            4
+                        ]
+                    },
+                    "purpose": "acquire",
+                    "type": "acquire"
+                },
+                "d0": {
+                    "operates": {
+                        "qubits": [
+                            0
+                        ]
+                    },
+                    "purpose": "drive",
+                    "type": "drive"
+                },
+                "d1": {
+                    "operates": {
+                        "qubits": [
+                            1
+                        ]
+                    },
+                    "purpose": "drive",
+                    "type": "drive"
+                },
+                "d2": {
+                    "operates": {
+                        "qubits": [
+                            2
+                        ]
+                    },
+                    "purpose": "drive",
+                    "type": "drive"
+                },
+                "d3": {
+                    "operates": {
+                        "qubits": [
+                            3
+                        ]
+                    },
+                    "purpose": "drive",
+                    "type": "drive"
+                },
+                "d4": {
+                    "operates": {
+                        "qubits": [
+                            4
+                        ]
+                    },
+                    "purpose": "drive",
+                    "type": "drive"
+                },
+                "m0": {
+                    "operates": {
+                        "qubits": [
+                            0
+                        ]
+                    },
+                    "purpose": "measure",
+                    "type": "measure"
+                },
+                "m1": {
+                    "operates": {
+                        "qubits": [
+                            1
+                        ]
+                    },
+                    "purpose": "measure",
+                    "type": "measure"
+                },
+                "m2": {
+                    "operates": {
+                        "qubits": [
+                            2
+                        ]
+                    },
+                    "purpose": "measure",
+                    "type": "measure"
+                },
+                "m3": {
+                    "operates": {
+                        "qubits": [
+                            3
+                        ]
+                    },
+                    "purpose": "measure",
+                    "type": "measure"
+                },
+                "m4": {
+                    "operates": {
+                        "qubits": [
+                            4
+                        ]
+                    },
+                    "purpose": "measure",
+                    "type": "measure"
+                },
+                "u0": {
+                    "operates": {
+                        "qubits": [
+                            0,
+                            1
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u1": {
+                    "operates": {
+                        "qubits": [
+                            1,
+                            0
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u2": {
+                    "operates": {
+                        "qubits": [
+                            1,
+                            2
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u3": {
+                    "operates": {
+                        "qubits": [
+                            1,
+                            3
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u4": {
+                    "operates": {
+                        "qubits": [
+                            2,
+                            1
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u5": {
+                    "operates": {
+                        "qubits": [
+                            3,
+                            1
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u6": {
+                    "operates": {
+                        "qubits": [
+                            3,
+                            4
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                },
+                "u7": {
+                    "operates": {
+                        "qubits": [
+                            4,
+                            3
+                        ]
+                    },
+                    "purpose": "cross-resonance",
+                    "type": "control"
+                }
+            },
+            "conditional_latency": [],
+            "discriminators": [
+                "quadratic_discriminator",
+                "linear_discriminator",
+                "hw_centroid"
+            ],
+            "dt": 2.222222222222222e-19,
+            "dtm": 2.222222222222222e-19,
+            "hamiltonian": {
+                "description": "Qubits are modeled as Duffing oscillators. In this case, the system includes higher energy states, i.e. not just |0> and |1>. The Pauli operators are generalized via the following set of transformations:\n\n$(\\mathbb{I}-\\sigma_{i}^z)/2 \\rightarrow O_i \\equiv b^\\dagger_{i} b_{i}$,\n\n$\\sigma_{+} \\rightarrow b^\\dagger$,\n\n$\\sigma_{-} \\rightarrow b$,\n\n$\\sigma_{i}^X \\rightarrow b^\\dagger_{i} + b_{i}$.\n\nQubits are coupled through resonator buses. The provided Hamiltonian has been projected into the zero excitation subspace of the resonator buses leading to an effective qubit-qubit flip-flop interaction. The qubit resonance frequencies in the Hamiltonian are the cavity dressed frequencies and not exactly what is returned by the backend defaults, which also includes the dressing due to the qubit-qubit interactions.\n\nQuantities are returned in angular frequencies, with units 2*pi*GHz.\n\nWARNING: Currently not all system Hamiltonian information is available to the public, missing values have been replaced with 0.\n",
+                "h_latex": "\\begin{align} \\mathcal{H}/\\hbar = & \\sum_{i=0}^{4}\\left(\\frac{\\omega_{q,i}}{2}(\\mathbb{I}-\\sigma_i^{z})+\\frac{\\Delta_{i}}{2}(O_i^2-O_i)+\\Omega_{d,i}D_i(t)\\sigma_i^{X}\\right) \\\\ & + J_{0,1}(\\sigma_{0}^{+}\\sigma_{1}^{-}+\\sigma_{0}^{-}\\sigma_{1}^{+}) + J_{1,3}(\\sigma_{1}^{+}\\sigma_{3}^{-}+\\sigma_{1}^{-}\\sigma_{3}^{+}) + J_{3,4}(\\sigma_{3}^{+}\\sigma_{4}^{-}+\\sigma_{3}^{-}\\sigma_{4}^{+}) + J_{1,2}(\\sigma_{1}^{+}\\sigma_{2}^{-}+\\sigma_{1}^{-}\\sigma_{2}^{+}) \\\\ & + \\Omega_{d,0}(U_{0}^{(0,1)}(t))\\sigma_{0}^{X} + \\Omega_{d,1}(U_{1}^{(1,0)}(t)+U_{3}^{(1,3)}(t)+U_{2}^{(1,2)}(t))\\sigma_{1}^{X} \\\\ & + \\Omega_{d,2}(U_{4}^{(2,1)}(t))\\sigma_{2}^{X} + \\Omega_{d,3}(U_{5}^{(3,1)}(t)+U_{6}^{(3,4)}(t))\\sigma_{3}^{X} \\\\ & + \\Omega_{d,4}(U_{7}^{(4,3)}(t))\\sigma_{4}^{X} \\\\ \\end{align}",
+                "h_str": [
+                    "_SUM[i,0,4,wq{i}/2*(I{i}-Z{i})]",
+                    "_SUM[i,0,4,delta{i}/2*O{i}*O{i}]",
+                    "_SUM[i,0,4,-delta{i}/2*O{i}]",
+                    "_SUM[i,0,4,omegad{i}*X{i}||D{i}]",
+                    "jq0q1*Sp0*Sm1",
+                    "jq0q1*Sm0*Sp1",
+                    "jq1q3*Sp1*Sm3",
+                    "jq1q3*Sm1*Sp3",
+                    "jq3q4*Sp3*Sm4",
+                    "jq3q4*Sm3*Sp4",
+                    "jq1q2*Sp1*Sm2",
+                    "jq1q2*Sm1*Sp2",
+                    "omegad1*X0||U0",
+                    "omegad0*X1||U1",
+                    "omegad3*X1||U3",
+                    "omegad2*X1||U2",
+                    "omegad1*X2||U4",
+                    "omegad1*X3||U5",
+                    "omegad4*X3||U6",
+                    "omegad3*X4||U7"
+                ],
+                "osc": {},
+                "qub": {
+                    "0": 3,
+                    "1": 3,
+                    "2": 3,
+                    "3": 3,
+                    "4": 3
+                },
+                "vars": {
+                    "delta0": -2.1119231275656283,
+                    "delta1": -1.989081364755034,
+                    "delta2": -2.0773937776320905,
+                    "delta3": -2.096945401946966,
+                    "delta4": -2.0819029355928373,
+                    "jq0q1": 0.011772262300160973,
+                    "jq1q2": 0.012605700949390706,
+                    "jq1q3": 0.012591488659137172,
+                    "jq3q4": 0.01051661912410011,
+                    "omegad0": 0.8000008398605088,
+                    "omegad1": 0.7738664092846869,
+                    "omegad2": 1.99849814466048,
+                    "omegad3": 0.7727346349859656,
+                    "omegad4": 0.6436205374116912,
+                    "wq0": 31.982728885907285,
+                    "wq1": 32.95711215836558,
+                    "wq2": 33.68402105153684,
+                    "wq3": 32.489259183864235,
+                    "wq4": 33.03886691917199
+                }
+            },
+            "meas_kernels": [
+                "hw_boxcar"
+            ],
+            "meas_levels": [
+                1,
+                2
+            ],
+            "meas_lo_range": [
+                [
+                    6.801661824e+18,
+                    7.801661824e+18
+                ],
+                [
+                    6.893428047e+18,
+                    7.893428047e+18
+                ],
+                [
+                    6.860214726e+18,
+                    7.860214726e+18
+                ],
+                [
+                    6.803382327e+18,
+                    7.803382327e+18
+                ],
+                [
+                    6.926310916e+18,
+                    7.926310916e+18
+                ]
+            ],
+            "meas_map": [
+                [
+                    0,
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            ],
+            "multi_meas_enabled": true,
+            "n_uchannels": 8,
+            "parametric_pulses": [
+                "gaussian",
+                "gaussian_square",
+                "drag",
+                "constant"
+            ],
+            "processor_type": {
+                "family": "Falcon",
+                "revision": 4,
+                "segment": "T"
+            },
+            "quantum_volume": 16,
+            "qubit_channel_mapping": [
+                [
+                    "u0",
+                    "d0",
+                    "u1",
+                    "m0"
+                ],
+                [
+                    "m1",
+                    "u2",
+                    "u0",
+                    "d1",
+                    "u3",
+                    "u1",
+                    "u4",
+                    "u5"
+                ],
+                [
+                    "u2",
+                    "m2",
+                    "d2",
+                    "u4"
+                ],
+                [
+                    "u7",
+                    "u3",
+                    "m3",
+                    "d3",
+                    "u6",
+                    "u5"
+                ],
+                [
+                    "d4",
+                    "m4",
+                    "u7",
+                    "u6"
+                ]
+            ],
+            "qubit_lo_range": [
+                [
+                    4.5902093957600906e+18,
+                    5.590209395760091e+18
+                ],
+                [
+                    4.745287310037886e+18,
+                    5.745287310037886e+18
+                ],
+                [
+                    4.86097845356355e+18,
+                    5.86097845356355e+18
+                ],
+                [
+                    4.67082619650575e+18,
+                    5.67082619650575e+18
+                ],
+                [
+                    4.75829898434152e+18,
+                    5.75829898434152e+18
+                ]
+            ],
+            "rep_times": [
+                0.001
+            ],
+            "u_channel_lo": [
+                [
+                    {
+                        "q": 1,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 0,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 2,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 3,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 1,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 1,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 4,
+                        "scale": "(1+0j)"
+                    }
+                ],
+                [
+                    {
+                        "q": 3,
+                        "scale": "(1+0j)"
+                    }
+                ]
+            ],
+            "uchannels_enabled": true,
+            "url": "None",
+            "allow_object_storage": true
+        },
+        "status": {
+            "backend_name": "ibmq_belem",
+            "backend_version": "1.0.7",
+            "operational": true,
+            "pending_jobs": 23,
+            "status_msg": "active"
+        },
+        "properties": {
+            "backend_name": "ibmq_belem",
+            "backend_version": "1.0.7",
+            "last_update_date": "2021-04-14T05:05:44+00:00",
+            "qubits": [
+                [
+                    {
+                        "date": "2021-04-14T04:18:01+00:00",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": 64.91388398726203
+                    },
+                    {
+                        "date": "2021-04-14T04:19:53+00:00",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": 102.00488902103551
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 5.090209395760091
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "anharmonicity",
+                        "unit": "GHz",
+                        "value": -0.33612300518216515
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.058499999999999996
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas0_prep1",
+                        "unit": "",
+                        "value": 0.08520000000000005
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas1_prep0",
+                        "unit": "",
+                        "value": 0.0318
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": 5351.11111111111
+                    }
+                ],
+                [
+                    {
+                        "date": "2021-04-14T04:18:01+00:00",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": 95.05072703581727
+                    },
+                    {
+                        "date": "2021-04-14T04:23:51+00:00",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": 123.91178540976955
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 5.245287310037886
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "anharmonicity",
+                        "unit": "GHz",
+                        "value": -0.316572131412737
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.039000000000000035
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas0_prep1",
+                        "unit": "",
+                        "value": 0.06640000000000001
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas1_prep0",
+                        "unit": "",
+                        "value": 0.0116
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": 5351.11111111111
+                    }
+                ],
+                [
+                    {
+                        "date": "2021-04-14T04:18:01+00:00",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": 84.67895328684645
+                    },
+                    {
+                        "date": "2021-04-14T04:19:53+00:00",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": 105.646472408714
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 5.3609784535635505
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "anharmonicity",
+                        "unit": "GHz",
+                        "value": -0.3306274884584928
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.027900000000000036
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas0_prep1",
+                        "unit": "",
+                        "value": 0.04479999999999995
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas1_prep0",
+                        "unit": "",
+                        "value": 0.011
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": 5351.11111111111
+                    }
+                ],
+                [
+                    {
+                        "date": "2021-04-14T04:18:01+00:00",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": 103.80602726090123
+                    },
+                    {
+                        "date": "2021-04-14T04:19:53+00:00",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": 104.17847001011468
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 5.17082619650575
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "anharmonicity",
+                        "unit": "GHz",
+                        "value": -0.33373922611368106
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.027200000000000002
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas0_prep1",
+                        "unit": "",
+                        "value": 0.03720000000000001
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas1_prep0",
+                        "unit": "",
+                        "value": 0.0172
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": 5351.11111111111
+                    }
+                ],
+                [
+                    {
+                        "date": "2021-04-14T04:18:01+00:00",
+                        "name": "T1",
+                        "unit": "us",
+                        "value": 87.25369772524972
+                    },
+                    {
+                        "date": "2021-04-14T04:23:51+00:00",
+                        "name": "T2",
+                        "unit": "us",
+                        "value": 136.56826781847403
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 5.25829898434152
+                    },
+                    {
+                        "date": "2021-04-14T05:05:44+00:00",
+                        "name": "anharmonicity",
+                        "unit": "GHz",
+                        "value": -0.3313451432371279
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.022499999999999964
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas0_prep1",
+                        "unit": "",
+                        "value": 0.03300000000000003
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "prob_meas1_prep0",
+                        "unit": "",
+                        "value": 0.012
+                    },
+                    {
+                        "date": "2021-04-14T04:16:09+00:00",
+                        "name": "readout_length",
+                        "unit": "ns",
+                        "value": 5351.11111111111
+                    }
+                ]
+            ],
+            "gates": [
+                {
+                    "qubits": [
+                        0
+                    ],
+                    "gate": "id",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0002997131952173409
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "id0"
+                },
+                {
+                    "qubits": [
+                        1
+                    ],
+                    "gate": "id",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0003524815043967705
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "id1"
+                },
+                {
+                    "qubits": [
+                        2
+                    ],
+                    "gate": "id",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00023604140751398267
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "id2"
+                },
+                {
+                    "qubits": [
+                        3
+                    ],
+                    "gate": "id",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0005041873016323473
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "id3"
+                },
+                {
+                    "qubits": [
+                        4
+                    ],
+                    "gate": "id",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00027572569276808264
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "id4"
+                },
+                {
+                    "qubits": [
+                        0
+                    ],
+                    "gate": "rz",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 0
+                        }
+                    ],
+                    "name": "rz0"
+                },
+                {
+                    "qubits": [
+                        1
+                    ],
+                    "gate": "rz",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 0
+                        }
+                    ],
+                    "name": "rz1"
+                },
+                {
+                    "qubits": [
+                        2
+                    ],
+                    "gate": "rz",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 0
+                        }
+                    ],
+                    "name": "rz2"
+                },
+                {
+                    "qubits": [
+                        3
+                    ],
+                    "gate": "rz",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 0
+                        }
+                    ],
+                    "name": "rz3"
+                },
+                {
+                    "qubits": [
+                        4
+                    ],
+                    "gate": "rz",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 0
+                        }
+                    ],
+                    "name": "rz4"
+                },
+                {
+                    "qubits": [
+                        0
+                    ],
+                    "gate": "sx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0002997131952173409
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "sx0"
+                },
+                {
+                    "qubits": [
+                        1
+                    ],
+                    "gate": "sx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0003524815043967705
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "sx1"
+                },
+                {
+                    "qubits": [
+                        2
+                    ],
+                    "gate": "sx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00023604140751398267
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "sx2"
+                },
+                {
+                    "qubits": [
+                        3
+                    ],
+                    "gate": "sx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0005041873016323473
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "sx3"
+                },
+                {
+                    "qubits": [
+                        4
+                    ],
+                    "gate": "sx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00027572569276808264
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "sx4"
+                },
+                {
+                    "qubits": [
+                        0
+                    ],
+                    "gate": "x",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0002997131952173409
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "x0"
+                },
+                {
+                    "qubits": [
+                        1
+                    ],
+                    "gate": "x",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0003524815043967705
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "x1"
+                },
+                {
+                    "qubits": [
+                        2
+                    ],
+                    "gate": "x",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00023604140751398267
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "x2"
+                },
+                {
+                    "qubits": [
+                        3
+                    ],
+                    "gate": "x",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:26:50+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.0005041873016323473
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "x3"
+                },
+                {
+                    "qubits": [
+                        4
+                    ],
+                    "gate": "x",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:30:43+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.00027572569276808264
+                        },
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 35.55555555555556
+                        }
+                    ],
+                    "name": "x4"
+                },
+                {
+                    "qubits": [
+                        4,
+                        3
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.01110214224664488
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 554.6666666666666
+                        }
+                    ],
+                    "name": "cx4_3"
+                },
+                {
+                    "qubits": [
+                        3,
+                        4
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.01110214224664488
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 590.2222222222222
+                        }
+                    ],
+                    "name": "cx3_4"
+                },
+                {
+                    "qubits": [
+                        3,
+                        1
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:59:38+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.008205249589747637
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 398.2222222222222
+                        }
+                    ],
+                    "name": "cx3_1"
+                },
+                {
+                    "qubits": [
+                        1,
+                        3
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:59:38+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.008205249589747637
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 433.77777777777777
+                        }
+                    ],
+                    "name": "cx1_3"
+                },
+                {
+                    "qubits": [
+                        2,
+                        1
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:53:40+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.006131775594555966
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 412.4444444444444
+                        }
+                    ],
+                    "name": "cx2_1"
+                },
+                {
+                    "qubits": [
+                        1,
+                        2
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:53:40+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.006131775594555966
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 448
+                        }
+                    ],
+                    "name": "cx1_2"
+                },
+                {
+                    "qubits": [
+                        1,
+                        0
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:38:55+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.012658356652967412
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 775.1111111111111
+                        }
+                    ],
+                    "name": "cx1_0"
+                },
+                {
+                    "qubits": [
+                        0,
+                        1
+                    ],
+                    "gate": "cx",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T04:38:55+00:00",
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": 0.012658356652967412
+                        },
+                        {
+                            "date": "2021-04-11T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 810.6666666666666
+                        }
+                    ],
+                    "name": "cx0_1"
+                },
+                {
+                    "qubits": [
+                        0
+                    ],
+                    "gate": "reset",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 7342.222222222222
+                        }
+                    ],
+                    "name": "reset0"
+                },
+                {
+                    "qubits": [
+                        1
+                    ],
+                    "gate": "reset",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 7342.222222222222
+                        }
+                    ],
+                    "name": "reset1"
+                },
+                {
+                    "qubits": [
+                        2
+                    ],
+                    "gate": "reset",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 7342.222222222222
+                        }
+                    ],
+                    "name": "reset2"
+                },
+                {
+                    "qubits": [
+                        3
+                    ],
+                    "gate": "reset",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 7342.222222222222
+                        }
+                    ],
+                    "name": "reset3"
+                },
+                {
+                    "qubits": [
+                        4
+                    ],
+                    "gate": "reset",
+                    "parameters": [
+                        {
+                            "date": "2021-04-14T05:05:44+00:00",
+                            "name": "gate_length",
+                            "unit": "ns",
+                            "value": 7342.222222222222
+                        }
+                    ],
+                    "name": "reset4"
+                }
+            ],
+            "general": [
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "jq_01",
+                    "unit": "GHz",
+                    "value": 0.0018736137364449847
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "zz_01",
+                    "unit": "GHz",
+                    "value": -5.778719017046504e-05
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "jq_13",
+                    "unit": "GHz",
+                    "value": 0.0020039976609872224
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "zz_13",
+                    "unit": "GHz",
+                    "value": -5.2854062688980254e-05
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "jq_34",
+                    "unit": "GHz",
+                    "value": 0.0016737719182152912
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "zz_34",
+                    "unit": "GHz",
+                    "value": -3.628419642815204e-05
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "jq_12",
+                    "unit": "GHz",
+                    "value": 0.0020062596172337292
+                },
+                {
+                    "date": "2021-04-14T05:05:44+00:00",
+                    "name": "zz_12",
+                    "unit": "GHz",
+                    "value": -5.607853601551941e-05
+                }
+            ]
+        }
+    },
+    "data": [
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4588623046875,
+                0.03955078125,
+                0.0355224609375,
+                0.466064453125
+            ],
+            "agg-result": [
+                0.44091796875,
+                0.04150390625,
+                0.04345703125,
+                0.47412109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4541015625,
+                0.0390625,
+                0.03564453125,
+                0.47119140625
+            ],
+            "agg-result": [
+                0.4783935546875,
+                0.058837890625,
+                0.0916748046875,
+                0.37109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4500732421875,
+                0.0367431640625,
+                0.033935546875,
+                0.479248046875
+            ],
+            "agg-result": [
+                0.4510498046875,
+                0.0377197265625,
+                0.0396728515625,
+                0.4715576171875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.455810546875,
+                0.042236328125,
+                0.0322265625,
+                0.4697265625
+            ],
+            "agg-result": [
+                0.468994140625,
+                0.0595703125,
+                0.092529296875,
+                0.37890625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.456787109375,
+                0.043212890625,
+                0.03271484375,
+                0.46728515625
+            ],
+            "agg-result": [
+                0.4449462890625,
+                0.0428466796875,
+                0.04296875,
+                0.46923828125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4571533203125,
+                0.0374755859375,
+                0.03466796875,
+                0.470703125
+            ],
+            "agg-result": [
+                0.4791259765625,
+                0.0589599609375,
+                0.094482421875,
+                0.367431640625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4642333984375,
+                0.041259765625,
+                0.032470703125,
+                0.4620361328125
+            ],
+            "agg-result": [
+                0.4471435546875,
+                0.0447998046875,
+                0.0439453125,
+                0.464111328125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4566650390625,
+                0.043701171875,
+                0.033447265625,
+                0.4661865234375
+            ],
+            "agg-result": [
+                0.4656982421875,
+                0.058349609375,
+                0.09423828125,
+                0.3817138671875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4564208984375,
+                0.0408935546875,
+                0.0347900390625,
+                0.4678955078125
+            ],
+            "agg-result": [
+                0.448486328125,
+                0.0455322265625,
+                0.0400390625,
+                0.4659423828125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.463623046875,
+                0.03759765625,
+                0.035400390625,
+                0.46337890625
+            ],
+            "agg-result": [
+                0.481689453125,
+                0.060546875,
+                0.091552734375,
+                0.3662109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4598388671875,
+                0.039306640625,
+                0.03564453125,
+                0.4652099609375
+            ],
+            "agg-result": [
+                0.45654296875,
+                0.0380859375,
+                0.040771484375,
+                0.464599609375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.451171875,
+                0.044189453125,
+                0.034912109375,
+                0.4697265625
+            ],
+            "agg-result": [
+                0.4713134765625,
+                0.0655517578125,
+                0.0933837890625,
+                0.3697509765625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.454833984375,
+                0.0364990234375,
+                0.0333251953125,
+                0.475341796875
+            ],
+            "agg-result": [
+                0.4583740234375,
+                0.0404052734375,
+                0.0447998046875,
+                0.4564208984375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.460693359375,
+                0.038818359375,
+                0.0325927734375,
+                0.4678955078125
+            ],
+            "agg-result": [
+                0.4830322265625,
+                0.0545654296875,
+                0.08837890625,
+                0.3740234375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4517822265625,
+                0.0380859375,
+                0.0325927734375,
+                0.4775390625
+            ],
+            "agg-result": [
+                0.44970703125,
+                0.03955078125,
+                0.041015625,
+                0.4697265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4505615234375,
+                0.0400390625,
+                0.032958984375,
+                0.4764404296875
+            ],
+            "agg-result": [
+                0.4722900390625,
+                0.061279296875,
+                0.0836181640625,
+                0.3828125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.45751953125,
+                0.0350341796875,
+                0.035888671875,
+                0.4715576171875
+            ],
+            "agg-result": [
+                0.457275390625,
+                0.0421142578125,
+                0.04150390625,
+                0.4591064453125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.460205078125,
+                0.042236328125,
+                0.0335693359375,
+                0.4639892578125
+            ],
+            "agg-result": [
+                0.4810791015625,
+                0.062255859375,
+                0.0911865234375,
+                0.365478515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4591064453125,
+                0.0416259765625,
+                0.0360107421875,
+                0.4632568359375
+            ],
+            "agg-result": [
+                0.4493408203125,
+                0.0394287109375,
+                0.04296875,
+                0.46826171875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4517822265625,
+                0.0391845703125,
+                0.036376953125,
+                0.47265625
+            ],
+            "agg-result": [
+                0.474365234375,
+                0.0606689453125,
+                0.0828857421875,
+                0.382080078125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4578857421875,
+                0.0423583984375,
+                0.0341796875,
+                0.465576171875
+            ],
+            "agg-result": [
+                0.4482421875,
+                0.04150390625,
+                0.037353515625,
+                0.472900390625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.446044921875,
+                0.04248046875,
+                0.031494140625,
+                0.47998046875
+            ],
+            "agg-result": [
+                0.4764404296875,
+                0.0611572265625,
+                0.083984375,
+                0.37841796875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4522705078125,
+                0.0379638671875,
+                0.0347900390625,
+                0.4749755859375
+            ],
+            "agg-result": [
+                0.4447021484375,
+                0.04248046875,
+                0.0418701171875,
+                0.470947265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4632568359375,
+                0.0384521484375,
+                0.0345458984375,
+                0.4637451171875
+            ],
+            "agg-result": [
+                0.47265625,
+                0.0625,
+                0.0860595703125,
+                0.3787841796875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.46240234375,
+                0.0369873046875,
+                0.0313720703125,
+                0.46923828125
+            ],
+            "agg-result": [
+                0.453125,
+                0.0404052734375,
+                0.0439453125,
+                0.4625244140625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4696044921875,
+                0.0416259765625,
+                0.03173828125,
+                0.45703125
+            ],
+            "agg-result": [
+                0.469482421875,
+                0.056640625,
+                0.09130859375,
+                0.382568359375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4573974609375,
+                0.038818359375,
+                0.0318603515625,
+                0.471923828125
+            ],
+            "agg-result": [
+                0.4521484375,
+                0.0384521484375,
+                0.04248046875,
+                0.4669189453125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.45947265625,
+                0.043701171875,
+                0.0321044921875,
+                0.4647216796875
+            ],
+            "agg-result": [
+                0.4796142578125,
+                0.0579833984375,
+                0.0869140625,
+                0.37548828125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4581298828125,
+                0.0411376953125,
+                0.03173828125,
+                0.468994140625
+            ],
+            "agg-result": [
+                0.4429931640625,
+                0.042236328125,
+                0.040283203125,
+                0.4744873046875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4613037109375,
+                0.04052734375,
+                0.0369873046875,
+                0.461181640625
+            ],
+            "agg-result": [
+                0.47412109375,
+                0.0599365234375,
+                0.08349609375,
+                0.3824462890625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4686279296875,
+                0.04345703125,
+                0.033935546875,
+                0.4539794921875
+            ],
+            "agg-result": [
+                0.44384765625,
+                0.0428466796875,
+                0.042724609375,
+                0.4705810546875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.446044921875,
+                0.038818359375,
+                0.03125,
+                0.48388671875
+            ],
+            "agg-result": [
+                0.4803466796875,
+                0.0589599609375,
+                0.08203125,
+                0.378662109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4522705078125,
+                0.041015625,
+                0.0294189453125,
+                0.477294921875
+            ],
+            "agg-result": [
+                0.447509765625,
+                0.041748046875,
+                0.045654296875,
+                0.465087890625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.457763671875,
+                0.041015625,
+                0.0341796875,
+                0.467041015625
+            ],
+            "agg-result": [
+                0.479736328125,
+                0.062255859375,
+                0.089111328125,
+                0.368896484375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4578857421875,
+                0.0379638671875,
+                0.033935546875,
+                0.47021484375
+            ],
+            "agg-result": [
+                0.4539794921875,
+                0.0421142578125,
+                0.036865234375,
+                0.467041015625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.468994140625,
+                0.039306640625,
+                0.03466796875,
+                0.45703125
+            ],
+            "agg-result": [
+                0.46044921875,
+                0.0587158203125,
+                0.0926513671875,
+                0.38818359375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.461669921875,
+                0.04052734375,
+                0.03271484375,
+                0.465087890625
+            ],
+            "agg-result": [
+                0.4410400390625,
+                0.0419921875,
+                0.0439453125,
+                0.4730224609375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.467529296875,
+                0.0361328125,
+                0.03466796875,
+                0.461669921875
+            ],
+            "agg-result": [
+                0.4718017578125,
+                0.0584716796875,
+                0.0858154296875,
+                0.3839111328125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4532470703125,
+                0.0390625,
+                0.0340576171875,
+                0.4736328125
+            ],
+            "agg-result": [
+                0.4517822265625,
+                0.0433349609375,
+                0.0433349609375,
+                0.4615478515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4609375,
+                0.039306640625,
+                0.037109375,
+                0.462646484375
+            ],
+            "agg-result": [
+                0.4725341796875,
+                0.0626220703125,
+                0.091796875,
+                0.373046875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.45849609375,
+                0.0426025390625,
+                0.033203125,
+                0.4656982421875
+            ],
+            "agg-result": [
+                0.454345703125,
+                0.0382080078125,
+                0.0450439453125,
+                0.46240234375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4539794921875,
+                0.043701171875,
+                0.0338134765625,
+                0.468505859375
+            ],
+            "agg-result": [
+                0.4847412109375,
+                0.05908203125,
+                0.082763671875,
+                0.3734130859375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4647216796875,
+                0.0433349609375,
+                0.0321044921875,
+                0.4598388671875
+            ],
+            "agg-result": [
+                0.453369140625,
+                0.039794921875,
+                0.0428466796875,
+                0.4639892578125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4508056640625,
+                0.0401611328125,
+                0.039306640625,
+                0.4697265625
+            ],
+            "agg-result": [
+                0.4866943359375,
+                0.05615234375,
+                0.08349609375,
+                0.3736572265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4610595703125,
+                0.0428466796875,
+                0.032958984375,
+                0.463134765625
+            ],
+            "agg-result": [
+                0.439208984375,
+                0.0443115234375,
+                0.044189453125,
+                0.4722900390625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.478759765625,
+                0.038330078125,
+                0.033447265625,
+                0.449462890625
+            ],
+            "agg-result": [
+                0.4732666015625,
+                0.0653076171875,
+                0.092529296875,
+                0.368896484375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4632568359375,
+                0.0384521484375,
+                0.03564453125,
+                0.462646484375
+            ],
+            "agg-result": [
+                0.448486328125,
+                0.0389404296875,
+                0.045166015625,
+                0.4674072265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4609375,
+                0.042724609375,
+                0.0340576171875,
+                0.4622802734375
+            ],
+            "agg-result": [
+                0.463134765625,
+                0.0609130859375,
+                0.090576171875,
+                0.3853759765625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4556884765625,
+                0.03759765625,
+                0.033447265625,
+                0.4732666015625
+            ],
+            "agg-result": [
+                0.45361328125,
+                0.0419921875,
+                0.0428466796875,
+                0.4615478515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.46533203125,
+                0.04052734375,
+                0.0318603515625,
+                0.4622802734375
+            ],
+            "agg-result": [
+                0.4854736328125,
+                0.0562744140625,
+                0.0904541015625,
+                0.3677978515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4559326171875,
+                0.0404052734375,
+                0.03662109375,
+                0.467041015625
+            ],
+            "agg-result": [
+                0.4622802734375,
+                0.040771484375,
+                0.04150390625,
+                0.4554443359375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4625244140625,
+                0.039794921875,
+                0.032470703125,
+                0.4652099609375
+            ],
+            "agg-result": [
+                0.472412109375,
+                0.0606689453125,
+                0.087646484375,
+                0.3792724609375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4649658203125,
+                0.0389404296875,
+                0.0347900390625,
+                0.4613037109375
+            ],
+            "agg-result": [
+                0.45166015625,
+                0.03564453125,
+                0.0440673828125,
+                0.4686279296875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.450439453125,
+                0.0421142578125,
+                0.0328369140625,
+                0.474609375
+            ],
+            "agg-result": [
+                0.475830078125,
+                0.061767578125,
+                0.0841064453125,
+                0.3782958984375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.447509765625,
+                0.041015625,
+                0.037109375,
+                0.474365234375
+            ],
+            "agg-result": [
+                0.4483642578125,
+                0.039306640625,
+                0.0428466796875,
+                0.469482421875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.454833984375,
+                0.038330078125,
+                0.0322265625,
+                0.474609375
+            ],
+            "agg-result": [
+                0.4815673828125,
+                0.059326171875,
+                0.0855712890625,
+                0.37353515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4537353515625,
+                0.0404052734375,
+                0.033447265625,
+                0.472412109375
+            ],
+            "agg-result": [
+                0.4554443359375,
+                0.039794921875,
+                0.039306640625,
+                0.4654541015625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4561767578125,
+                0.0418701171875,
+                0.032470703125,
+                0.469482421875
+            ],
+            "agg-result": [
+                0.4801025390625,
+                0.058349609375,
+                0.0902099609375,
+                0.371337890625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4512939453125,
+                0.0423583984375,
+                0.0380859375,
+                0.46826171875
+            ],
+            "agg-result": [
+                0.4549560546875,
+                0.0411376953125,
+                0.0389404296875,
+                0.4649658203125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.46435546875,
+                0.0408935546875,
+                0.0318603515625,
+                0.462890625
+            ],
+            "agg-result": [
+                0.4688720703125,
+                0.0594482421875,
+                0.0902099609375,
+                0.3814697265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4681396484375,
+                0.040771484375,
+                0.0350341796875,
+                0.4560546875
+            ],
+            "agg-result": [
+                0.4581298828125,
+                0.0394287109375,
+                0.0361328125,
+                0.46630859375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.451171875,
+                0.0408935546875,
+                0.0347900390625,
+                0.47314453125
+            ],
+            "agg-result": [
+                0.471435546875,
+                0.0577392578125,
+                0.0850830078125,
+                0.3857421875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4642333984375,
+                0.041015625,
+                0.034423828125,
+                0.4603271484375
+            ],
+            "agg-result": [
+                0.449462890625,
+                0.0396728515625,
+                0.0396728515625,
+                0.47119140625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4559326171875,
+                0.0426025390625,
+                0.0311279296875,
+                0.4703369140625
+            ],
+            "agg-result": [
+                0.4736328125,
+                0.0555419921875,
+                0.09033203125,
+                0.3804931640625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4578857421875,
+                0.0364990234375,
+                0.032470703125,
+                0.47314453125
+            ],
+            "agg-result": [
+                0.4483642578125,
+                0.0399169921875,
+                0.0428466796875,
+                0.4688720703125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.453125,
+                0.04150390625,
+                0.033935546875,
+                0.471435546875
+            ],
+            "agg-result": [
+                0.4661865234375,
+                0.0574951171875,
+                0.0855712890625,
+                0.3907470703125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4505615234375,
+                0.039794921875,
+                0.0372314453125,
+                0.472412109375
+            ],
+            "agg-result": [
+                0.4468994140625,
+                0.038330078125,
+                0.0438232421875,
+                0.470947265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.458740234375,
+                0.040771484375,
+                0.0369873046875,
+                0.4635009765625
+            ],
+            "agg-result": [
+                0.470458984375,
+                0.061279296875,
+                0.0946044921875,
+                0.3736572265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4560546875,
+                0.0408935546875,
+                0.0369873046875,
+                0.466064453125
+            ],
+            "agg-result": [
+                0.44580078125,
+                0.044189453125,
+                0.0400390625,
+                0.469970703125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.455810546875,
+                0.038818359375,
+                0.0306396484375,
+                0.4747314453125
+            ],
+            "agg-result": [
+                0.4761962890625,
+                0.0594482421875,
+                0.0872802734375,
+                0.3770751953125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4630126953125,
+                0.0426025390625,
+                0.03173828125,
+                0.462646484375
+            ],
+            "agg-result": [
+                0.446044921875,
+                0.040771484375,
+                0.0445556640625,
+                0.4686279296875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4527587890625,
+                0.040771484375,
+                0.0322265625,
+                0.4742431640625
+            ],
+            "agg-result": [
+                0.4593505859375,
+                0.0587158203125,
+                0.09765625,
+                0.38427734375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.46337890625,
+                0.040283203125,
+                0.0322265625,
+                0.464111328125
+            ],
+            "agg-result": [
+                0.459228515625,
+                0.0362548828125,
+                0.0408935546875,
+                0.463623046875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.46240234375,
+                0.039306640625,
+                0.0322265625,
+                0.466064453125
+            ],
+            "agg-result": [
+                0.4720458984375,
+                0.0577392578125,
+                0.091796875,
+                0.37841796875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4630126953125,
+                0.0379638671875,
+                0.03515625,
+                0.4638671875
+            ],
+            "agg-result": [
+                0.4473876953125,
+                0.04443359375,
+                0.0350341796875,
+                0.47314453125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.45556640625,
+                0.0408935546875,
+                0.03125,
+                0.4722900390625
+            ],
+            "agg-result": [
+                0.47021484375,
+                0.061767578125,
+                0.0848388671875,
+                0.3831787109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4625244140625,
+                0.0390625,
+                0.03271484375,
+                0.4656982421875
+            ],
+            "agg-result": [
+                0.46435546875,
+                0.0364990234375,
+                0.0399169921875,
+                0.459228515625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4700927734375,
+                0.03857421875,
+                0.0322265625,
+                0.4591064453125
+            ],
+            "agg-result": [
+                0.4688720703125,
+                0.05908203125,
+                0.08984375,
+                0.3822021484375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4586181640625,
+                0.0421142578125,
+                0.0343017578125,
+                0.4649658203125
+            ],
+            "agg-result": [
+                0.4581298828125,
+                0.040771484375,
+                0.04150390625,
+                0.4595947265625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.449462890625,
+                0.04296875,
+                0.034423828125,
+                0.47314453125
+            ],
+            "agg-result": [
+                0.4730224609375,
+                0.0582275390625,
+                0.08984375,
+                0.37890625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.468505859375,
+                0.038818359375,
+                0.034912109375,
+                0.457763671875
+            ],
+            "agg-result": [
+                0.4515380859375,
+                0.039794921875,
+                0.0400390625,
+                0.4686279296875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4610595703125,
+                0.0389404296875,
+                0.0323486328125,
+                0.4676513671875
+            ],
+            "agg-result": [
+                0.482421875,
+                0.0592041015625,
+                0.08447265625,
+                0.3739013671875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4639892578125,
+                0.0418701171875,
+                0.0335693359375,
+                0.4605712890625
+            ],
+            "agg-result": [
+                0.43994140625,
+                0.0401611328125,
+                0.040283203125,
+                0.4796142578125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4644775390625,
+                0.0428466796875,
+                0.0321044921875,
+                0.4605712890625
+            ],
+            "agg-result": [
+                0.4732666015625,
+                0.0567626953125,
+                0.0870361328125,
+                0.3829345703125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4517822265625,
+                0.0426025390625,
+                0.0333251953125,
+                0.4722900390625
+            ],
+            "agg-result": [
+                0.4453125,
+                0.0377197265625,
+                0.046875,
+                0.4700927734375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4559326171875,
+                0.0386962890625,
+                0.0323486328125,
+                0.4730224609375
+            ],
+            "agg-result": [
+                0.476318359375,
+                0.0596923828125,
+                0.0880126953125,
+                0.3759765625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4615478515625,
+                0.041259765625,
+                0.0335693359375,
+                0.463623046875
+            ],
+            "agg-result": [
+                0.459716796875,
+                0.036865234375,
+                0.0435791015625,
+                0.4598388671875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.453857421875,
+                0.03759765625,
+                0.030517578125,
+                0.47802734375
+            ],
+            "agg-result": [
+                0.470947265625,
+                0.060791015625,
+                0.0885009765625,
+                0.3797607421875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4593505859375,
+                0.0369873046875,
+                0.03076171875,
+                0.472900390625
+            ],
+            "agg-result": [
+                0.454833984375,
+                0.039306640625,
+                0.0421142578125,
+                0.4637451171875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.462890625,
+                0.0423583984375,
+                0.03173828125,
+                0.4630126953125
+            ],
+            "agg-result": [
+                0.4754638671875,
+                0.0626220703125,
+                0.0836181640625,
+                0.3782958984375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4541015625,
+                0.0391845703125,
+                0.033935546875,
+                0.4727783203125
+            ],
+            "agg-result": [
+                0.4462890625,
+                0.0411376953125,
+                0.0389404296875,
+                0.4736328125
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4659423828125,
+                0.037841796875,
+                0.0322265625,
+                0.4639892578125
+            ],
+            "agg-result": [
+                0.473876953125,
+                0.059814453125,
+                0.087158203125,
+                0.379150390625
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4696044921875,
+                0.0406494140625,
+                0.0318603515625,
+                0.4578857421875
+            ],
+            "agg-result": [
+                0.446044921875,
+                0.0404052734375,
+                0.0419921875,
+                0.4715576171875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4625244140625,
+                0.0433349609375,
+                0.0350341796875,
+                0.4591064453125
+            ],
+            "agg-result": [
+                0.470947265625,
+                0.06298828125,
+                0.0906982421875,
+                0.3753662109375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4617919921875,
+                0.0462646484375,
+                0.029296875,
+                0.462646484375
+            ],
+            "agg-result": [
+                0.45458984375,
+                0.0455322265625,
+                0.0401611328125,
+                0.459716796875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4521484375,
+                0.0408935546875,
+                0.0279541015625,
+                0.47900390625
+            ],
+            "agg-result": [
+                0.476806640625,
+                0.05810546875,
+                0.088623046875,
+                0.37646484375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4595947265625,
+                0.0386962890625,
+                0.033935546875,
+                0.4677734375
+            ],
+            "agg-result": [
+                0.4451904296875,
+                0.0389404296875,
+                0.0418701171875,
+                0.4739990234375
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4569091796875,
+                0.0389404296875,
+                0.033203125,
+                0.470947265625
+            ],
+            "agg-result": [
+                0.47802734375,
+                0.061279296875,
+                0.0858154296875,
+                0.3748779296875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.460205078125,
+                0.041748046875,
+                0.0335693359375,
+                0.4644775390625
+            ],
+            "agg-result": [
+                0.4554443359375,
+                0.0408935546875,
+                0.0399169921875,
+                0.4637451171875
+            ]
+        },
+        {
+            "circuit": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\nh q[1];\ncz q[0],q[1];\nrx(pi/2) q[0];\nrx(pi/2) q[1];\nt q[0];\nt q[1];\nh q[0];\nh q[1];\n",
+            "sv-result": [
+                0.49999999999999994,
+                1.605080210040313e-32,
+                8.18828743655536e-33,
+                0.4999999999999997
+            ],
+            "result": [
+                0.4503173828125,
+                0.04345703125,
+                0.0352783203125,
+                0.470947265625
+            ],
+            "agg-result": [
+                0.4732666015625,
+                0.0623779296875,
+                0.084716796875,
+                0.379638671875
+            ]
+        }
+    ]
+}
