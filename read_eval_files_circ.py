@@ -441,9 +441,9 @@ def overall_plot(path:str, mode="part"):
 if __name__ == "__main__":
     overall_plot("./part_data/2021-04-18-07-11-18-test")
     eval_dir_cuts("part_data/2021-04-20-06-05-22")
-    # eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
-    # eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
-    # eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
+    eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
 
     eval_dir("part_data/2021-04-18-07-11-18/ibmq_qasm_simulator", "part", "circuits")
     eval_dir("part_data/2021-04-18-07-11-18/ibmq_athens", "part", "circuits")
@@ -452,9 +452,9 @@ if __name__ == "__main__":
     eval_dir("part_data/2021-04-18-07-11-18/ibmq_quito", "part", "circuits")
     eval_dir("part_data/2021-04-18-07-11-18/ibmq_santiago", "part", "circuits")
 
-    # eval_dir("./agg_data_circ/2021-04-14-14-30-09/ibmq_athens")
-    # eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
-    # eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
-    # eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
-    # eval_dir("./agg_data_circ/2021-04-14-15-50-01/ibmq_lima")
+    eval_dir("./agg_data_circ/2021-04-14-14-30-09/ibmq_athens")
+    eval_dir("./agg_data_circ/2021-04-14-14-35-23/ibmq_belem")
+    eval_dir("./agg_data_circ/2021-04-14-15-16-27/ibmq_santiago")
+    eval_dir("./agg_data_circ/2021-04-14-15-32-54/ibmq_quito")
+    eval_dir("./agg_data_circ/2021-04-14-15-50-01/ibmq_lima")
     

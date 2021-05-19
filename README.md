@@ -55,6 +55,13 @@ error_queue = vee.errors
 ```
 
 ## Evaluation
+The evaluation data for all visualizations in the thesis is included in the repository.
+To create the visualizations run the following two scripts:
+```
+python read_rb_files.py  
+python read_eval_files_circ.py
+```
+The generation and visualization of new data works as follows.
 ### RB for Aggregation
 Randomized benchmarking of the QPUs with the aggregated quantum circuits: [randomized_benchmarking.py](randomized_benchmarking.py) \
 Evaluation of the randomized benchmarking results and their visualization: [read_rb_files.py](read_rb_files.py)
