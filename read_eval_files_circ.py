@@ -105,8 +105,8 @@ def violin_plot(values, mod_values, labels, title, filename, mode="agg", diagram
         with_modification = "aggregation"
         without_modification = "no aggregation"
     else:
-        with_modification = "partition"
-        without_modification = "no partition"
+        with_modification = "partitioning"
+        without_modification = "no partitioning"
 
     if diagram == "circuits":
         x_axis_label = "Quantum Circuit"
@@ -203,8 +203,8 @@ def evaluate_file(file_path, mode="agg"):
         with_modification = "aggregation"
         without_modification = "no aggregation"
     else:
-        with_modification = "partition"
-        without_modification = "no partition"
+        with_modification = "partitioning"
+        without_modification = "no partitioning"
     
 
     # parse file
@@ -339,8 +339,8 @@ def overall_plot(path:str, mode="part"):
         with_modification = "aggregation"
         without_modification = "no aggregation"
     else:
-        with_modification = "partition"
-        without_modification = "no partition"
+        with_modification = "partitioning"
+        without_modification = "no partitioning"
     data = []
     circuit_types = []
     for file in files:
@@ -439,8 +439,8 @@ def overall_plot(path:str, mode="part"):
 
 
 if __name__ == "__main__":
-    # overall_plot("./part_data/2021-04-18-07-11-18-test")
-    # eval_dir_cuts("part_data/2021-04-20-06-05-22")
+    overall_plot("./part_data/2021-04-18-07-11-18-test")
+    eval_dir_cuts("part_data/2021-04-20-06-05-22")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_adder", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_bv", "part", "qpu")
     # eval_dir("./part_data/2021-04-18-07-11-18/qpu_supremacy_linear", "part", "qpu")
