@@ -44,7 +44,7 @@ def plot(no_agg_fit:RBFitter, agg_fit:RBFitter, path:str, title:str, log:Logger,
     ax = fitter_plot(no_agg_fit, "no aggregation", ax, no_agg_color, x_shift=1, mode="no agg")
 
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_xlabel('Clifford Length (Circuit Depth)', fontsize=18)
     ax.set_ylabel('Fidelity', fontsize=18)
     ax.grid(True)
     ax.set_ylim([0.2,1])
@@ -291,7 +291,7 @@ def all_backends_mean_graph(path:str, log:Logger):
         ax.plot(x, mean_diff, linewidth=2, label=backend_name)
         log.info(f"Added {backend_name} to mean diff plot")
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_xlabel('Clifford Length (Circuit Depth)', fontsize=18)
     ax.set_ylabel('Mean fidelity difference', fontsize=18)
     ax.grid(True)
 
@@ -513,7 +513,7 @@ def plot_different_length_agg(no_agg_fit:RBFitter, agg_fit:RBFitter, agg_diff_fi
     ax.plot(xdata, ydata['mean'], color=no_agg_color[2], linestyle='--', linewidth=2, label=f"no aggregation")
 
     ax.tick_params(labelsize=16)
-    ax.set_xlabel('Number of Cliffords (Circuit Depth)', fontsize=18)
+    ax.set_xlabel('Clifford Length (Circuit Depth)', fontsize=18)
     ax.set_ylabel('Fidelity', fontsize=18)
     ax.grid(True)
     ax.set_ylim([0.17,1])
